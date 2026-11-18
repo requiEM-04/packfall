@@ -1,11 +1,12 @@
 // Booster-Stil: düstere, detaillierte Pixel-Art, Vollbild-Arena mit Turm (Richtung „Booster Pack Heroes“, eigene Grafiken)
-import { ARENA, G, realmOf } from './core.js?v=0.7-42083dbf';
-import { createUI } from './ui.js?v=0.7-42083dbf';
+import { ARENA, G, realmOf } from './core.js?v=0.8-720520af';
+import { createUI } from './ui.js?v=0.8-720520af';
 import {
   towerCanvas, crystalCanvas, heroCanvas, enemyCanvas, rockCanvas, treeCanvas, bonesCanvas,
   packCanvas, cardBackCanvas, iconSVG, variant, shade, logoCanvas, titleBackdrop, mute,
-} from './bph-art.js?v=0.7-42083dbf';
-import { heroSprite } from './heroes.js?v=0.7-42083dbf';
+} from './bph-art.js?v=0.8-720520af';
+import { heroSprite } from './heroes.js?v=0.8-720520af';
+import { createMenuScene } from './menuscene.js?v=0.8-720520af';
 const M = c => (typeof c === 'string' && c[0] === '#' && c.length === 7 ? mute(c, 0.5, 0.92) : c);
 
 const REALM_RAW = [
@@ -54,6 +55,8 @@ export async function mount(root, game, { audio, cloud } = {}) {
 
   // Sprites
   const TOWER = towerCanvas();
+  const menuScene = createMenuScene({ towerCanvas: TOWER, treeCanvas });
+  let sceneT = 0;
   const TOWER_FLASH = variant(TOWER, 'flash');
   const CRYSTAL = crystalCanvas();
   const heroes = {};
@@ -98,11 +101,8 @@ export async function mount(root, game, { audio, cloud } = {}) {
     // Mitte des sichtbaren Spielfelds (Panel rechts oder unten abziehen)
     const sr = stage.getBoundingClientRect();
     let vw = sr.width, vh = sr.height, vx = 0, vy = 0;
-    const strip = ui.el.querySelector('.kw-strip')?.getBoundingClientRect();
-    if (game.run && strip && strip.width && strip.height) {
-      if (strip.height > strip.width) { vx = strip.right - sr.left; vw = sr.width - vx; }
-      else if (strip.top > sr.top + sr.height * 0.5) vh = strip.top - sr.top;
-    }
+    const strip = ui.el.querySelector('.kw-shop2:not([hidden])')?.getBoundingClientRect();
+    if (game.run && strip && strip.width && strip.height) vh = Math.max(sr.height * 0.3, strip.top - sr.top);
     tcx = Math.round(((vx + vw / 2) * dpr) / P);
     tcy = Math.round(((vy + vh / 2) * dpr) / P) + 8;
     const short = Math.min(vw, vh) * dpr / P;
@@ -115,7 +115,7 @@ export async function mount(root, game, { audio, cloud } = {}) {
     W = Math.max(1, Math.round(r.width * dpr)); H = Math.max(1, Math.round(r.height * dpr));
     canvas.width = W; canvas.height = H;
     // Hochformat (Handy): größere Pixel, damit Turm und Helden nicht winzig werden
-    P = Math.max(2, Math.round(Math.min(W, H) / (H > W * 1.25 ? 195 : 270)));
+    P = Math.max(2, Math.round(Math.min(W, H) / (H > W * 1.25 ? 250 : 360)));
     LW = Math.ceil(W / P); LH = Math.ceil(H / P);
     lo.width = LW; lo.height = LH;
     ground.width = LW + 180; ground.height = LH + 180;
@@ -363,6 +363,12 @@ export async function mount(root, game, { audio, cloud } = {}) {
   function frame(dt) {
     ui.frame(dt);
     if (ui.busy) return; // Booster-Opening läuft: Arena ruht (kein Ruckeln)
+    if (!game.run && (ui.phase === 'menu' || ui.phase === 'out' || ui.phase === 'admin')) {
+      sceneT += dt;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      menuScene.draw(ctx, W, H, sceneT, dt, fx().q);
+      return;
+    }
     const t = game.t;
     const run = game.run;
     const realm = run ? realmOf(run.wave) : 0;
@@ -514,24 +520,6 @@ export async function mount(root, game, { audio, cloud } = {}) {
         ditherDisc(b.x, b.y - 2, r * 0.6, k < 0.5 ? '#fff2a0' : '#ffb52e', 1 - k);
       }
     }
-    // Maus-Cursor mit Ladekreis
-    for (const s of strikes) { const k = 1 - s.life / s.max; ringPx(s.x, s.y, s.r * (0.6 + k * 0.6), k < 0.3 ? '#ffffff' : '#ffd75e'); }
-    if (run && game.cursor.on) {
-      const [mx, my] = toLo(game.cursor.x, game.cursor.y);
-      const R = Math.max(6, Math.round(game.cursor.r * sc));
-      const ch = game.cursor.charge;
-      ringPx(mx, my, R, ch >= 1 ? '#ffd75e' : 'rgba(255,215,94,.45)');
-      if (ch < 1) {
-        lx.fillStyle = 'rgba(255,215,94,.28)';
-        for (let yy = -R + 1; yy <= R - 1; yy++) for (let xx = -R + 1; xx <= R - 1; xx++) {
-          if (xx * xx + yy * yy > (R - 1) * (R - 1) || ((xx + yy) & 1)) continue;
-          let a = Math.atan2(xx, -yy); if (a < 0) a += Math.PI * 2;
-          if (a <= ch * Math.PI * 2) lx.fillRect(mx + xx, my + Math.round(yy * 0.92), 1, 1);
-        }
-      }
-      lx.fillStyle = M('#ffffff');
-      lx.fillRect(mx - 3, my, 2, 1); lx.fillRect(mx + 2, my, 2, 1); lx.fillRect(mx, my - 3, 1, 2); lx.fillRect(mx, my + 2, 1, 2);
-    }
     // Rauch
     for (const s of smokes) {
       const k = 1 - s.life / s.max;
@@ -646,6 +634,51 @@ export async function mount(root, game, { audio, cloud } = {}) {
     vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(0.55, 'rgba(3,3,4,.4)'); vg.addColorStop(1, 'rgba(3,3,4,.9)');
     ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
     if (run && run.coreHp / run.coreMax < 0.3) { ctx.fillStyle = `rgba(110,40,40,${0.08 + Math.sin(t * 6) * 0.05})`; ctx.fillRect(0, 0, W, H); }
+
+    // ----- Cursor (weich, hochaufgelöst) -----
+    for (const s of strikes) {
+      const k = 1 - s.life / s.max, sx = X(s.x), sy = Y(s.y), rr = s.r * P * (0.55 + k * 0.75);
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const fg = ctx.createRadialGradient(sx, sy, 0, sx, sy, rr);
+      fg.addColorStop(0, `rgba(255,236,190,${0.35 * (1 - k)})`); fg.addColorStop(1, 'rgba(255,200,120,0)');
+      ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(sx, sy, rr, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = `rgba(255,240,210,${0.9 * (1 - k)})`; ctx.lineWidth = Math.max(1.5, 5 * (1 - k)) * (P / 3);
+      ctx.beginPath(); ctx.ellipse(sx, sy, rr, rr * 0.92, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+    }
+    if (run && game.cursor.on) {
+      const [mx, my] = toLo(game.cursor.x, game.cursor.y);
+      const cxp = X(mx), cyp = Y(my), R = game.cursor.r * sc * P, ch = game.cursor.charge, full = ch >= 1;
+      const u = P / 3, pulse = full ? 0.5 + 0.5 * Math.sin(t * 7) : 0;
+      ctx.save();
+      // weicher Innenschein
+      const ig = ctx.createRadialGradient(cxp, cyp, R * 0.2, cxp, cyp, R);
+      ig.addColorStop(0, 'rgba(232,206,140,0)'); ig.addColorStop(1, `rgba(232,206,140,${full ? 0.1 + pulse * 0.06 : 0.04})`);
+      ctx.fillStyle = ig; ctx.beginPath(); ctx.ellipse(cxp, cyp, R, R * 0.92, 0, 0, Math.PI * 2); ctx.fill();
+      // gestrichelter Außenring, dreht sich
+      ctx.setLineDash([R * 0.18, R * 0.1]); ctx.lineDashOffset = -t * R * 0.4;
+      ctx.strokeStyle = `rgba(214,196,150,${full ? 0.55 : 0.28})`; ctx.lineWidth = 1.5 * u;
+      ctx.beginPath(); ctx.ellipse(cxp, cyp, R, R * 0.92, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]);
+      // Ladebogen
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = full ? `rgba(246,226,170,${0.85 + pulse * 0.15})` : 'rgba(226,200,140,.9)';
+      ctx.lineWidth = (full ? 3.5 : 3) * u;
+      if (full) { ctx.shadowColor = 'rgba(246,220,150,.8)'; ctx.shadowBlur = 12 * u; }
+      ctx.beginPath(); ctx.ellipse(cxp, cyp, R + 3 * u, (R + 3 * u) * 0.92, 0, -Math.PI / 2, -Math.PI / 2 + ch * Math.PI * 2); ctx.stroke();
+      ctx.shadowBlur = 0;
+      // Fadenkreuz
+      const g1 = 4 * u, g2 = 10 * u;
+      ctx.strokeStyle = 'rgba(245,240,228,.9)'; ctx.lineWidth = 1.5 * u;
+      ctx.beginPath();
+      ctx.moveTo(cxp - g2, cyp); ctx.lineTo(cxp - g1, cyp); ctx.moveTo(cxp + g1, cyp); ctx.lineTo(cxp + g2, cyp);
+      ctx.moveTo(cxp, cyp - g2); ctx.lineTo(cxp, cyp - g1); ctx.moveTo(cxp, cyp + g1); ctx.lineTo(cxp, cyp + g2);
+      ctx.stroke();
+      ctx.fillStyle = full ? 'rgba(255,236,190,1)' : 'rgba(245,240,228,.7)';
+      ctx.beginPath(); ctx.arc(cxp, cyp, 1.6 * u, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
 
     // Kamerafahrt im Intro / Titel
     const ph = ui.phase;
