@@ -105,7 +105,7 @@ function defaultMeta() {
     playTime: 0,
     speed: 1,
     flags: { intro: false, gift: false },
-    settings: { sfx: 0.5, music: 1, gfx: 'auto', shake: 'on', numbers: 'on', boosterAnim: 'show' },
+    settings: { sfx: 0.5, music: 1, sfxVol: 0.5, musicVol: 0.4, musicTrack: 'mix', gfx: 'auto', shake: 'on', numbers: 'on', boosterAnim: 'show' },
   };
 }
 
@@ -117,6 +117,7 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
 
   let meta = defaultMeta();
   let hadSave = false;
+  let slotKey = SAVE_KEY; // Gast = SAVE_KEY, Konten = SAVE_KEY + '.' + uid
   try {
     const raw = storage?.getItem(SAVE_KEY);
     if (raw) {
@@ -128,7 +129,7 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
   } catch (e) { /* kein Speicher verfügbar */ }
 
   function save() {
-    try { storage?.setItem(SAVE_KEY, JSON.stringify(meta)); } catch (e) { /* ignorieren */ }
+    try { storage?.setItem(slotKey, JSON.stringify(meta)); } catch (e) { /* ignorieren */ }
   }
 
   let uid = 1;
@@ -325,9 +326,26 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
       return true;
     } catch (e) { return false; }
   };
-  game.loadMeta = m => {
+  // Spielstand-Platz wechseln (Gast ↔ Konto). Einstellungen bleiben am Gerät.
+  game.useSlot = (key, fresh = false) => {
+    if (key === slotKey && !fresh) return;
+    save();
+    const keep = { ...meta.settings };
+    slotKey = key;
+    let m = null;
+    if (!fresh) { try { const raw = storage?.getItem(key); m = raw ? JSON.parse(raw) : null; } catch (e) { m = null; } }
     const d = defaultMeta();
-    const merged = { ...d, ...m, ws: { ...d.ws, ...(m.ws || {}) }, flags: { ...d.flags, ...(m.flags || {}) }, settings: { ...d.settings, ...(m.settings || {}) } };
+    const merged = m ? { ...d, ...m, ws: { ...d.ws, ...(m.ws || {}) }, cards: m.cards || d.cards, lineup: m.lineup || d.lineup, flags: { ...d.flags, ...(m.flags || {}) } } : d;
+    merged.settings = { ...d.settings, ...keep };
+    Object.keys(meta).forEach(k => delete meta[k]);
+    Object.assign(meta, merged);
+    game.run = null; game.enemies = []; game.projectiles = []; game.beams = [];
+    buildGuardians(); save(); emit('reset');
+  };
+  game.slot = () => slotKey;
+  game.loadMeta = (m, keepSettings = true) => {
+    const d = defaultMeta();
+    const merged = { ...d, ...m, ws: { ...d.ws, ...(m.ws || {}) }, flags: { ...d.flags, ...(m.flags || {}) }, settings: { ...d.settings, ...(keepSettings ? meta.settings : (m.settings || {})) } };
     Object.keys(meta).forEach(k => delete meta[k]);
     Object.assign(meta, merged);
     game.run = null; game.enemies = []; game.projectiles = []; game.beams = [];
