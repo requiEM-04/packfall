@@ -1,0 +1,30 @@
+// Packfall – Start (lädt Spiel, Sound, Konten und den Pixel-Stil)
+import { createGame } from './core.js';
+import { createAudio } from './sound.js';
+import { createCloud } from './cloud.js';
+import { mount } from './style-bph.js';
+
+const game = createGame();
+window.packfall = game; // zum Testen in der Konsole
+const audio = createAudio(() => game.meta.settings);
+const cloud = createCloud(game);
+
+const app = document.getElementById('app');
+let current = null;
+try {
+  app.innerHTML = '';
+  current = await mount(app, game, { audio, cloud });
+} catch (e) {
+  console.error(e);
+  app.innerHTML = `<div class="kw-error">Packfall konnte nicht starten.<br>${String(e.message || e)}</div>`;
+}
+
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.1, (now - last) / 1000);
+  last = now;
+  game.update(dt);
+  current?.frame(dt);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
