@@ -17,7 +17,8 @@ const pwFor = (n, pw) => sha('packfall|' + norm(n) + '|' + pw);
 const progress = m => (m?.totalGems || 0) + (m?.best || 0) * 50 + (m?.packs || 0) * 20 + Object.keys(m?.cards || {}).length * 30;
 
 export function createCloud(game) {
-  const st = { sess: null, name: null, uid: null, status: 'guest', msg: '', lastSync: 0, busy: false };
+  const st = { sess: null, name: null, uid: null, status: 'guest', msg: '', lastSync: 0, busy: false, remember: true, restoring: false };
+  const store = () => (st.remember ? localStorage : sessionStorage);
   const configured = () => !!(CLOUD.url && CLOUD.key);
   const listeners = new Set();
   const changed = () => listeners.forEach(f => f(st));
@@ -44,7 +45,7 @@ export function createCloud(game) {
     st.uid = j.user?.id || st.uid;
     st.name = name || j.user?.user_metadata?.name || st.name;
     st.status = 'online'; st.msg = '';
-    try { localStorage.setItem(TOK, JSON.stringify({ rt: st.sess.refresh_token, name: st.name, uid: st.uid })); } catch (e) { /* egal */ }
+    try { store().setItem(TOK, JSON.stringify({ rt: st.sess.refresh_token, name: st.name, uid: st.uid })); (st.remember ? sessionStorage : localStorage).removeItem(TOK); } catch (e) { /* egal */ }
     changed();
     return true;
   }
@@ -62,7 +63,8 @@ export function createCloud(game) {
     return false;
   }
 
-  async function signup(name, pw) {
+  async function signup(name, pw, remember = true) {
+    st.remember = remember;
     name = String(name || '').trim();
     if (!NAME_RE.test(name)) return { ok: false, msg: 'Name: 3–16 Zeichen, nur Buchstaben, Zahlen, _ und -.' };
     if (String(pw || '').length < 6) return { ok: false, msg: 'Passwort: mindestens 6 Zeichen.' };
@@ -79,7 +81,8 @@ export function createCloud(game) {
     return { ok: true };
   }
 
-  async function login(name, pw) {
+  async function login(name, pw, remember = true) {
+    st.remember = remember;
     name = String(name || '').trim();
     if (!name || !pw) return { ok: false, msg: 'Bitte Name und Passwort eingeben.' };
     st.busy = true; changed();
@@ -94,7 +97,7 @@ export function createCloud(game) {
   async function logout() {
     if (st.sess) await api('/auth/v1/logout', { method: 'POST' });
     st.sess = null; st.uid = null; st.name = null; st.status = 'guest';
-    try { localStorage.removeItem(TOK); } catch (e) { /* egal */ }
+    try { localStorage.removeItem(TOK); sessionStorage.removeItem(TOK); } catch (e) { /* egal */ }
     changed();
   }
 
@@ -123,18 +126,21 @@ export function createCloud(game) {
   }
 
   // Sitzung vom letzten Mal wiederherstellen
-  (async () => {
+  const restored = (async () => {
     try {
-      const t = JSON.parse(localStorage.getItem(TOK) || 'null');
+      let t = JSON.parse(localStorage.getItem(TOK) || 'null');
+      if (!t) { t = JSON.parse(sessionStorage.getItem(TOK) || 'null'); if (t) st.remember = false; }
       if (t?.rt && configured()) {
+        st.restoring = true;
         st.sess = { access_token: '', refresh_token: t.rt, exp: 0 }; st.name = t.name; st.uid = t.uid;
         if (await ready()) await pullSave(); else { st.sess = null; st.status = 'guest'; changed(); }
       }
     } catch (e) { /* egal */ }
+    st.restoring = false;
   })();
 
   // automatisch speichern
   ['runEnd', 'ws', 'booster', 'lineup', 'waveClear'].forEach(ev => game.on(ev, () => { if (st.sess) pushSave(false); }));
 
-  return { st, configured, signup, login, logout, pushSave, board, on: f => { listeners.add(f); return () => listeners.delete(f); } };
+  return { st, configured, restored, signup, login, logout, pushSave, board, on: f => { listeners.add(f); return () => listeners.delete(f); } };
 }
