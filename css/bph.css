@@ -455,9 +455,11 @@ button.kw-slot:hover, button.kw-hcell:hover { background: #19171c; }
 .kw-open[data-phase="auth"] .kw-title { display: flex; }
 .kw-open[data-phase="auth"] .kw-title-main { visibility: hidden; }
 .kw-open[data-phase="auth"] .kw-auth { display: flex; animation: rvIn .35s ease-out both; }
-.kw-auth-in { display: flex; flex-direction: column; align-items: center; gap: 12px; width: min(100%, 780px); margin: auto; }
-.kw-auth-logo { width: min(300px, 70vw); filter: drop-shadow(0 0 30px rgba(193, 133, 91, .25)); }
-.kw-auth-wrap { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 320px); gap: 14px; width: 100%; justify-content: center; margin-top: 6px; }
+.kw-auth-in { display: flex; flex-direction: column; align-items: center; gap: 8px; width: min(100%, 800px); margin: auto; }
+.kw-auth .kw-ribbon { font-size: 11px; padding: 5px 14px; }
+.kw-auth-box { box-shadow: 0 0 0 1px var(--bd-2), 0 24px 60px rgba(0, 0, 0, .6); }
+.kw-auth-logo { width: min(190px, 48vw); filter: drop-shadow(0 0 30px rgba(193, 133, 91, .25)); }
+.kw-auth-wrap { display: grid; grid-template-columns: minmax(0, 440px) minmax(0, 300px); gap: 14px; width: 100%; justify-content: center; align-items: start; margin-top: 8px; }
 .kw-auth-box, .kw-auth-lb { padding: 18px; display: flex; flex-direction: column; gap: 10px; }
 .kw-atabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 3px; border-radius: 7px; background: rgba(0, 0, 0, .35); box-shadow: inset 0 0 0 1px var(--bd); margin-bottom: 4px; }
 .kw-atabs button { height: 36px; border: 0; border-radius: 5px; background: none; color: var(--muted); font: 600 14px/1 var(--head); letter-spacing: .06em; cursor: pointer; }
@@ -479,5 +481,68 @@ button.kw-slot:hover, button.kw-hcell:hover { background: #19171c; }
 @media (max-width: 760px) {
   .kw-auth { align-items: flex-start; }
   .kw-auth-wrap { grid-template-columns: minmax(0, 1fr); }
-  .kw-auth-logo { width: min(280px, 70vw); }
+  .kw-auth-logo { width: min(170px, 46vw); }
+}
+
+/* ---------- Postfach-Dialog ---------- */
+.kw-news { z-index: 70; background: rgba(4, 4, 5, .72); }
+.kw-news-in { width: min(440px, 100%); padding: 22px; display: flex; flex-direction: column; gap: 12px; text-align: center; animation: rvIn .3s ease-out both; }
+.kw-news-in h2 { margin: 0; font: 600 20px/1.2 var(--head); letter-spacing: .06em; color: var(--gold-hi); }
+.kw-news-in p { margin: 0; font-size: 16px; line-height: 1.45; color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+.kw-news-in .kw-btn { height: 44px; font-size: 16px; }
+
+/* ---------- Admin ---------- */
+.kw-admin { position: absolute; inset: 0; z-index: 90; overflow: auto; padding: 20px 16px; background: radial-gradient(ellipse at 50% 0%, #15151a, #08080a 70%); }
+.kw-adm-in { width: min(1100px, 100%); margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+.kw-adm-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.kw-adm-logo { width: 90px; }
+.kw-adm-head h2 { margin: 0; display: flex; align-items: center; gap: 8px; font: 600 22px/1 var(--head); letter-spacing: .08em; text-transform: uppercase; color: var(--gold-hi); }
+.kw-adm-head h2 svg, .kw-adm-who svg, .kw-adm-tabs svg, .kw-adm-card h3 svg { width: 18px; height: 18px; }
+.kw-adm-who { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 99px; background: rgba(60, 52, 34, .45); box-shadow: inset 0 0 0 1px var(--gold-dk); color: var(--gold-hi); font: 600 12px/1 var(--head); letter-spacing: .1em; }
+.kw-adm-sp { flex: 1; }
+.kw-adm-head .kw-btn { height: 36px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; }
+.kw-adm-head .kw-btn svg { width: 16px; height: 16px; }
+.kw-adm-tabs { grid-template-columns: repeat(4, 1fr); }
+.kw-adm-tabs button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+.kw-adm-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: 13px; }
+.kw-adm-q, .kw-adm-f input, .kw-adm-f select, .kw-adm-f textarea { height: 38px; padding: 0 10px; border: 0; border-radius: 5px; background: rgba(0, 0, 0, .4); box-shadow: inset 0 0 0 1px var(--bd-2); color: var(--ink); font: 500 15px/1 var(--body); }
+.kw-adm-q { width: min(320px, 100%); }
+.kw-adm-f textarea { height: auto; padding: 10px; line-height: 1.4; resize: vertical; }
+.kw-adm-q:focus, .kw-adm-f input:focus, .kw-adm-f select:focus, .kw-adm-f textarea:focus { outline: none; box-shadow: inset 0 0 0 1px var(--gold); }
+.kw-adm-list { display: flex; flex-direction: column; gap: 6px; }
+.kw-adm-row { border-radius: 6px; background: var(--pan); box-shadow: 0 0 0 1px var(--bd); }
+.kw-adm-row.is-open { box-shadow: 0 0 0 1px var(--gold-dk); }
+.kw-adm-row.is-ban .kw-adm-name { color: #c99a96; }
+.kw-adm-line { width: 100%; display: grid; grid-template-columns: minmax(120px, 1.6fr) repeat(4, minmax(70px, 1fr)) minmax(90px, 1fr); gap: 10px; align-items: center; padding: 10px 12px; border: 0; background: none; color: var(--muted); font: 500 14px/1.2 var(--body); text-align: left; cursor: pointer; }
+.kw-adm-line:hover { background: rgba(255, 255, 255, .03); }
+.kw-adm-line b { color: var(--ink); font-weight: 600; }
+.kw-adm-line svg { width: 14px; height: 14px; vertical-align: -2px; margin-right: 4px; }
+.kw-adm-name { color: var(--ink); font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; }
+.kw-adm-name em { font-style: normal; font-size: 11px; padding: 3px 7px; border-radius: 99px; background: rgba(142, 78, 75, .35); color: #e2b8b4; }
+.kw-adm-ago { text-align: right; }
+.kw-adm-detail { padding: 4px 12px 14px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--bd); }
+.kw-adm-meta { margin: 8px 0 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
+.kw-adm-red { color: #d4a09c; }
+.kw-adm-f { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.kw-adm-f label { width: 130px; font: 600 12px/1 var(--head); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.kw-adm-f input[type="number"] { width: 120px; }
+.kw-adm-f input:not([type="number"]) { flex: 1; min-width: 160px; }
+.kw-adm-f .kw-btn { height: 38px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; }
+.kw-adm-f .kw-btn svg { width: 16px; height: 16px; }
+.kw-adm-col { flex-direction: column; align-items: stretch; }
+.kw-adm-card { padding: 16px; border-radius: 6px; background: var(--pan); box-shadow: 0 0 0 1px var(--bd); display: flex; flex-direction: column; gap: 10px; }
+.kw-adm-card h3 { margin: 0; display: flex; align-items: center; gap: 8px; font: 600 13px/1 var(--head); letter-spacing: .12em; text-transform: uppercase; color: var(--gold-hi); }
+.kw-adm-card .kw-seg { align-self: flex-start; }
+.kw-adm-card .kw-seg button { height: 34px; padding: 0 14px; }
+.kw-adm-news { margin: 0; padding: 10px 12px; border-radius: 5px; background: rgba(0, 0, 0, .3); white-space: pre-wrap; font-size: 15px; color: var(--ink); }
+.kw-adm-log { display: grid; grid-template-columns: 130px 170px 150px minmax(0, 1fr); gap: 10px; padding: 8px 12px; border-radius: 5px; background: var(--pan); box-shadow: 0 0 0 1px var(--bd); font-size: 13px; color: var(--muted); }
+.kw-adm-log b { color: var(--ink); }
+.kw-adm-empty { color: var(--muted); padding: 16px; text-align: center; }
+@media (max-width: 760px) {
+  .kw-adm-line { grid-template-columns: 1fr 1fr; }
+  .kw-adm-name { grid-column: 1 / -1; }
+  .kw-adm-ago { text-align: left; }
+  .kw-adm-f label { width: 100%; }
+  .kw-adm-log { grid-template-columns: 1fr 1fr; }
+  .kw-adm-tabs span { display: none; }
 }
