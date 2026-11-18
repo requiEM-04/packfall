@@ -7,7 +7,12 @@ import { mount } from './style-bph.js';
 const game = createGame();
 window.packfall = game; // zum Testen in der Konsole
 const audio = createAudio(() => game.meta.settings);
+window.packfallAudio = audio;
 const cloud = createCloud(game);
+game.on('runStart', () => audio.setMode('run'));
+game.on('boss', () => audio.setMode('boss'));
+game.on('waveStart', e => { if (!e?.boss) audio.setMode('run'); });
+game.on('runEnd', () => audio.setMode('menu'));
 
 const app = document.getElementById('app');
 let current = null;
