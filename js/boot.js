@@ -1,8 +1,8 @@
 // Packfall – Start (lädt Spiel, Sound, Konten und den Pixel-Stil)
-import { createGame } from './core.js?v=0.7-42083dbf';
-import { createAudio } from './sound.js?v=0.7-42083dbf';
-import { createCloud } from './cloud.js?v=0.7-42083dbf';
-import { mount } from './style-bph.js?v=0.7-42083dbf';
+import { createGame } from './core.js?v=0.8-720520af';
+import { createAudio } from './sound.js?v=0.8-720520af';
+import { createCloud } from './cloud.js?v=0.8-720520af';
+import { mount } from './style-bph.js?v=0.8-720520af';
 
 const game = createGame();
 window.packfall = game; // zum Testen in der Konsole
