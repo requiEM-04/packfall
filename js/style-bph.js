@@ -1,11 +1,11 @@
 // Booster-Stil: düstere, detaillierte Pixel-Art, Vollbild-Arena mit Turm (Richtung „Booster Pack Heroes“, eigene Grafiken)
-import { ARENA, G, realmOf } from './core.js';
-import { createUI } from './ui.js';
+import { ARENA, G, realmOf } from './core.js?v=0.6.1-6729cd5a';
+import { createUI } from './ui.js?v=0.6.1-6729cd5a';
 import {
   towerCanvas, crystalCanvas, heroCanvas, enemyCanvas, rockCanvas, treeCanvas, bonesCanvas,
   packCanvas, cardBackCanvas, iconSVG, variant, shade, logoCanvas, titleBackdrop, mute,
-} from './bph-art.js';
-import { heroSprite } from './heroes.js';
+} from './bph-art.js?v=0.6.1-6729cd5a';
+import { heroSprite } from './heroes.js?v=0.6.1-6729cd5a';
 const M = c => (typeof c === 'string' && c[0] === '#' && c.length === 7 ? mute(c, 0.5, 0.92) : c);
 
 const REALM_RAW = [
