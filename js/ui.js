@@ -1,7 +1,7 @@
 // Packfall – Oberfläche: Hauptmenü (wie Pokélings), Unterseiten, Run-HUD, Booster öffnen, Willkommen
-import { UPGRADES, U, G, GUARDIANS, ENEMY_TYPES, RARITIES, BOOSTERS, REALMS, realmOf, fmt, fmtNum, WS_MAX } from './core.js';
-import { createOpening } from './opening.js';
-import { createAdmin } from './admin.js';
+import { UPGRADES, U, G, GUARDIANS, ENEMY_TYPES, RARITIES, BOOSTERS, REALMS, realmOf, fmt, fmtNum, WS_MAX } from './core.js?v=0.6.1-6729cd5a';
+import { createOpening } from './opening.js?v=0.6.1-6729cd5a';
+import { createAdmin } from './admin.js?v=0.6.1-6729cd5a';
 
 const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
