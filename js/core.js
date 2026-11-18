@@ -4,30 +4,34 @@
 export const SAVE_KEY = 'packfall.save.v1';
 
 export const RARITIES = {
-  common:    { name: 'Gewöhnlich', color: '#b8c1cc', rank: 0 },
-  rare:      { name: 'Selten',     color: '#4aa8ff', rank: 1 },
-  epic:      { name: 'Episch',     color: '#b36bff', rank: 2 },
-  legendary: { name: 'Legendär',   color: '#ffc23d', rank: 3 },
+  common:    { name: 'Gewöhnlich', color: '#8f9093', rank: 0 },
+  rare:      { name: 'Selten',     color: '#6a8299', rank: 1 },
+  epic:      { name: 'Episch',     color: '#85728f', rank: 2 },
+  legendary: { name: 'Legendär',   color: '#a8945e', rank: 3 },
 };
 
 // kind: single | pierce | chain | splash | beam
 export const GUARDIANS = [
-  { id: 'schleuderer',    name: 'Schleuderer',    rarity: 'common',    kind: 'single', dmg: 4,   rate: 1.5, range: 230, speed: 520, color: '#e0c48c', desc: 'Wirft Steine. Zuverlässig.' },
-  { id: 'funkenwerfer',   name: 'Funkenwerfer',   rarity: 'common',    kind: 'single', dmg: 1.8, rate: 3.4, range: 195, speed: 640, color: '#ffa940', desc: 'Viele kleine Funken.' },
-  { id: 'steinwache',     name: 'Steinwache',     rarity: 'common',    kind: 'single', dmg: 10,  rate: 0.6, range: 215, speed: 430, color: '#a9b4c2', desc: 'Langsam, aber schwer.' },
-  { id: 'frostweberin',   name: 'Frostweberin',   rarity: 'rare',      kind: 'single', dmg: 3.2, rate: 1.4, range: 245, speed: 480, color: '#8fe0ff', slow: 0.45, slowT: 1.6, desc: 'Verlangsamt getroffene Gegner.' },
-  { id: 'dornenschuetze', name: 'Dornenschütze',  rarity: 'rare',      kind: 'pierce', dmg: 7,   rate: 1.0, range: 315, speed: 780, color: '#b6f26a', pierce: 3, desc: 'Bolzen durchschlagen 3 Gegner.' },
-  { id: 'blitzruferin',   name: 'Blitzruferin',   rarity: 'epic',      kind: 'chain',  dmg: 7,   rate: 1.1, range: 265, color: '#c08cff', chain: 3, desc: 'Blitz springt auf 3 weitere Gegner.' },
-  { id: 'glutmoerser',    name: 'Glutmörser',     rarity: 'epic',      kind: 'splash', dmg: 13,  rate: 0.55, range: 335, speed: 360, color: '#ff6a3d', splash: 78, desc: 'Flächenschaden beim Einschlag.' },
-  { id: 'sonnenwaechter', name: 'Sonnenwächter',  rarity: 'legendary', kind: 'beam',   dps: 22,  range: 285, color: '#ffe066', desc: 'Dauerstrahl, heizt sich bis ×2 auf.' },
+  { id: 'schleuderer',    name: 'Kieselkobold',  rarity: 'common',    kind: 'single', dmg: 4,   rate: 1.5, range: 230, speed: 520, color: '#b4a68a', desc: 'Schleudert Kiesel. Zuverlässig.' },
+  { id: 'funkenwerfer',   name: 'Glutwicht',     rarity: 'common',    kind: 'single', dmg: 1.8, rate: 3.4, range: 195, speed: 640, color: '#c0905c', desc: 'Spuckt viele kleine Funken.' },
+  { id: 'steinwache',     name: 'Felskröte',     rarity: 'common',    kind: 'single', dmg: 10,  rate: 0.6, range: 215, speed: 430, color: '#9da1a8', desc: 'Langsam, aber jeder Brocken sitzt.' },
+  { id: 'knochenbogner',  name: 'Knochenbogner', rarity: 'common',    kind: 'single', dmg: 5.5, rate: 1.0, range: 300, speed: 760, color: '#c8c2b0', desc: 'Schießt weit, aus der Gruft heraus.' },
+  { id: 'frostweberin',   name: 'Frostweberin',  rarity: 'rare',      kind: 'single', dmg: 3.2, rate: 1.4, range: 245, speed: 480, color: '#90aab6', slow: 0.45, slowT: 1.6, desc: 'Eisfäden verlangsamen Gegner.' },
+  { id: 'dornenschuetze', name: 'Dornenigel',    rarity: 'rare',      kind: 'pierce', dmg: 7,   rate: 1.0, range: 315, speed: 780, color: '#a0ad80', pierce: 3, desc: 'Stacheln durchschlagen 3 Gegner.' },
+  { id: 'giftkroete',     name: 'Giftunke',      rarity: 'rare',      kind: 'splash', dmg: 4.5, rate: 1.1, range: 230, speed: 420, color: '#9aae7a', splash: 46, slow: 0.3, slowT: 1.2, desc: 'Säureblasen: kleine Fläche, verlangsamt.' },
+  { id: 'blitzruferin',   name: 'Sturmhexe',     rarity: 'epic',      kind: 'chain',  dmg: 7,   rate: 1.1, range: 265, color: '#9cb4c4', chain: 3, desc: 'Blitz springt auf 3 weitere Gegner.' },
+  { id: 'glutmoerser',    name: 'Magmaschnecke', rarity: 'epic',      kind: 'splash', dmg: 13,  rate: 0.55, range: 335, speed: 360, color: '#b4725c', splash: 78, desc: 'Ihr Haus ist ein Mörser.' },
+  { id: 'geisterlaterne', name: 'Laternengeist', rarity: 'epic',      kind: 'chain',  dmg: 4.2, rate: 1.3, range: 250, color: '#8fc0b0', chain: 5, desc: 'Seelenfeuer springt auf 5 Gegner.' },
+  { id: 'sonnenwaechter', name: 'Sonnenwächter', rarity: 'legendary', kind: 'beam',   dps: 22,  range: 285, color: '#c4b27e', desc: 'Dauerstrahl, heizt sich bis ×2 auf.' },
+  { id: 'drachenwelpe',   name: 'Aschedrache',   rarity: 'legendary', kind: 'splash', dmg: 16,  rate: 0.9, range: 300, speed: 440, color: '#b8826a', splash: 92, desc: 'Feuerbälle mit großem Flächenschaden.' },
 ];
 export const G = Object.fromEntries(GUARDIANS.map(g => [g.id, g]));
 
 export const ENEMY_TYPES = {
-  krabbler: { name: 'Schattengoblin', hp: 1,    speed: 40, r: 11, dmg: 6,  coin: 1,  color: '#8b4dff' },
-  flitzer:  { name: 'Nachtflatterer', hp: 0.55, speed: 80, r: 8,  dmg: 4,  coin: 1,  color: '#ff4f93' },
-  brocken:  { name: 'Steinkoloss', hp: 3.4,  speed: 24, r: 16, dmg: 16, coin: 3,  color: '#2fc79b' },
-  boss:     { name: 'Schattenfürst', hp: 20, speed: 17, r: 28, dmg: 40, coin: 30, color: '#ff3347' },
+  krabbler: { name: 'Schattengoblin', hp: 1,    speed: 40, r: 11, dmg: 6,  coin: 1,  color: '#6c6684' },
+  flitzer:  { name: 'Nachtflatterer', hp: 0.55, speed: 80, r: 8,  dmg: 4,  coin: 1,  color: '#866470' },
+  brocken:  { name: 'Steinkoloss', hp: 3.4,  speed: 24, r: 16, dmg: 16, coin: 3,  color: '#6a857a' },
+  boss:     { name: 'Schattenfürst', hp: 20, speed: 17, r: 28, dmg: 40, coin: 30, color: '#8a4c4e' },
 };
 
 export const REALMS = [
@@ -55,18 +59,18 @@ export const U = Object.fromEntries(UPGRADES.map(u => [u.id, u]));
 export const WS_MAX = 10;
 
 export const BOOSTERS = {
-  starter: { name: 'Start-Geschenk', cost: 0, cards: 3, foil: 0, odds: { common: 100 }, hidden: true },
-  basic: { name: 'Helden-Booster', cost: 150, cards: 3, foil: 0.03, odds: { common: 70, rare: 24, epic: 5, legendary: 1 } },
-  elite: { name: 'Elite-Booster',   cost: 450, cards: 3, foil: 0.06, odds: { common: 28, rare: 45, epic: 21, legendary: 6 }, guarantee: 'epic' },
+  starter: { name: 'Start-Geschenk', cost: 0, cards: 1, foil: 0, odds: { rare: 100 }, hidden: true },
+  basic: { name: 'Helden-Booster', cost: 60, cards: 1, foil: 0.04, odds: { common: 66, rare: 26, epic: 7, legendary: 1 } },
+  elite: { name: 'Elite-Booster',   cost: 200, cards: 1, foil: 0.08, odds: { rare: 58, epic: 34, legendary: 8 } },
 };
 export const CARD_MAX = 10;
-export const MAX_DUPE_REFUND = 20;
+export const MAX_DUPE_REFUND = 10;
 
 export const ARENA = {
   spawnR: 560,
   viewR: 540,
   coreR: 34,
-  slotR: 110,
+  slotR: 150,
   slotAngles: [-0.75 * Math.PI, -0.25 * Math.PI, 0.25 * Math.PI, 0.75 * Math.PI],
 };
 
@@ -254,11 +258,11 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
     meta.packs++;
     if (kind === 'starter') meta.flags.gift = true;
     const results = [];
-    const starterPool = kind === 'starter' ? GUARDIANS.filter(g => g.rarity === 'common').sort(() => rng() - 0.5) : null;
+    const starterPool = kind === 'starter' ? GUARDIANS.filter(g => g.rarity === 'rare').sort(() => rng() - 0.5) : null;
     for (let i = 0; i < b.cards; i++) {
       if (starterPool) {
-        // Geschenk: zwei verschiedene Gewöhnliche + ein Seltener
-        const def = i < 2 ? starterPool[i] : GUARDIANS.filter(g => g.rarity === 'rare')[Math.floor(rng() * 2)];
+        // Geschenk: ein garantiert seltener Held
+        const def = starterPool[i];
         meta.cards[def.id] = { lvl: 1, foil: false };
         const empty = meta.lineup.indexOf(null);
         if (empty >= 0) meta.lineup[empty] = def.id;
@@ -517,7 +521,7 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
         if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 < (e.r + 5) ** 2) {
           if (p.kind === 'splash') {
             for (const o of game.enemies) {
-              if (!o.dead && (o.x - p.x) ** 2 + (o.y - p.y) ** 2 < (p.splash + o.r) ** 2) damage(o, p.dmg, p.crit, p.color, 'splash');
+              if (!o.dead && (o.x - p.x) ** 2 + (o.y - p.y) ** 2 < (p.splash + o.r) ** 2) { if (p.slow) { o.slowT = p.slowT; o.slowF = p.slow; } damage(o, p.dmg, p.crit, p.color, 'splash'); }
             }
             emit('boom', { x: p.x, y: p.y, r: p.splash, color: p.color });
           } else {
@@ -564,7 +568,7 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
       if (game.enemies.length === 0) {
         // Welle geschafft
         const w = r.wave;
-        let gems = (1 + Math.floor(w / 4)) * gemMult();
+        let gems = (1 + Math.floor(w / 4) + (w <= 10 ? 1 : 0)) * gemMult();
         if (w > meta.best) { gems += 3 * gemMult(); meta.best = w; emit('record', w); }
         addGems(gems, 'wave');
         save();
