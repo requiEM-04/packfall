@@ -1,14 +1,14 @@
 /* Packfall – Grundgerüst (Aufbau, keine Farben) */
 *, *::before, *::after { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
-body { overflow: hidden; background: #0a0710; color: #f1e9d8; color-scheme: dark; -webkit-tap-highlight-color: transparent; font-family: system-ui, sans-serif; }
+body { overflow: hidden; background: #08080a; color: #d6d1c6; color-scheme: dark; -webkit-tap-highlight-color: transparent; font-family: system-ui, sans-serif; }
 #app { position: fixed; inset: 0; }
 .kw-preload, .kw-error { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 18px; padding: 24px; text-align: center; color: #a596b8; }
 [hidden] { display: none !important; }
 
 .kw { position: absolute; inset: 0; overflow: hidden; }
 :where(.kw) button { font: inherit; color: inherit; }
-.kw :focus-visible { outline: 2px solid #ffd75e; outline-offset: 2px; }
+.kw :focus-visible { outline: 2px solid #b8a985; outline-offset: 2px; }
 .kw-stage { position: absolute; inset: 0; overflow: hidden; }
 .kw-stage > canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 .kw[data-mode="run"] .kw-stage > canvas { cursor: none; }
@@ -159,40 +159,6 @@ img.b-pack { height: auto; }
 
 /* Overlays */
 .kw-ov { position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; padding: 16px; overflow: auto; }
-.kw-bo-in { position: relative; display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; max-width: 780px; margin: auto; }
-.kw-bo-title { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
-.kw-bo-flash { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(circle at 50% 50%, var(--fc, #fff), transparent 62%); }
-.kw-bo-flash.go { animation: kwFlash .9s steps(6); }
-@keyframes kwFlash { from { opacity: .8; } to { opacity: 0; } }
-.kw-pack { position: relative; width: min(200px, 44vw); aspect-ratio: 30 / 42; padding: 0; border: 0; background: none; cursor: pointer; }
-.kw-pack-art, .kw-pack-art img { position: absolute; inset: 0; width: 100%; height: 100%; }
-.kw-pack-top { position: absolute; left: 0; right: 0; top: 0; height: 12%; opacity: 0; }
-.kw-pack-hint { margin: 0; }
-.kw-bo.st-shake .kw-pack { animation: kwShake .45s steps(3) infinite; }
-.kw-bo.st-shake[data-best="epic"] .kw-pack { animation-duration: .3s; }
-.kw-bo.st-shake[data-best="legendary"] .kw-pack { animation-duration: .2s; }
-.kw-bo.st-rip .kw-pack-top { opacity: 1; animation: kwTear .45s steps(5) forwards; }
-.kw-bo.st-rip .kw-pack-art { clip-path: inset(12% 0 0 0); }
-.kw-bo.st-rip .kw-pack { animation: kwPackOut .55s steps(6) forwards; }
-@keyframes kwShake { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-4deg) translateY(-3px); } 75% { transform: rotate(4deg) translateY(-3px); } }
-@keyframes kwTear { to { transform: translate(40%, -160%) rotate(28deg); opacity: 0; } }
-@keyframes kwPackOut { 40% { transform: scale(1.06); } 100% { transform: scale(.7) translateY(30%); opacity: 0; } }
-.kw-cards { display: flex; gap: clamp(8px, 2.2vw, 22px); justify-content: center; perspective: 1100px; }
-.kw-card { --cw: min(196px, 27vw); position: relative; width: var(--cw); aspect-ratio: 5 / 7; padding: 0; border: 0; background: none; cursor: pointer; animation: kwDeal .6s calc(var(--i) * .13s) steps(8) both; }
-.kw-card.flipped { cursor: default; }
-@keyframes kwDeal { from { transform: translateY(-46px) scale(.55) rotate(-8deg); opacity: 0; } }
-.kw-card-in { position: absolute; inset: 0; display: block; transform-style: preserve-3d; transition: transform .5s steps(7); }
-.kw-card.flipped .kw-card-in { transform: rotateY(180deg); }
-.kw-card-back, .kw-card-front { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
-.kw-card-front { transform: rotateY(180deg); }
-.kw-card-art { width: 76%; aspect-ratio: 1; flex: 0 0 auto; }
-.kw-card-name, .kw-card-stats, .kw-card-desc, .kw-card-rar { max-width: 92%; text-align: center; }
-.kw-card-foil { position: absolute; right: 8%; top: 20%; z-index: 2; }
-.kw-card-tag { position: absolute; left: 50%; top: calc(100% + 10px); transform: translateX(-50%); white-space: nowrap; opacity: 0; transition: opacity .3s .45s; pointer-events: none; }
-.kw-card.flipped .kw-card-tag { opacity: 1; }
-.kw-card.charging { animation: kwCharge .95s steps(12) both; }
-@keyframes kwCharge { 20% { transform: translateY(-4px) rotate(-2deg); } 40% { transform: translateY(-6px) rotate(2deg) scale(1.03); } 60% { transform: translateY(-8px) rotate(-3deg) scale(1.05); } 80% { transform: translateY(-10px) rotate(3deg) scale(1.07); } 100% { transform: translateY(-10px) scale(1.08); } }
-.kw-bo-act { display: flex; gap: 10px; margin-top: 34px; min-height: 44px; }
 
 .kw-sum-in, .kw-intro-in { display: flex; flex-direction: column; align-items: center; gap: 12px; width: min(460px, 100%); padding: 26px; text-align: center; }
 .kw-sum-in h2, .kw-sum-wave, .kw-intro-in h2 { margin: 0; }
@@ -262,8 +228,6 @@ img.b-pack { height: auto; }
   .kw-hgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 560px) {
-  .kw-card { --cw: 29vw; }
-  .kw-card-desc, .kw-rate { display: none; }
   .kw-slots { gap: 6px; }
   .kw-sart { width: 44px; height: 44px; }
 }
