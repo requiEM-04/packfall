@@ -4,6 +4,12 @@ export function createAudio(getSettings) {
   let ctx = null, master = null, sfxBus = null, musBus = null, verb = null, verbSend = null, dly = null, dlySend = null;
   let noiseBuf = null, distCurve = null, gtr = null, lead = null;
   const last = {};
+  // Tab im Hintergrund: Browser drosseln Timer → Musik würde stottern. Also pausieren und danach sauber weiter.
+  document.addEventListener('visibilitychange', () => {
+    if (!ctx) return;
+    if (document.hidden) ctx.suspend().catch(() => {});
+    else ctx.resume().then(() => { nextT = Math.max(nextT, ctx.currentTime + 0.05); }).catch(() => {});
+  });
 
   function ensure() {
     if (ctx) return ctx;
@@ -48,12 +54,15 @@ export function createAudio(getSettings) {
     for (let c = 0; c < 2; c++) { const d = b.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay); }
     return b;
   }
+  const vol = (s, k, d) => { const v = Number(s[k]); return Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : d; };
   function apply() {
     if (!ctx) return;
     const s = getSettings();
-    sfxBus.gain.setTargetAtTime(Math.min(1, Number(s.sfx) || 0) * 1.1, ctx.currentTime, 0.02);
-    const mv = [0, 0.32, 0.6][Number(s.music)] ?? 0;
+    const sv = vol(s, 'sfxVol', 0.5), mvol = vol(s, 'musicVol', 0.4);
+    sfxBus.gain.setTargetAtTime(1.7 * sv * sv, ctx.currentTime, 0.02);
+    const mv = 0.75 * mvol * mvol;
     musBus.gain.setTargetAtTime(mv, ctx.currentTime, 0.05);
+    if (typeof pickTrack === 'function' && ctx) pendingTrack = pickTrack(false);
     if (mv > 0) startMusic(); else stopMusic();
   }
 
@@ -175,26 +184,92 @@ export function createAudio(getSettings) {
   // ---------------- Musik ----------------
   // Düsterer Fantasy-Metal in e-Moll, 148 BPM: verzerrte Rhythmusgitarre (Galopp, Palm-Mutes),
   // Lead-Gitarre mit Vibrato, Chor, Bass, Rock-Drums. Menü = Halbzeit-Groove, Run = voller Riff, Boss = Double-Bass.
-  const BPM = 148, S16 = 60 / BPM / 4;
-  const PROG = [
-    { r: 40, ch: [64, 67, 71], arp: [52, 55, 59, 64] },   // Em
-    { r: 36, ch: [60, 64, 67], arp: [48, 52, 55, 60] },   // C
-    { r: 38, ch: [62, 66, 69], arp: [50, 54, 57, 62] },   // D
-    { r: 35, ch: [63, 66, 71], arp: [47, 51, 54, 59] },   // H-Dur (Spannung)
+  // Jedes Stück: Tempo, 4 Akkorde (g = Gitarren-Grundton, b = Bass, ch = Chor, arp = Zupfen), 2 Lead-Melodien,
+  // Riffs (O = offener Powerchord, x = Palm-Mute), Schlagzeug-Muster für Run und Menü.
+  const TRACKS = [
+    { name: 'Turmwacht', bpm: 148,
+      prog: [
+        { g: 40, b: 40, ch: [64, 67, 71], arp: [52, 55, 59, 64] },
+        { g: 48, b: 36, ch: [60, 64, 67], arp: [48, 52, 55, 60] },
+        { g: 38, b: 38, ch: [62, 66, 69], arp: [50, 54, 57, 62] },
+        { g: 47, b: 35, ch: [63, 66, 71], arp: [47, 51, 54, 59] }],
+      mel: [
+        [[0, 71, 4], [4, 76, 2], [6, 78, 2], [8, 79, 4], [12, 78, 2], [14, 76, 2]],
+        [[0, 79, 4], [4, 81, 2], [6, 79, 2], [8, 76, 6], [14, 72, 2]],
+        [[0, 74, 2], [2, 78, 2], [4, 81, 4], [8, 79, 2], [10, 78, 2], [12, 74, 4]],
+        [[0, 75, 4], [4, 78, 2], [6, 83, 6], [12, 81, 2], [14, 78, 2]]],
+      mel2: [
+        [[0, 83, 3], [3, 81, 1], [4, 79, 2], [6, 78, 2], [8, 79, 2], [10, 81, 2], [12, 83, 4]],
+        [[0, 84, 4], [4, 83, 2], [6, 81, 2], [8, 79, 4], [12, 76, 4]],
+        [[0, 81, 2], [2, 83, 2], [4, 86, 4], [8, 83, 2], [10, 81, 2], [12, 78, 4]],
+        [[0, 78, 2], [2, 79, 2], [4, 81, 2], [6, 83, 6], [12, 75, 4]]],
+      riff: { run: 'O.xxx.xxO.xxx.xx', fill: 'O.xxx.xxO.O.O.O.', boss: 'xxxxxxxxO.xxO.xx', menu: 'O.......O.......' },
+      kick: { run: [0, 2, 8, 10, 11], menu: [0, 10] }, snare: { run: [4, 12], menu: [8] } },
+    { name: 'Aschewald', bpm: 132,
+      prog: [
+        { g: 38, b: 38, ch: [62, 65, 69], arp: [50, 53, 57, 62] },
+        { g: 46, b: 34, ch: [58, 62, 65], arp: [46, 50, 53, 58] },
+        { g: 48, b: 36, ch: [60, 64, 67], arp: [48, 52, 55, 60] },
+        { g: 45, b: 33, ch: [61, 64, 69], arp: [45, 49, 52, 57] }],
+      mel: [
+        [[0, 69, 4], [4, 74, 2], [6, 76, 2], [8, 77, 6], [14, 76, 2]],
+        [[0, 74, 2], [2, 77, 2], [4, 82, 6], [10, 81, 2], [12, 79, 4]],
+        [[0, 76, 2], [2, 79, 2], [4, 84, 4], [8, 82, 2], [10, 81, 2], [12, 79, 4]],
+        [[0, 73, 4], [4, 76, 2], [6, 81, 6], [12, 79, 2], [14, 76, 2]]],
+      mel2: [
+        [[0, 86, 3], [3, 84, 1], [4, 81, 4], [8, 77, 2], [10, 81, 2], [12, 86, 4]],
+        [[0, 86, 4], [4, 84, 2], [6, 82, 2], [8, 81, 4], [12, 77, 4]],
+        [[0, 76, 2], [2, 79, 2], [4, 84, 4], [8, 88, 4], [12, 86, 4]],
+        [[0, 85, 6], [6, 81, 2], [8, 81, 4], [12, 76, 4]]],
+      riff: { run: 'O..x.xO..x.xO.x.', fill: 'O..x.xO..xO.O.OO', boss: 'xx.xx.xxO.xx.xO.', menu: 'O.......O...O...' },
+      kick: { run: [0, 3, 6, 9, 12, 14], menu: [0, 6] }, snare: { run: [8], menu: [8] } },
+    { name: 'Sturmlauf', bpm: 166,
+      prog: [
+        { g: 45, b: 33, ch: [64, 69, 72], arp: [57, 60, 64, 69] },
+        { g: 41, b: 41, ch: [65, 69, 72], arp: [53, 57, 60, 65] },
+        { g: 43, b: 43, ch: [62, 67, 71], arp: [55, 59, 62, 67] },
+        { g: 40, b: 40, ch: [64, 68, 71], arp: [52, 56, 59, 64] }],
+      mel: [
+        [[0, 76, 2], [2, 81, 2], [4, 84, 2], [6, 83, 2], [8, 81, 2], [10, 76, 2], [12, 72, 2], [14, 76, 2]],
+        [[0, 77, 2], [2, 81, 2], [4, 84, 2], [6, 81, 2], [8, 77, 4], [12, 76, 2], [14, 74, 2]],
+        [[0, 74, 2], [2, 79, 2], [4, 83, 2], [6, 86, 2], [8, 83, 4], [12, 79, 4]],
+        [[0, 80, 4], [4, 83, 2], [6, 88, 6], [12, 86, 2], [14, 83, 2]]],
+      mel2: [
+        [[0, 81, 6], [6, 84, 2], [8, 88, 6], [14, 86, 2]],
+        [[0, 84, 4], [4, 81, 4], [8, 77, 4], [12, 81, 4]],
+        [[0, 83, 4], [4, 86, 4], [8, 79, 4], [12, 83, 4]],
+        [[0, 80, 6], [6, 81, 2], [8, 83, 8]]],
+      riff: { run: 'xxxxxxxxxxxxO.O.', fill: 'xxxxxxxxO.O.O.O.', boss: 'xxxxxxxxxxxxxxxx', menu: 'O...O...O...O.x.' },
+      kick: { run: [0, 4, 8, 12], menu: [0, 8] }, snare: { run: [2, 6, 10, 14], menu: [4, 12] } },
+    { name: 'Glutschlund', bpm: 120,
+      prog: [
+        { g: 42, b: 42, ch: [66, 69, 73], arp: [54, 57, 61, 66] },
+        { g: 38, b: 38, ch: [62, 66, 69], arp: [50, 54, 57, 62] },
+        { g: 40, b: 40, ch: [64, 68, 71], arp: [52, 56, 59, 64] },
+        { g: 37, b: 37, ch: [61, 65, 68], arp: [49, 53, 56, 61] }],
+      mel: [
+        [[0, 73, 4], [4, 78, 4], [8, 81, 6], [14, 80, 2]],
+        [[0, 78, 4], [4, 81, 2], [6, 86, 6], [12, 85, 4]],
+        [[0, 83, 4], [4, 80, 4], [8, 76, 4], [12, 80, 4]],
+        [[0, 77, 4], [4, 80, 4], [8, 85, 8]]],
+      mel2: [
+        [[0, 85, 6], [6, 83, 2], [8, 81, 4], [12, 78, 4]],
+        [[0, 81, 4], [4, 86, 4], [8, 90, 6], [14, 88, 2]],
+        [[0, 88, 4], [4, 86, 2], [6, 85, 2], [8, 83, 8]],
+        [[0, 85, 4], [4, 80, 4], [8, 77, 4], [12, 73, 4]]],
+      riff: { run: 'O..xx.O..xx.O.x.', fill: 'O..xx.O.O.O.OOOO', boss: 'O.xxO.xxO.xxOxxx', menu: 'O.....x.O.......' },
+      kick: { run: [0, 3, 4, 6, 9, 10, 12, 14], menu: [0, 6] }, snare: { run: [8], menu: [8] } },
   ];
-  const MEL = [
-    [[0, 71, 4], [4, 76, 2], [6, 78, 2], [8, 79, 4], [12, 78, 2], [14, 76, 2]],
-    [[0, 79, 4], [4, 81, 2], [6, 79, 2], [8, 76, 6], [14, 72, 2]],
-    [[0, 74, 2], [2, 78, 2], [4, 81, 4], [8, 79, 2], [10, 78, 2], [12, 74, 4]],
-    [[0, 75, 4], [4, 78, 2], [6, 83, 6], [12, 81, 2], [14, 78, 2]],
-  ];
-  const MEL2 = [
-    [[0, 83, 3], [3, 81, 1], [4, 79, 2], [6, 78, 2], [8, 79, 2], [10, 81, 2], [12, 83, 4]],
-    [[0, 84, 4], [4, 83, 2], [6, 81, 2], [8, 79, 4], [12, 76, 4]],
-    [[0, 81, 2], [2, 83, 2], [4, 86, 4], [8, 83, 2], [10, 81, 2], [12, 78, 4]],
-    [[0, 78, 2], [2, 79, 2], [4, 81, 2], [6, 83, 6], [12, 75, 4]],
-  ];
-  const RIFF = { run: 'O.xxx.xxO.xxx.xx', fill: 'O.xxx.xxO.O.O.O.', boss: 'xxxxxxxxO.xxO.xx', menu: 'O.......O.......' };
+  let T = TRACKS[0], tIdx = 0, barsInTrack = 0, pendingTrack = -1, lastAnnounced = -1;
+  const S16 = () => 60 / T.bpm / 4;
+  function pickTrack(force) {
+    const want = getSettings().musicTrack;
+    if (want !== undefined && want !== 'mix' && TRACKS[+want]) return +want;
+    if (!force) return tIdx;
+    let n = tIdx;
+    while (TRACKS.length > 1 && n === tIdx) n = Math.floor(Math.random() * TRACKS.length);
+    return n;
+  }
   let mode = 'menu', nextMode = 'menu', timer = null, nextT = 0, step = 0;
 
   function rig() {
@@ -309,54 +384,72 @@ export function createAudio(getSettings) {
   function stopMusic() { clearInterval(timer); timer = null; }
   function schedule() {
     if (!ctx || ctx.state !== 'running') return;
-    while (nextT < ctx.currentTime + 0.16) { playStep(step, nextT); nextT += S16; step++; }
+    while (nextT < ctx.currentTime + 0.16) { playStep(step, nextT); nextT += S16(); step++; }
   }
   function playStep(s, t) {
     rig();
-    const s16 = s % 16, bar = Math.floor(s / 16), b8 = bar % 8, P = PROG[bar % 4];
-    if (s16 === 0 && bar % 4 === 0) mode = nextMode;
+    const s16 = s % 16;
+    if (s16 === 0) {
+      const bar0 = Math.floor(s / 16);
+      if (bar0 % 4 === 0) {
+        mode = nextMode;
+        barsInTrack += 4;
+        // Stückwechsel: gewünscht (Einstellung/Run-Start) oder nach 32 Takten im Wechsel-Modus
+        let n = pendingTrack >= 0 ? pendingTrack : pickTrack(false);
+        if (n === tIdx && getSettings().musicTrack === 'mix' && barsInTrack >= 32 && bar0 % 8 === 0 && mode !== 'boss') n = pickTrack(true);
+        if (n !== tIdx) { tIdx = n; T = TRACKS[n]; barsInTrack = 0; if (dly) dly.delayTime.setValueAtTime(S16() * 3, t); step = s = 0; }
+        pendingTrack = -1;
+      }
+    }
+    const bar = Math.floor(s / 16), b8 = bar % 8, P = T.prog[bar % 4];
+    const S = S16();
     const run = mode === 'run', boss = mode === 'boss', full = run || boss;
     const second = b8 >= 4, phrase = Math.floor(bar / 8) % 2;
     // Schlagzeug
     if (full) {
-      if (boss ? true : [0, 2, 8, 10, 11].includes(s16)) kick(t, boss ? 0.55 : 0.8, musBus, 0.22, 165, 48);
-      if (s16 === 4 || s16 === 12) snare(t, 1);
+      if (boss ? true : T.kick.run.includes(s16)) kick(t, boss ? 0.55 : 0.8, musBus, 0.22, 165, 48);
+      if (T.snare.run.includes(s16)) snare(t, 1);
       if (s16 % 2 === 0) hat(t, s16 % 4 === 0 ? 1 : 0.7);
       if (s16 === 0 && (b8 === 0 || b8 === 4 || boss)) crash(t, 1);
       if (b8 === 7 && s16 >= 12) snare(t, 0.5 + (s16 - 12) * 0.15);
     } else {
-      if (s16 === 0 || s16 === 10) kick(t, 0.6, musBus, 0.26, 150, 45);
-      if (s16 === 8) snare(t, 0.75);
+      if (T.kick.menu.includes(s16)) kick(t, 0.6, musBus, 0.26, 150, 45);
+      if (T.snare.menu.includes(s16)) snare(t, 0.75);
       if (s16 % 2 === 0) hat(t, 0.55);
       if (s16 === 0 && b8 === 0) crash(t, 0.6);
       if (b8 === 7 && s16 >= 12) tom(t, [180, 150, 120, 95][s16 - 12]);
     }
     // Rhythmusgitarre
-    const riff = boss ? RIFF.boss : full ? (b8 === 3 || b8 === 7 ? RIFF.fill : RIFF.run) : RIFF.menu;
+    const R = T.riff, riff = boss ? R.boss : full ? (b8 === 3 || b8 === 7 ? R.fill : R.run) : R.menu;
     const ch = riff[s16];
-    if (ch === 'O') chord(t, P.r + 12 * (P.r < 38 ? 1 : 0), full ? S16 * 1.8 : S16 * 7.5, true, full ? 0.55 : 0.38);
-    else if (ch === 'x') chord(t, P.r + 12 * (P.r < 38 ? 1 : 0), S16 * 0.7, false, 0.6);
+    let ring = 0;
+    if (ch === 'O') { ring = 1; while (ring < 8 && riff[s16 + ring] === '.') ring++; }
+    if (ch === 'O') chord(t, P.g, S * Math.max(1.8, full ? Math.min(ring, 3) - 0.2 : ring - 0.5), true, full ? 0.55 : 0.38);
+    else if (ch === 'x') chord(t, P.g, S * 0.7, false, 0.6);
     // Bass folgt der Gitarre
-    if (full && ch) bass(t, P.r, ch === 'O' ? S16 * 1.8 : S16 * 0.7, 0.2);
-    if (!full && s16 === 0) bass(t, P.r, S16 * 15, 0.16);
+    if (full && ch && ch !== '.') bass(t, P.b, ch === 'O' ? S * 1.8 : S * 0.7, 0.2);
+    if (!full && s16 === 0) bass(t, P.b, S * 15, 0.16);
     // Chor über jeden Takt
-    if (s16 === 0) choir(t, P.ch, S16 * 16, full ? 0.03 : 0.045);
+    if (s16 === 0) choir(t, P.ch, S * 16, full ? 0.03 : 0.045);
     // Menü: gezupfte Arpeggios in der ersten Hälfte
     if (!full && !second && s16 % 2 === 0) pluck(t, P.arp[(s16 / 2) % 4] + 12, 0.07);
     // Lead-Gitarre: zweite Hälfte jeder Phrase
     if (second) {
-      const mel = (phrase ? MEL2 : MEL)[b8 - 4];
-      for (const [st, m, len] of mel) if (st === s16) leadNote(t, m, len * S16, full ? 0.5 : 0.36);
+      const mel = (phrase ? T.mel2 : T.mel)[b8 - 4];
+      for (const [st, m, len] of mel) if (st === s16) leadNote(t, m, len * S, full ? 0.5 : 0.36);
     }
-    if (boss && s16 % 8 === 0) osc('sawtooth', hz(P.r - 12), t, S16 * 7, 0.1, musBus, { filter: 220, q: 6 });
+    if (boss && s16 % 8 === 0) osc('sawtooth', hz(P.b - 12), t, S * 7, 0.1, musBus, { filter: 220, q: 6 });
   }
 
   return {
     unlock() { ensure(); if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {}); },
     apply,
-    setMode(m) { nextMode = m; },
+    setMode(m) { if (m === 'run' && nextMode !== 'run') pendingTrack = pickTrack(true); nextMode = m; },
+    get track() { return T.name; },
+    skip() { if (ctx) pendingTrack = pickTrack(true); },
+    tracks: TRACKS.map(x => x.name),
     play(name, arg) {
-      if (!ctx || ctx.state !== 'running' || !(Number(getSettings().sfx) > 0)) return;
+      if (!ctx || ctx.state !== 'running' || !(vol(getSettings(), 'sfxVol', 0.5) > 0)) return;
       const t = ctx.currentTime;
       if (MIN_GAP[name] && last[name] && t - last[name] < MIN_GAP[name]) return;
       last[name] = t;
@@ -364,18 +457,20 @@ export function createAudio(getSettings) {
     },
     stop() { stopMusic(); },
     // Hörprobe: rendert die Musik offline (Menü → Run → Boss) und liefert ein WAV als Base64
-    async _render(barsMenu = 8, barsRun = 16, barsBoss = 4) {
-      const saved = { ctx, master, sfxBus, musBus, verb, verbSend, dly, dlySend, noiseBuf, distCurve, gtr, lead, mode, nextMode };
-      const total = (barsMenu + barsRun + barsBoss) * 16, sec = total * S16 + 3;
+    async _render(plan = [[1, 'menu', 4], [1, 'run', 12], [2, 'menu', 4], [2, 'run', 12], [3, 'run', 12], [3, 'boss', 4]]) {
+      const saved = { ctx, master, sfxBus, musBus, verb, verbSend, dly, dlySend, noiseBuf, distCurve, gtr, lead, mode, nextMode, T, tIdx, barsInTrack, pendingTrack };
+      let sec = 3;
+      for (const [ti, , bars] of plan) sec += bars * 16 * (60 / TRACKS[ti].bpm / 4);
       build(new OfflineAudioContext(2, Math.ceil(44100 * sec), 44100));
       musBus.gain.value = 0.6; sfxBus.gain.value = 0;
-      for (let st = 0; st < total; st++) {
-        const bar = Math.floor(st / 16);
-        nextMode = bar < barsMenu ? 'menu' : bar < barsMenu + barsRun ? 'run' : 'boss';
-        playStep(st, 0.05 + st * S16);
+      let t = 0.05;
+      for (const [ti, md, bars] of plan) {
+        tIdx = ti; T = TRACKS[ti]; pendingTrack = -1; nextMode = md; mode = md;
+        dly.delayTime.setValueAtTime(S16() * 3, t);
+        for (let st = 0; st < bars * 16; st++) { barsInTrack = -1000; playStep(st + (md === 'run' ? 64 : 0), t); t += S16(); }
       }
       const buf = await ctx.startRendering();
-      ({ ctx, master, sfxBus, musBus, verb, verbSend, dly, dlySend, noiseBuf, distCurve, gtr, lead, mode, nextMode } = saved);
+      ({ ctx, master, sfxBus, musBus, verb, verbSend, dly, dlySend, noiseBuf, distCurve, gtr, lead, mode, nextMode, T, tIdx, barsInTrack, pendingTrack } = saved);
       const L = buf.getChannelData(0), R = buf.getChannelData(1), n = L.length;
       const out = new DataView(new ArrayBuffer(44 + n * 4));
       const w = (o, str) => { for (let i = 0; i < str.length; i++) out.setUint8(o + i, str.charCodeAt(i)); };
