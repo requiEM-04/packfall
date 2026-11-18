@@ -1,6 +1,29 @@
 // Pixel-Art für den Booster-Stil: alles prozedural oder als Text-Sprites, nichts Fremdes kopiert.
 
-export const OUT = '#0d0a10';
+export const OUT = '#060507';
+
+// Alles gedeckt: Sättigung runter, etwas dunkler
+const muteCache = new Map();
+export function mute(hex, sf = 0.46, lf = 0.9) {
+  if (!hex || hex[0] !== '#' || hex.length !== 7) return hex;
+  const key = hex + sf + lf;
+  if (muteCache.has(key)) return muteCache.get(key);
+  let r = parseInt(hex.slice(1, 3), 16) / 255, g = parseInt(hex.slice(3, 5), 16) / 255, b = parseInt(hex.slice(5, 7), 16) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+  let h = 0, s = 0, l = (mx + mn) / 2;
+  if (mx !== mn) {
+    const d = mx - mn;
+    s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+    h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    h /= 6;
+  }
+  s *= sf; l *= lf;
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p2 = 2 * l - q;
+  const f = t => { t = (t + 1) % 1; return t < 1 / 6 ? p2 + (q - p2) * 6 * t : t < 1 / 2 ? q : t < 2 / 3 ? p2 + (q - p2) * (2 / 3 - t) * 6 : p2; };
+  const out = '#' + [f(h + 1 / 3), f(h), f(h - 1 / 3)].map(v => Math.round(v * 255).toString(16).padStart(2, '0')).join('');
+  muteCache.set(key, out);
+  return out;
+}
 
 // ---------- Grundwerkzeuge ----------
 function grid(w, h) { return Array.from({ length: h }, () => Array(w).fill(null)); }
@@ -20,7 +43,7 @@ function toCanvas(g, scale = 1) {
   const x = c.getContext('2d');
   for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) {
     if (!g[yy][xx]) continue;
-    x.fillStyle = g[yy][xx];
+    x.fillStyle = mute(g[yy][xx]);
     x.fillRect(xx * scale, yy * scale, scale, scale);
   }
   return c;
@@ -46,48 +69,66 @@ export function variant(canvas, kind) {
   const x = c.getContext('2d');
   x.drawImage(canvas, 0, 0);
   x.globalCompositeOperation = 'source-atop';
-  x.fillStyle = kind === 'flash' ? '#ffffff' : kind === 'slow' ? 'rgba(120,210,255,.55)' : kind === 'shadow' ? '#000000' : 'transparent';
+  x.fillStyle = kind === 'flash' ? '#e8e4dc' : kind === 'slow' ? 'rgba(120,170,200,.45)' : kind === 'shadow' ? '#000000' : 'transparent';
   x.fillRect(0, 0, c.width, c.height);
   return c;
 }
 
 // ---------- Turm (Basis) ----------
 export function towerCanvas() {
-  const W = 24, H = 44;
+  const W = 30, H = 58;
   const g = grid(W, H);
-  const rnd = seeded(42);
+  const rnd = seeded(77);
   const set = (x, y, c) => { if (x >= 0 && x < W && y >= 0 && y < H) g[y][x] = c; };
-  // Sockel
-  for (let y = 38; y < 44; y++) for (let x = (y === 38 ? 2 : 1); x <= (y === 38 ? 21 : 22); x++) {
-    const mortar = (y - 38) % 3 === 2 || ((x + (Math.floor((y - 38) / 3) % 2) * 3) % 6 === 0);
-    set(x, y, mortar ? '#1e1d27' : x < 7 ? '#4e4c60' : x > 16 ? '#2e2d3b' : '#3d3c4e');
+  const stone = ['#5a5a62', '#4c4c54', '#40404a', '#34343c', '#2a2a31'];
+  // Felssockel
+  for (let y = 50; y < 58; y++) {
+    const inset = y < 52 ? 2 : y < 55 ? 1 : 0;
+    for (let x = inset; x < W - inset; x++) {
+      const v = (x + y * 3) % 7 === 0 ? 4 : x < 9 ? 1 : x > 21 ? 3 : 2;
+      set(x, y, stone[v]);
+    }
   }
-  // Schaft mit Ziegeln
-  const brick = {};
-  for (let y = 12; y < 38; y++) for (let x = 4; x <= 19; x++) {
-    const by = Math.floor((y - 12) / 4), off = (by % 2) * 2;
-    const mortar = (y - 12) % 4 === 3 || ((x - 4 + off) % 5 === 4);
-    const key = `${by}:${Math.floor((x - 4 + off) / 5)}`;
-    brick[key] ??= (rnd() - 0.5) * 0.12;
-    let base = x < 8 ? '#77768e' : x < 12 ? '#626178' : x < 16 ? '#4f4e63' : '#3b3a4c';
-    set(x, y, mortar ? '#24232e' : shade(base, brick[key]));
+  // Treppe vor der Tür
+  for (let y = 52; y < 56; y++) for (let x = 12 - (y - 52); x <= 17 + (y - 52); x++) set(x, y, y % 2 ? '#4a4a52' : '#3a3a42');
+  // Schaft mit unregelmäßigen Steinen
+  for (let y = 16; y < 50; y++) {
+    const taper = y < 20 ? 0 : 0;
+    for (let x = 5 + taper; x <= 24 - taper; x++) {
+      const row = Math.floor((y - 16) / 3), off = (row % 2) * 3;
+      const mortar = (y - 16) % 3 === 2 || ((x - 5 + off) % 6 === 5);
+      const shade = x < 9 ? 0 : x < 14 ? 1 : x < 20 ? 2 : 3;
+      let c = mortar ? '#1c1c22' : stone[shade];
+      if (!mortar && rnd() < 0.08) c = stone[Math.min(4, shade + 1)];
+      if (!mortar && x === 5) c = '#66666e';
+      set(x, y, c);
+    }
   }
+  // Moos unten
+  for (let x = 5; x <= 24; x++) if (rnd() < 0.55) set(x, 49 - Math.floor(rnd() * 3), rnd() < 0.5 ? '#2e3a2c' : '#26302a');
   // Kragen + Zinnen
-  for (let y = 9; y < 12; y++) for (let x = 3; x <= 20; x++) set(x, y, y === 9 ? '#8a89a3' : y === 10 ? '#5d5c73' : '#3b3a4c');
-  for (const mx of [3, 8, 13, 18]) for (let y = 4; y < 9; y++) for (let x = mx; x < mx + 3; x++) set(x, y, x === mx ? '#8a89a3' : y === 4 ? '#7a7990' : '#55546a');
-  // leuchtendes Fenster
-  for (let y = 17; y < 23; y++) for (let x = 10; x <= 13; x++) {
-    if (y === 17 && (x === 10 || x === 13)) continue;
-    set(x, y, (x === 11 || x === 12) && y > 18 && y < 22 ? '#e8fdff' : '#5fe3ff');
+  for (let y = 12; y < 16; y++) for (let x = 3; x <= 26; x++) set(x, y, y === 12 ? '#6a6a72' : y === 15 ? '#26262c' : x < 10 ? '#55555d' : '#45454d');
+  for (const mx of [3, 9, 15, 21]) for (let y = 6; y < 12; y++) for (let x = mx; x < mx + 4 && x <= 26; x++) set(x, y, x === mx ? '#6a6a72' : y === 6 ? '#5a5a62' : '#45454d');
+  // Banner (dunkelrot) links und rechts
+  for (const bx of [6, 20]) for (let y = 16; y < 31; y++) for (let x = bx; x < bx + 4; x++) {
+    if (y > 27 && ((x - bx) === 1 || (x - bx) === 2) && y > 28) continue;
+    set(x, y, x === bx ? '#5a1c1c' : y === 16 ? '#2a0e0e' : '#47161a');
+    if (y === 21 && x === bx + 1) set(x, y, '#8a7448');
+    if (y === 22 && (x === bx + 1 || x === bx + 2)) set(x, y, '#8a7448');
   }
-  // Tür
-  for (let y = 31; y < 38; y++) for (let x = 9; x <= 14; x++) {
-    if (y === 31 && (x === 9 || x === 14)) continue;
-    set(x, y, x === 11 ? '#2c1a10' : (x === 13 && y === 34) ? '#d9a441' : x < 11 ? '#6b4428' : '#55351f');
+  // Fensterschlitze mit warmem Licht
+  for (const [wx, wy] of [[14, 20], [14, 34]]) for (let y = wy; y < wy + 5; y++) for (let x = wx; x < wx + 2; x++) set(x, y, y === wy ? '#6a4a2a' : '#c08a3a');
+  // Tor
+  for (let y = 41; y < 50; y++) for (let x = 11; x <= 18; x++) {
+    if (y === 41 && (x < 13 || x > 16)) continue;
+    if (y === 42 && (x === 11 || x === 18)) continue;
+    let c = (x - 11) % 2 ? '#3a2616' : '#2e1e12';
+    if (y === 45) c = '#1a120a';
+    if (x === 17 && y === 46) c = '#8a7448';
+    set(x, y, c);
   }
-  // Fackeln links/rechts der Tür
-  set(7, 32, '#ffd23f'); set(7, 33, '#ff8a2a'); set(7, 34, '#4a3020');
-  set(16, 32, '#ffd23f'); set(16, 33, '#ff8a2a'); set(16, 34, '#4a3020');
+  // Fackeln
+  for (const tx of [9, 20]) { set(tx, 43, '#3a2616'); set(tx, 44, '#3a2616'); set(tx, 42, '#d08a3a'); set(tx, 41, '#f0c070'); }
   return toCanvas(outline(g));
 }
 
@@ -99,13 +140,13 @@ export function crystalCanvas() {
     for (let x = 0; x < W; x++) {
       const dx = x - 5;
       if (Math.abs(dx) > hw) continue;
-      let c = dx < 0 ? '#7ff0ff' : dx > 0 ? '#22a6dc' : '#c9fbff';
-      if (y < 6 && dx === -1) c = '#e8fdff';
-      if (y > 9 && dx > 0) c = '#1677b8';
+      let c = dx < 0 ? '#9cc4cc' : dx > 0 ? '#4e7e90' : '#c8dee2';
+      if (y < 6 && dx === -1) c = '#e0eef0';
+      if (y > 9 && dx > 0) c = '#355e70';
       g[y][x] = c;
     }
   }
-  return toCanvas(outline(g, '#0a2a3d'));
+  return toCanvas(outline(g, '#0c171c'));
 }
 
 // ---------- Helden ----------
@@ -279,10 +320,14 @@ export function packCanvas(kind) {
   const W = 30, H = 42;
   const g = grid(W, H);
   const pal = kind === 'elite'
-    ? { a: '#ffd75e', b: '#e0a520', c: '#a8740e', d: '#5a3a06', em: '#fff6c8', em2: '#ffb52e' }
+    ? { a: '#d0b878', b: '#a88c4a', c: '#705c30', d: '#362c16', em: '#ece4cc', em2: '#c8a860' }
     : kind === 'starter'
-      ? { a: '#ff8a96', b: '#d6304a', c: '#8a1628', d: '#4a0a16', em: '#fff2b0', em2: '#ffd75e' }
-      : { a: '#6fb6ff', b: '#3a7fd0', c: '#22508c', d: '#122a4f', em: '#e8fdff', em2: '#5fe3ff' };
+      ? { a: '#c48a86', b: '#965052', c: '#643034', d: '#30181a', em: '#ece0d0', em2: '#c8ac7c' }
+      : kind === 'green'
+        ? { a: '#a0b48a', b: '#6a805a', c: '#425438', d: '#1e281a', em: '#e4ecd8', em2: '#b0c494' }
+        : kind === 'purple'
+          ? { a: '#aaa0c4', b: '#76669a', c: '#4a3e66', d: '#221c30', em: '#e8e2f0', em2: '#c0b4d8' }
+          : { a: '#8ca8c0', b: '#5c7894', c: '#3a5064', d: '#1a2632', em: '#dce6ee', em2: '#98b4c4' };
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     // gezackte Ränder oben/unten
     const crimp = (y < 3 || y > H - 4);
@@ -376,10 +421,140 @@ export function iconSVG(name) {
       if (!d.pal[ch]) { x++; continue; }
       let x2 = x + 1;
       while (x2 < row.length && row[x2] === ch) x2++;
-      rects += `<rect x="${x}" y="${y}" width="${x2 - x}" height="1" fill="${d.pal[ch]}"/>`;
+      rects += `<rect x="${x}" y="${y}" width="${x2 - x}" height="1" fill="${mute(d.pal[ch], 0.42, 0.9)}"/>`;
       x = x2;
     }
   });
   const w = Math.max(...d.rows.map(r => r.length));
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${d.rows.length}" shape-rendering="crispEdges" aria-hidden="true">${rects}</svg>`;
+}
+
+// ---------- Logo (eigene Pixel-Schrift, gestapelt) ----------
+const GLYPH = {
+  P: ['#####.', '##..##', '##..##', '#####.', '##....', '##....', '##....', '##....'],
+  A: ['.####.', '##..##', '##..##', '######', '##..##', '##..##', '##..##', '##..##'],
+  C: ['.#####', '##....', '##....', '##....', '##....', '##....', '##....', '.#####'],
+  K: ['##..##', '##.##.', '####..', '###...', '####..', '##.##.', '##..##', '##..##'],
+  F: ['######', '##....', '##....', '#####.', '##....', '##....', '##....', '##....'],
+  L: ['##....', '##....', '##....', '##....', '##....', '##....', '######', '######'],
+};
+export function logoCanvas(lines = ['PACK', 'FALL']) {
+  const S = 2, GW = 6, GH = 8, GAP = 1, LGAP = 3, PAD = 4, SH = 3;
+  const lineW = w => (w.length * GW + (w.length - 1) * GAP) * S;
+  const W = Math.max(...lines.map(lineW)) + PAD * 2 + SH, H = lines.length * GH * S + (lines.length - 1) * LGAP * S + PAD * 2 + SH;
+  const fill = Array.from({ length: H }, () => Array(W).fill(0));
+  const owner = Array.from({ length: H }, () => Array(W).fill(-1));
+  lines.forEach((word, li) => {
+    const ox = PAD + Math.floor((W - PAD * 2 - SH - lineW(word)) / 2);
+    const oy = PAD + li * (GH + LGAP) * S;
+    [...word].forEach((ch, ci) => {
+      const g = GLYPH[ch]; if (!g) return;
+      g.forEach((row, y) => [...row].forEach((c, x) => {
+        if (c !== '#') return;
+        for (let a = 0; a < S; a++) for (let b = 0; b < S; b++) {
+          const px = ox + (ci * (GW + GAP) + x) * S + a, py = oy + y * S + b;
+          fill[py][px] = 1; owner[py][px] = li;
+        }
+      }));
+    });
+  });
+  const PAL = [
+    { hi: '#e6e1d6', top: '#c9c2b2', mid: '#a59d8c', low: '#7f786b', dark: '#3e3a33' },
+    { hi: '#c9a59a', top: '#a26f64', mid: '#84504a', low: '#643a38', dark: '#2e1a1a' },
+  ];
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  const at = (px, py) => (py >= 0 && py < H && px >= 0 && px < W ? fill[py][px] : 0);
+  // Schatten
+  x.fillStyle = '#0a0909';
+  for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) if (at(px - SH, py - SH) || at(px - SH + 1, py - SH)) x.fillRect(px, py, 1, 1);
+  // Kontur
+  x.fillStyle = '#050505';
+  for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) {
+    if (at(px, py)) continue;
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (Math.abs(dx) + Math.abs(dy) <= 3 && at(px + dx, py + dy)) { x.fillRect(px, py, 1, 1); dy = 3; break; }
+  }
+  // Füllung mit Licht oben, Schatten unten, Bänder
+  for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) {
+    if (!at(px, py)) continue;
+    const p = PAL[owner[py][px]];
+    const oy = PAD + owner[py][px] * (GH + LGAP) * S;
+    const k = (py - oy) / (GH * S);
+    let col = k < 0.3 ? p.top : k < 0.62 ? p.mid : p.low;
+    if (!at(px, py - 1)) col = p.hi;
+    else if (!at(px, py + 1)) col = p.dark;
+    else if (!at(px - 1, py)) col = k < 0.62 ? p.hi : p.top;
+    x.fillStyle = col; x.fillRect(px, py, 1, 1);
+  }
+  return c;
+}
+
+// ---------- Titelbild: Nachtszene mit Mond, Bergen und Turm ----------
+const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+export function titleBackdrop() {
+  const W = 320, H = 180;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  const rnd = seeded(2026);
+  const sky = ['#06070a', '#090a0e', '#0d0e13', '#121318', '#17181e', '#1d1d23'];
+  for (let y = 0; y < 132; y++) {
+    const f = Math.min(sky.length - 1.001, (y / 132) * (sky.length - 1));
+    const i = Math.floor(f), t = f - i;
+    for (let px = 0; px < W; px++) {
+      x.fillStyle = t * 16 > BAYER[(y % 4) * 4 + (px % 4)] ? sky[i + 1] : sky[i];
+      x.fillRect(px, y, 1, 1);
+    }
+  }
+  // Sterne
+  for (let i = 0; i < 90; i++) {
+    const sx = Math.floor(rnd() * W), sy = Math.floor(rnd() * 110);
+    x.fillStyle = rnd() < 0.2 ? '#a8a49a' : rnd() < 0.5 ? '#7c7f88' : '#45474f';
+    x.fillRect(sx, sy, 1, 1);
+    if (rnd() < 0.06) { x.fillRect(sx - 1, sy, 3, 1); x.fillRect(sx, sy - 1, 1, 3); }
+  }
+  // Mond mit Halo
+  const mx = 248, my = 38, mr = 15;
+  for (let y = -mr - 10; y <= mr + 10; y++) for (let px = -mr - 10; px <= mr + 10; px++) {
+    const d = Math.hypot(px, y);
+    if (d <= mr) {
+      let col = '#a7a397';
+      if (px + y > 8) col = '#8c887d';
+      if ((px - 4) ** 2 + (y + 3) ** 2 < 10 || (px + 6) ** 2 + (y - 5) ** 2 < 6 || (px - 1) ** 2 + (y - 8) ** 2 < 4) col = '#7f7b71';
+      x.fillStyle = col; x.fillRect(mx + px, my + y, 1, 1);
+    } else if (d <= mr + 10 && BAYER[((y + 40) % 4) * 4 + ((px + 40) % 4)] < (1 - (d - mr) / 10) * 5) {
+      x.fillStyle = '#25262c'; x.fillRect(mx + px, my + y, 1, 1);
+    }
+  }
+  // Berge (zwei Ebenen)
+  const ridge = (base, amp, col, seed) => {
+    const r2 = seeded(seed);
+    let h = base;
+    x.fillStyle = col;
+    for (let px = 0; px < W; px++) {
+      h += (r2() - 0.5) * amp; h = Math.max(base - 22, Math.min(base + 6, h));
+      x.fillRect(px, Math.round(h), 1, H - Math.round(h));
+    }
+  };
+  ridge(112, 3.2, '#111216', 7);
+  ridge(128, 2.4, '#0c0d10', 11);
+  // Hügel rechts mit Turm
+  x.fillStyle = '#070709';
+  for (let px = 0; px < W; px++) {
+    const hy = 150 - Math.max(0, Math.sin(((px - 150) / 190) * Math.PI) * 30) + (px < 150 ? 4 : 0);
+    x.fillRect(px, Math.round(hy), 1, H - Math.round(hy));
+    if (rnd() < 0.5) { x.fillStyle = '#1a1e1b'; x.fillRect(px, Math.round(hy) - (rnd() < 0.3 ? 1 : 0), 1, 1); x.fillStyle = '#070709'; }
+  }
+  const tw = towerCanvas(), cr = crystalCanvas();
+  const tx = 238, ty = 123;
+  // Glühen um den Kristall (gerastert)
+  for (let y = -26; y <= 26; y++) for (let px = -26; px <= 26; px++) {
+    const d = Math.hypot(px, y) / 26;
+    if (d < 1 && BAYER[((y + 52) % 4) * 4 + ((px + 52) % 4)] < (1 - d) * 5) { x.fillStyle = '#1c2a30'; x.fillRect(tx + px, ty - tw.height - 8 + y, 1, 1); }
+  }
+  x.drawImage(tw, tx - Math.floor(tw.width / 2), ty - tw.height + 2);
+  x.drawImage(cr, tx - Math.floor(cr.width / 2), ty - tw.height - cr.height - 2);
+  // tote Bäume links
+  const r3 = seeded(5);
+  [[30, 152], [58, 150], [96, 154]].forEach(([bx, by]) => { const t = treeCanvas(r3, '#050506'); x.drawImage(t, bx, by - t.height); });
+  return c;
 }
