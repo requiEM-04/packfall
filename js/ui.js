@@ -1,15 +1,16 @@
 // Packfall – Oberfläche: Hauptmenü (wie Pokélings), Unterseiten, Run-HUD, Booster öffnen, Willkommen
-import { UPGRADES, U, G, GUARDIANS, ENEMY_TYPES, RARITIES, BOOSTERS, REALMS, realmOf, fmt, fmtNum, WS_MAX } from './core.js?v=0.7-42083dbf';
-import { createOpening } from './opening.js?v=0.7-42083dbf';
-import { createAdmin } from './admin.js?v=0.7-42083dbf';
+import { UPGRADES, U, G, GUARDIANS, ENEMY_TYPES, RARITIES, BOOSTERS, REALMS, realmOf, fmt, fmtNum, WS_MAX, RELICS, RL } from './core.js?v=0.8-720520af';
+import { createOpening } from './opening.js?v=0.8-720520af';
+import { createAdmin } from './admin.js?v=0.8-720520af';
 
 const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 // Werkstatt-Baum: Positionen in Prozent
 const TREE = {
-  schaden: [31, 13], tempo: [31, 38], panzer: [31, 63], zeiger: [31, 88],
-  krit: [60, 13], magnet: [60, 38], regen: [60, 63],
-  start: [88, 26], gemfund: [88, 50],
+  schaden: [28, 12], tempo: [28, 37], panzer: [28, 62], zeiger: [28, 87],
+  krit: [50, 12], magnet: [50, 37], regen: [50, 62], plaetze: [50, 87],
+  grund: [72, 25], gemfund: [72, 50],
+  zins: [92, 14], reroll: [92, 38],
 };
 const ROOT = [7, 50];
 
@@ -21,6 +22,8 @@ const ENEMY_INFO = {
 };
 
 const PATCH = [
+  ['v0.8', 'Neues Spielprinzip: Jeder Run startet mit Grundmünzen – kaufe Helden aus deiner Sammlung beim Händler, 3 gleiche verschmelzen zu ★★ (9 zu ★★★), zwischen den Wellen wieder einkaufen, nach Welle 5 und jedem Boss ein Relikt wählen. Werkstatt mit neuen Ästen (Heldenplätze, Grundmünzen, Zinsen, Gratis-Würfeln). Neuer Cursor-Kreis, kleinere Kampfansicht, neues Hauptmenü mit Nachtlandschaft, Abmelden führt zum Anmeldefenster'],
+  ['v0.7.1', 'Booster-Opening: weiche, volle Lichtstrahlen in zwei Schichten, leuchtender Lichtkern, Funken mit Schweif und Druckwellen'],
   ['v0.7', 'Drei neue Musikstücke (Aschewald, Sturmlauf, Glutschlund) mit Lautstärkereglern und Stückauswahl; Musik pausiert, wenn der Tab im Hintergrund ist; Menü übersichtlicher, klarere Schrift; Werkstatt zeigt Infos beim Überfahren; lebendigere Welt mit Nebel, Glühwürmchen, leuchtenden Pilzen und Fledermäusen; neue Konten starten mit eigenem Spielstand'],
   ['v0.6', 'Neue Musik: düsterer Fantasy-Metal mit Gitarren-Riffs, Lead-Gitarre und Chor; Anmeldefenster übersichtlicher, Passwort schon ab 4 Zeichen'],
   ['v0.5', 'Neues Booster-Opening: ein Held pro Pack, Lichtstrahlen verraten die Seltenheit, Bass-Sounds; 12 komplett neu gezeichnete Helden (4 neue); neue Synthwave-Musik; ruhigere Oberfläche; Anmeldefenster beim Start; flüssiger'],
@@ -42,7 +45,9 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
         <div class="kw-cur kw-cur-coin" title="Münzen – nur in diesem Run">${ic('coin')}<b data-k="coins">0</b></div>
         <div class="kw-hp" title="Turm-Leben"><span class="kw-bar"><i data-k="hpbar"></i></span><b data-k="hp"></b></div>
       </div>
-      <div class="kw-strip run-only" data-k="strip" role="group" aria-label="Run-Shop"></div>
+      <div class="kw-strip" data-k="strip" hidden></div>
+      <div class="kw-shop2 run-only" data-k="shop2" hidden></div>
+      <div class="kw-relic run-only" data-k="relic" hidden></div>
       <div class="kw-tip" data-k="tip" hidden></div>
       <div class="kw-tr run-only" data-k="tr"></div>
       <div class="kw-wave run-only" data-k="wavebox"></div>
@@ -110,7 +115,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
           <p class="kw-ribbon">Booster öffnen · Helden sammeln · Turm halten</p>
           <button type="button" class="kw-press" data-k="press">Drücke Start</button>
         </div>
-        <p class="kw-legal">Prototyp v0.7 · Spielstand wird automatisch gespeichert</p>
+        <p class="kw-legal">Prototyp v0.8 · Spielstand wird automatisch gespeichert</p>
       </div>
       <div class="kw-auth" data-k="auth">
         <div class="kw-auth-in">
@@ -143,7 +148,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
 
   const k = name => el.querySelector(`[data-k="${name}"]`);
   const E = {};
-  ['gems', 'coins', 'hp', 'hpbar', 'strip', 'tip', 'tr', 'wavebox', 'banner', 'hitflash', 'menu', 'screen', 'bo', 'sum', 'sumwave', 'sumlist', 'sumclose', 'intro', 'toast', 'open', 'loadlbl', 'loadpct', 'loadbar', 'loadtip', 'skip', 'press', 'titlebg', 'fan', 'auth', 'authform', 'authpw2', 'autherr', 'authgo', 'authlb', 'news', 'newsh', 'newstxt', 'newsok'].forEach(n => { E[n] = k(n); });
+  ['gems', 'coins', 'hp', 'hpbar', 'strip', 'shop2', 'relic', 'tip', 'tr', 'wavebox', 'banner', 'hitflash', 'menu', 'screen', 'bo', 'sum', 'sumwave', 'sumlist', 'sumclose', 'intro', 'toast', 'open', 'loadlbl', 'loadpct', 'loadbar', 'loadtip', 'skip', 'press', 'titlebg', 'fan', 'auth', 'authform', 'authpw2', 'autherr', 'authgo', 'authlb', 'news', 'newsh', 'newstxt', 'newsok'].forEach(n => { E[n] = k(n); });
   const stage = el.querySelector('.kw-stage');
 
   let screen = null;          // offene Unterseite
@@ -181,46 +186,61 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
   // =====================================================================
   // RUN-HUD
   // =====================================================================
-  const RUN_ORDER = ['schaden', 'tempo', 'panzer', 'zeiger', 'regen', 'krit', 'magnet'];
-  function stripHTML() {
+  function placeTip() { E.tip.hidden = true; }
+
+  // ---------- Lager / Händler zwischen den Wellen ----------
+  const STARS = n => '★'.repeat(n) + '<i>' + '★'.repeat(3 - n) + '</i>';
+  function shopHTML2() {
     const r = game.run;
-    return RUN_ORDER.map(id => {
-      const u = U[id];
-      const L = game.wsLevel(id);
-      if (!L) return `<button type="button" class="kw-cell is-locked" data-id="${id}" aria-label="${u.name}: in der Werkstatt freischalten">${ic('lock')}<span class="kw-cell-lv">—</span></button>`;
-      const lv = game.runLevel(id), max = game.runMax(id), maxed = lv >= max, cost = game.runCost(id), can = !maxed && r.coins >= cost;
-      return `<button type="button" class="kw-cell${can ? ' can' : ''}${maxed ? ' is-max' : ''}" data-act="buyRun" data-id="${id}" aria-label="${u.name}, Stufe ${lv} von ${max}${maxed ? ', voll' : `, kostet ${cost} Münzen`}">
-        <span class="kw-cell-ic">${ic(u.icon)}</span>
-        <span class="kw-cell-lv">${lv}/${max}</span>
-        <span class="kw-cell-cost">${maxed ? 'MAX' : costHTML('coin', cost)}</span>
+    if (!r || r.phase !== 'shop') return '';
+    const slots = game.slotsMax();
+    const need = c => { const st = game.hasRelic('stern'); const s1 = st ? 2 : 3, s2 = st ? 4 : 9; return c < s1 ? `${c}/${s1}` : c < s2 ? `${c}/${s2}` : 'max'; };
+    const board = Array.from({ length: slots }, (_, i) => {
+      const b = r.board[i];
+      if (!b) return `<div class="kw-bslot is-empty"><span>${ic('plus')}</span><small>Platz ${i + 1}</small></div>`;
+      const d = G[b.id], st = game.starOf(b.copies);
+      return `<div class="kw-bslot r-${d.rarity}" style="--rc:${RARITIES[d.rarity].color}">
+        <span class="kw-bart2">${skin.cardArt(d)}</span>
+        <b>${d.name}</b><em class="kw-stars s${st}">${STARS(st)}</em><small>${need(b.copies)} Kopien</small>
+        <button type="button" class="kw-sell" data-act="sell" data-v="${i}" title="Verkaufen (+${fmt(Math.floor(b.spent * 0.5))})">${ic('coin')}${fmt(Math.floor(b.spent * 0.5))}</button>
+      </div>`;
+    }).join('');
+    const offers = r.offers.map((id, i) => {
+      if (!id) return `<div class="kw-offer is-sold"><small>Gekauft</small></div>`;
+      const d = G[id], price = game.priceOf(id), on = r.board.find(x => x.id === id), full = !on && r.board.length >= slots, can = r.coins >= price && !full;
+      const nextStar = on ? game.starOf(on.copies + 1) > game.starOf(on.copies) : false;
+      return `<button type="button" class="kw-offer r-${d.rarity}${can ? '' : ' is-off'}" style="--rc:${RARITIES[d.rarity].color}" data-act="buyOffer" data-v="${i}">
+        <span class="kw-orar">${RARITIES[d.rarity].name}</span>
+        <span class="kw-oart">${skin.cardArt(d)}</span>
+        <b>${d.name}</b>
+        <small>${on ? (nextStar ? '<em class="kw-up">Verschmelzen ★</em>' : `+1 Kopie (${on.copies + 1})`) : full ? 'Kein Platz frei' : d.desc}</small>
+        <span class="kw-oprice">${ic('coin')}${fmt(price)}</span>
       </button>`;
     }).join('');
+    const rc = game.rerollCost();
+    return `<div class="kw-shop2-in">
+      <div class="kw-shop2-head">
+        <div><b>${r.wave ? `Händler · nach Welle ${r.wave}` : 'Lager · Run-Start'}</b><small>${r.wave ? 'Kaufe Helden, verschmelze Doppelte, dann weiter.' : 'Grundmünzen ausgeben: Helden aufs Brett holen.'}</small></div>
+        <span class="kw-coins">${ic('coin')}<b>${fmt(r.coins)}</b></span>
+      </div>
+      <div class="kw-offers">${offers}</div>
+      <div class="kw-board">${board}</div>
+      <div class="kw-shop2-act">
+        <button type="button" class="kw-btn" data-act="reroll"${r.coins >= rc ? '' : ' aria-disabled="true"'}>${ic('speed')}<span>Neu würfeln · ${rc ? fmt(rc) : 'gratis'}</span></button>
+        <button type="button" class="kw-btn" data-act="heal"${r.coreHp < r.coreMax && r.coins >= r.healCost ? '' : ' aria-disabled="true"'}>${ic('heart')}<span>Turm +30 · ${fmt(r.healCost)}</span></button>
+        <label class="kw-chk kw-auto"><input type="checkbox" data-act="autoWave"${game.meta.settings.autoWave ? ' checked' : ''}><span>Automatisch weiter${game.meta.settings.autoWave && r.board.length ? ` (${Math.ceil(Math.max(0, r.autoT))})` : ''}</span></label>
+        <button type="button" class="kw-btn kw-btn-primary kw-go" data-act="nextWave"${r.board.length ? '' : ' aria-disabled="true"'}>${ic('play')}<span>${r.board.length ? `Welle ${r.wave + 1} starten` : 'Erst einen Helden kaufen'}</span></button>
+      </div>
+      ${r.relics.length ? `<div class="kw-relics">${r.relics.map(id => `<span title="${RL[id].desc}">${ic(RL[id].icon)}${RL[id].name}</span>`).join('')}</div>` : ''}
+    </div>`;
   }
-  function tipHTML(id) {
-    const u = U[id];
-    const L = game.wsLevel(id);
-    if (!L) return `<b>${u.name}</b><small>Gesperrt – in der Werkstatt freischalten.</small>`;
-    const lv = game.runLevel(id), max = game.runMax(id);
-    return `<b>${u.name}</b><small>Jetzt: ${lv ? game.runEffectText(id) : 'nichts'}</small>${lv < max ? `<em>Nächste Stufe: ${game.runEffectText(id, lv + 1)}</em>` : '<em>Max. Stufe für diesen Run</em>'}`;
+  function relicHTML() {
+    const r = game.run;
+    if (!r || r.phase !== 'relic' || !r.relicChoice) return '';
+    return `<div class="kw-relic-in"><h2>${r.wave % 10 === 0 ? 'Boss besiegt!' : 'Ein Relikt liegt im Staub'}</h2><p>Wähle eins. Es hält bis zum Ende dieses Runs.</p>
+      <div class="kw-relic-row">${r.relicChoice.map((id, i) => `<button type="button" class="kw-rcard" data-act="relic" data-v="${i}"><span class="kw-rcard-ic">${ic(RL[id].icon)}</span><b>${RL[id].name}</b><small>${RL[id].desc}</small></button>`).join('')}</div></div>`;
   }
-  function placeTip() {
-    if (!tipId) { E.tip.hidden = true; return; }
-    const cell = E.strip.querySelector(`[data-id="${tipId}"]`);
-    if (!cell) { E.tip.hidden = true; return; }
-    set('tip', E.tip, tipHTML(tipId));
-    E.tip.hidden = false;
-    const sr = stage.getBoundingClientRect(), cr = cell.getBoundingClientRect(), tr = E.tip.getBoundingClientRect();
-    const vertical = E.strip.getBoundingClientRect().height > E.strip.getBoundingClientRect().width;
-    let x, y;
-    if (vertical) { x = cr.right - sr.left + 8; y = cr.top - sr.top + cr.height / 2 - tr.height / 2; }
-    else { x = cr.left - sr.left + cr.width / 2 - tr.width / 2; y = cr.top - sr.top - tr.height - 8; }
-    x = Math.max(6, Math.min(sr.width - tr.width - 6, x)); y = Math.max(6, Math.min(sr.height - tr.height - 6, y));
-    E.tip.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
-  }
-  E.strip.addEventListener('pointerover', e => { const c = e.target.closest('.kw-cell'); if (c && e.pointerType !== 'touch') { tipId = c.dataset.id; placeTip(); } });
-  E.strip.addEventListener('pointerleave', () => { tipId = null; placeTip(); });
-  E.strip.addEventListener('focusin', e => { const c = e.target.closest('.kw-cell'); if (c) { tipId = c.dataset.id; placeTip(); } });
-  E.strip.addEventListener('focusout', () => { tipId = null; placeTip(); });
+
 
   function trHTML() {
     const s = game.meta.speed || 1;
@@ -266,6 +286,20 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
           <span>${ic('helm')}<b>${owned}/${GUARDIANS.length}</b></span>
         </div>
       </header>
+
+      <main class="kw-center">
+        <nav class="kw-box kw-mm" aria-label="Hauptmenü">
+          ${mb('start', '', 'sword', 'Kämpfen', can ? `Neuer Run · Reich 1 · ${m.best ? `Rekord Welle ${m.best}` : 'Welle 1'}` : 'Öffne zuerst dein Start-Geschenk')}
+          ${mb('open', 'booster', 'pack', 'Booster-Laden', giftOpen ? 'Ein Geschenk wartet auf dich!' : 'Helden-Booster · Elite-Booster', giftOpen ? badge('Geschenk') : affordable ? badge('!') : '')}
+          ${mb('open', 'werkstatt', 'anvil', 'Werkstatt', `Upgrade-Baum · ${avail ? `${avail} Ausbau${avail === 1 ? '' : 'ten'} möglich` : 'dauerhafte Verbesserungen'}`, avail ? badge(avail) : '')}
+          ${mb('open', 'helden', 'helm', 'Helden', `Sammlung ${owned}/${GUARDIANS.length} · erscheinen beim Händler`)}
+          ${mb('open', 'bestiarium', 'skull', 'Bestiarium', '4 Gegnerarten · Schattenfürst')}
+          ${mb('open', 'statistik', 'chart', 'Statistik', `${fmt(m.runs)} Runs · ${fmt(m.kills)} Gegner besiegt`)}
+          ${mb('open', 'einstellungen', 'gear', 'Einstellungen', `Anleitung · Sound · Grafik · ${cloud?.st?.status === 'online' ? 'Abmelden' : 'Login'}`)}
+        </nav>
+        <p class="kw-loc">${ic('tower')} Reich ${realm + 1} · ${REALMS[realm].name}</p>
+      </main>
+      <div class="kw-sides">
       <aside class="kw-box kw-side kw-side-l">
         <h3>${ic('flag')} Fortschritt</h3>
         <dl class="kw-kv">
@@ -278,24 +312,13 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
         <div class="kw-chal"><div><b>Täglicher Run</b><small>Gleiche Wellen für alle · eigene Bestenliste</small></div><span class="kw-soon">Bald</span></div>
         <div class="kw-chal"><div><b>Wochen-Herausforderung</b><small>Feste Regeln · 3 Versuche pro Woche</small></div><span class="kw-soon">Bald</span></div>
       </aside>
-      <main class="kw-center">
-        <nav class="kw-box kw-mm" aria-label="Hauptmenü">
-          ${mb('start', '', 'sword', 'Kämpfen', can ? `Neuer Run · Reich 1 · ${m.best ? `Rekord Welle ${m.best}` : 'Welle 1'}` : 'Öffne zuerst dein Start-Geschenk')}
-          ${mb('open', 'booster', 'pack', 'Booster-Laden', giftOpen ? 'Ein Geschenk wartet auf dich!' : 'Helden-Booster · Elite-Booster', giftOpen ? badge('Geschenk') : affordable ? badge('!') : '')}
-          ${mb('open', 'werkstatt', 'anvil', 'Werkstatt', `Upgrade-Baum · ${avail ? `${avail} Ausbau${avail === 1 ? '' : 'ten'} möglich` : 'dauerhafte Verbesserungen'}`, avail ? badge(avail) : '')}
-          ${mb('open', 'helden', 'helm', 'Helden', `Sammlung ${owned}/${GUARDIANS.length} · Aufstellung`)}
-          ${mb('open', 'bestiarium', 'skull', 'Bestiarium', '4 Gegnerarten · Schattenfürst')}
-          ${mb('open', 'statistik', 'chart', 'Statistik', `${fmt(m.runs)} Runs · ${fmt(m.kills)} Gegner besiegt`)}
-          ${mb('open', 'einstellungen', 'gear', 'Einstellungen', `Anleitung · Sound · Grafik · ${cloud?.st?.status === 'online' ? 'Abmelden' : 'Login'}`)}
-        </nav>
-        <p class="kw-loc">${ic('tower')} Reich ${realm + 1} · ${REALMS[realm].name}</p>
-      </main>
       <aside class="kw-box kw-side kw-side-r">
         <h3>${ic('trophy')} Bestenliste</h3>
         <ol class="kw-lb">${lb}</ol>
         <p class="kw-note">${lbRows ? 'Aktualisiert sich jede Minute.' : (lbMsg || 'Online-Bestenliste mit Konto auf der echten Spielseite.')}</p>
-        <button type="button" class="kw-btn kw-btn-sm" data-act="open" data-v="konto">${ic('user')}<span>${cloud?.st?.status === 'online' ? 'Konto' : 'Einloggen / Registrieren'}</span></button>
+        <button type="button" class="kw-btn kw-btn-sm" ${cloud?.st?.status === 'online' ? 'data-act="open" data-v="konto"' : 'data-act="toLogin"'}>${ic('user')}<span>${cloud?.st?.status === 'online' ? 'Konto' : 'Einloggen / Registrieren'}</span></button>
       </aside>
+      </div>
     </div>`;
   }
 
@@ -359,9 +382,9 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
       const maxed = game.wsMaxed(u.id);
       const can = met && !maxed && game.meta.gems >= game.wsCost(u.id);
       const cls = `kw-node${L ? ' is-owned' : ''}${!met ? ' is-blocked' : ''}${can ? ' can' : ''}${maxed ? ' is-max' : ''}${wsSel === u.id ? ' is-sel' : ''}`;
-      nodes.push(`<button type="button" class="${cls}" style="left:${pos[0]}%;top:${pos[1]}%" data-act="selWs" data-id="${u.id}" aria-label="${u.name}, Stufe ${L} von ${WS_MAX}" aria-pressed="${wsSel === u.id}">
+      nodes.push(`<button type="button" class="${cls}" style="left:${pos[0]}%;top:${pos[1]}%" data-act="selWs" data-id="${u.id}" aria-label="${u.name}, Stufe ${L} von ${game.wsMax(u.id)}" aria-pressed="${wsSel === u.id}">
         ${ic(!met ? 'lock' : u.icon)}<span class="kw-node-lv">${L}</span>
-        <span class="kw-node-tip${pos[0] > 75 ? ' is-left' : ''}${pos[1] > 70 ? ' is-up' : ''}" role="tooltip"><b>${u.name} <i>Stufe ${L}/${WS_MAX}</i></b><small>${game.wsEffectText(u.id)}</small>${maxed ? '<em>Voll ausgebaut</em>' : !met ? `<em class="is-warn">Benötigt: ${U[u.req[0]].name} Stufe ${u.req[1]}</em>` : `<em>${L === 0 ? 'Freischalten' : 'Nächste: ' + game.wsEffectText(u.id, L + 1)} · ${fmt(game.wsCost(u.id))} Gems</em>`}</span></button>`);
+        <span class="kw-node-tip${pos[0] > 75 ? ' is-left' : ''}${pos[1] > 70 ? ' is-up' : ''}" role="tooltip"><b>${u.name} <i>Stufe ${L}/${game.wsMax(u.id)}</i></b><small>${game.wsEffectText(u.id)}</small>${maxed ? '<em>Voll ausgebaut</em>' : !met ? `<em class="is-warn">Benötigt: ${U[u.req[0]].name} Stufe ${u.req[1]}</em>` : `<em>${L === 0 ? 'Freischalten' : 'Nächste: ' + game.wsEffectText(u.id, L + 1)} · ${fmt(game.wsCost(u.id))} Gems</em>`}</span></button>`);
     });
     const u = U[wsSel];
     const L = game.wsLevel(wsSel), maxed = game.wsMaxed(wsSel), met = game.wsReqMet(wsSel), cost = game.wsCost(wsSel);
@@ -370,7 +393,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     const detail = `<div class="kw-box kw-detail">
       <div class="kw-detail-ic">${ic(u.icon)}</div>
       <div class="kw-detail-tx">
-        <b>${u.name} <span>Stufe ${L}/${WS_MAX}</span></b>
+        <b>${u.name} <span>Stufe ${L}/${game.wsMax(wsSel)}</span></b>
         <small>${game.wsEffectText(wsSel)}</small>
         ${!maxed ? `<em>${L === 0 ? `Freischalten: ${u.run ? 'erscheint im Run-Shop' : 'dauerhafter Bonus'}` : `Nächste: ${game.wsEffectText(wsSel, L + 1)}`}</em>` : '<em>Voll ausgebaut</em>'}
         ${!met ? `<small class="is-warn">${req}</small>` : ''}
@@ -397,13 +420,14 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
       if (!c) return `<div class="kw-hcell is-unknown" style="--rc:${RARITIES[d.rarity].color}"><div class="kw-price is-rar">${RARITIES[d.rarity].name}</div><span class="kw-hart">${skin.cardArt(d, { unknown: true })}</span><b>???</b><small>Noch nicht gefunden</small></div>`;
       const st = game.cardStats(d.id);
       const inSlot = m.lineup.indexOf(d.id);
-      return `<button type="button" class="kw-hcell${c.foil ? ' foil' : ''}${inSlot >= 0 ? ' in-lineup' : ''}" style="--rc:${RARITIES[d.rarity].color}" data-act="assign" data-id="${d.id}">
+      return `<div class="kw-hcell${c.foil ? ' foil' : ''}" style="--rc:${RARITIES[d.rarity].color}" data-id="${d.id}">
         <div class="kw-price is-rar">St. ${c.lvl}${c.foil ? ' · Glanz' : ''}</div>
         <span class="kw-hart">${skin.cardArt(d, { foil: c.foil })}</span>
         <b>${d.name}</b><small>${d.kind === 'beam' ? `${fmtNum(st.dps)} Schaden/s` : `${fmtNum(st.dmg)} Schaden · ${fmtNum(d.rate)}/s`}</small>
-        ${inSlot >= 0 ? `<span class="kw-hslot">Platz ${inSlot + 1}</span>` : ''}</button>`;
+      </div>`;
     }).join('');
-    return `<section><h3 class="kw-h3">Aufstellung</h3><p class="kw-hint">Platz wählen, dann unten einen Helden antippen.</p><div class="kw-slots">${slots}</div></section>
+    void slots;
+    return `<p class="kw-hint">Jeder Held in deiner Sammlung kann im Run beim Händler auftauchen. Doppelte aus Boostern geben dauerhaft +1 Stufe (+25 % Schaden).</p>
       <section><h3 class="kw-h3">Sammlung <span>${owned}/${GUARDIANS.length}</span></h3><div class="kw-hgrid">${coll}</div></section>`;
   }
 
@@ -446,7 +470,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
         <div class="kw-patch" data-k="patch" hidden>${PATCH.map(([v, t]) => `<p><b>${v}</b> ${t}</p>`).join('')}</div></div>
       <div class="kw-sgrp kw-box"><h4>${ic('user')} Konto</h4><div class="kw-acc">
         <span>${online ? `Angemeldet als <b>${esc(cloud.st.name)}</b><br><small class="is-ok">Cloud-Sync aktiv · auf allen Geräten</small>` : 'Nicht angemeldet (Gast)<br><small>Nur auf diesem Gerät gespeichert</small>'}</span>
-        <span class="kw-acc-b">${online ? `<button type="button" class="kw-btn kw-btn-sm" data-act="saveNow">${ic('check')}<span>Jetzt speichern</span></button><button type="button" class="kw-btn kw-btn-sm" data-act="logout">${ic('logout')}<span>Abmelden</span></button>` : `<button type="button" class="kw-btn kw-btn-sm kw-btn-primary" data-act="open" data-v="konto">${ic('user')}<span>Zum Login</span></button>`}</span></div></div>
+        <span class="kw-acc-b">${online ? `<button type="button" class="kw-btn kw-btn-sm" data-act="saveNow">${ic('check')}<span>Jetzt speichern</span></button><button type="button" class="kw-btn kw-btn-sm" data-act="logout">${ic('logout')}<span>Abmelden</span></button>` : `<button type="button" class="kw-btn kw-btn-sm kw-btn-primary" data-act="toLogin">${ic('user')}<span>Zum Login</span></button>`}</span></div></div>
       <div class="kw-ssave">
         <button type="button" class="kw-box" data-act="export">${ic('pack')}<div><b>Spielstand sichern</b><small>Als Datei speichern</small></div></button>
         <label class="kw-box">${ic('up')}<div><b>Spielstand laden</b><small>Sicherung einspielen</small></div><input type="file" accept=".json,application/json" data-act="import" hidden></label>
@@ -521,6 +545,17 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     audio?.unlock();
     switch (a) {
       case 'speed': game.setSpeed(+v); sfx('click'); break;
+      case 'buyOffer': {
+        const res = game.shopBuy(+v);
+        if (!res.ok) { sfx('deny'); toast(res.why === 'slots' ? 'Kein Platz frei – verkaufe einen Helden oder baue Heldenplätze in der Werkstatt aus.' : 'Nicht genug Münzen.'); }
+        else { sfx(res.merged ? 'reveal' : 'buy', res.merged ? (res.star >= 3 ? 'legendary' : 'epic') : undefined); if (res.merged) banner(`${G[res.id].name} ${'★'.repeat(res.star)}`, 'Verschmolzen!'); }
+        last.shop2 = ''; break;
+      }
+      case 'sell': game.shopSell(+v); sfx('coin'); last.shop2 = ''; break;
+      case 'reroll': if (!game.shopReroll()) { sfx('deny'); toast('Nicht genug Münzen.'); } else sfx('shake'); last.shop2 = ''; break;
+      case 'heal': if (!game.shopHeal()) sfx('deny'); else sfx('buy'); last.shop2 = ''; break;
+      case 'nextWave': if (!game.nextWave()) { sfx('deny'); toast('Kaufe zuerst mindestens einen Helden.'); } else sfx('click'); last.shop2 = ''; break;
+      case 'relic': if (game.pickRelic(+v)) { sfx('reveal', 'epic'); last.relic = ''; last.shop2 = ''; } break;
       case 'buyRun':
         if (!game.buyRun(id)) { sfx('deny'); toast(game.runLevel(id) >= game.runMax(id) ? 'Max. Stufe – in der Werkstatt weiter ausbauen.' : 'Nicht genug Münzen.'); }
         else { sfx('buy'); skin.onBuy?.(id); }
@@ -560,7 +595,8 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
         else { resetArm = Date.now() + 4000; sfx('deny'); renderScreen(true); later(() => renderScreen(true), 4100); }
         break;
       case 'saveNow': await cloud?.pushSave(true); toast(cloud?.st?.msg || 'Gespeichert.'); renderScreen(true); break;
-      case 'logout': await cloud?.logout(); toast('Abgemeldet.'); renderScreen(true); break;
+      case 'logout': await cloud?.logout(); try { sessionStorage.removeItem('packfall.guest'); } catch (err) { /* egal */ } closeScreen(); last.menu = ''; showAuth(); toast('Abgemeldet.'); break;
+      case 'toLogin': try { sessionStorage.removeItem('packfall.guest'); } catch (err) { /* egal */ } closeScreen(); showAuth(); break;
       case 'gift': game.setFlag('intro', true); E.intro.hidden = true; if (!game.meta.flags.gift) openBooster('starter'); break;
       case 'introClose': game.setFlag('intro', true); E.intro.hidden = true; break;
       default: return;
@@ -574,6 +610,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     if (b.tagName === 'INPUT') return;
     act(b);
   });
+  el.addEventListener('change', e => { const c = e.target.closest('input[data-act="autoWave"]'); if (c) { game.setAutoWave(c.checked); last.shop2 = ''; } });
   el.addEventListener('input', e => {
     const r = e.target.closest('input[data-act="vol"]');
     if (!r) return;
@@ -631,10 +668,10 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     E.intro.innerHTML = `<div class="kw-box kw-intro-in" role="dialog" aria-labelledby="kwIntroT">
       <h2 id="kwIntroT">${gift ? 'Willkommen bei Packfall!' : 'So funktioniert Packfall'}</h2>
       <ol class="kw-steps">
-        <li>${ic('pack')}<span><b>Booster öffnen</b> und Helden sammeln. Doppelte machen sie stärker.</span></li>
-        <li>${ic('tower')}<span>Deine Helden <b>verteidigen den Turm</b> automatisch gegen Monsterwellen.</span></li>
+        <li>${ic('pack')}<span><b>Booster</b> füllen deine Sammlung. Nur gesammelte Helden tauchen im Run auf.</span></li>
+        <li>${ic('chest')}<span>Jeder Run startet mit <b>Grundmünzen</b>: kaufe Helden beim Händler, 3 gleiche verschmelzen zu ★★.</span></li>
         <li>${ic('cursor')}<span>Mit der <b>Maus oder dem Finger</b> schlägst du selbst zu – der Kreis lädt sich auf.</span></li>
-        <li>${ic('coin')}<span><b>Münzen</b> gibt's nur im Run. <b>Gems</b> bleiben für immer: Werkstatt & Booster.</span></li>
+        <li>${ic('gem')}<span>Nach Bossen wählst du <b>Relikte</b>. <b>Gems</b> bleiben für immer: Werkstatt & Booster.</span></li>
       </ol>
       ${gift ? `<div class="kw-gift"><span class="kw-gift-img">${skin.packArt('starter')}</span><p><b>Ein Geschenk zum Start</b><br>Dein erster Booster – mit einem garantiert seltenen Helden.</p></div>
         <button type="button" class="kw-btn kw-btn-primary kw-btn-lg" data-act="gift">${ic('pack')}<span>Geschenk öffnen</span></button>`
@@ -743,7 +780,10 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     if (renderT > 0) return;
     renderT = 0.2;
     if (r) {
-      set('strip', E.strip, stripHTML());
+      const sh = shopHTML2(), rh = relicHTML();
+      E.shop2.hidden = !sh; E.relic.hidden = !rh;
+      if (el.classList.contains('in-shop') !== !!(sh || rh)) el.classList.toggle('in-shop', !!(sh || rh));
+      set('shop2', E.shop2, sh); set('relic', E.relic, rh);
       set('tr', E.tr, trHTML());
       set('wavebox', E.wavebox, waveHTML());
       if (tipId) placeTip();
@@ -827,6 +867,10 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     later(() => E.newsok.focus({ preventScroll: true }), 50);
   }
   E.newsok.addEventListener('click', () => { sfx('click'); nextInbox(); });
+  E.news.addEventListener('click', e => { if (e.target === E.news) { sfx('click'); nextInbox(); } });
+  // Klick daneben schließt Unterseiten und Run-Zusammenfassung
+  E.screen.addEventListener('click', e => { if (e.target === E.screen) { sfx('click'); closeScreen(); } });
+  E.sum.addEventListener('click', e => { if (e.target === E.sum) E.sumclose.click(); });
   let mailBusy = false;
   async function checkMail() {
     if (!cloud?.configured() || mailBusy || phase !== 'menu') return;
@@ -865,6 +909,8 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     E.autherr.textContent = '';
   }
   async function showAuth() {
+    E.open.hidden = false;
+    if (skin.titleBg && !E.titlebg.innerHTML) E.titlebg.innerHTML = skin.titleBg();
     setPhase('auth');
     setAuthMode('login');
     later(() => E.authform.elements.name.focus({ preventScroll: true }), 80);
