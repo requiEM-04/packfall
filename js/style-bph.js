@@ -3,16 +3,19 @@ import { ARENA, G, realmOf } from './core.js';
 import { createUI } from './ui.js';
 import {
   towerCanvas, crystalCanvas, heroCanvas, enemyCanvas, rockCanvas, treeCanvas, bonesCanvas,
-  packCanvas, cardBackCanvas, iconSVG, variant, shade,
+  packCanvas, cardBackCanvas, iconSVG, variant, shade, logoCanvas, titleBackdrop, mute,
 } from './bph-art.js';
+import { heroSprite } from './heroes.js';
+const M = c => (typeof c === 'string' && c[0] === '#' && c.length === 7 ? mute(c, 0.5, 0.92) : c);
 
-const REALM = [
+const REALM_RAW = [
   { name: 'Aschewald',  base: '#141b19', d1: '#18211e', d2: '#101614', rock: '#2a332f', tree: '#2e2622', glow: 'rgba(80,200,150,', tuft: '#1f2b25' },
   { name: 'Frostgrat',  base: '#121a26', d1: '#172231', d2: '#0d131c', rock: '#2e3a48', tree: '#2a3140', glow: 'rgba(120,190,255,', tuft: '#c9e4ff' },
   { name: 'Glutschlund', base: '#1d1010', d1: '#261413', d2: '#140a0a', rock: '#3a221e', tree: '#2a1a16', glow: 'rgba(255,110,50,', tuft: '#ff7a2a' },
   { name: 'Leerenmeer', base: '#130f1d', d1: '#191428', d2: '#0d0a14', rock: '#2a2238', tree: '#241c33', glow: 'rgba(170,120,255,', tuft: '#3a2c55' },
 ];
 
+const REALM = REALM_RAW.map(r => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, M(v)])));
 const url = c => c.toDataURL('image/png');
 
 const tick = () => new Promise(r => setTimeout(r, 16));
@@ -20,9 +23,11 @@ const tick = () => new Promise(r => setTimeout(r, 16));
 export async function mount(root, game, { audio, cloud } = {}) {
   // Bilder für Menü und Karten (werden während des Ladescreens erzeugt)
   const heroImg = {}, heroSil = {}, packImg = {}, enemyImg = {};
-  let backImg = '';
+  let backImg = '', titleImg = '';
   const skin = {
     name: 'bph',
+    logo: url(logoCanvas()),
+    titleBg: () => `<img src="${titleImg}" alt="">`,
     icon: n => iconSVG(n),
     cardArt: (d, { unknown } = {}) => `<img class="b-art" src="${unknown ? heroSil[d.id] || '' : heroImg[d.id] || ''}" alt="">`,
     packArt: kind => `<img class="b-pack" src="${packImg[kind] || ''}" alt="">`,
@@ -31,8 +36,9 @@ export async function mount(root, game, { audio, cloud } = {}) {
   };
   const ui = createUI(root, game, skin, { audio, cloud });
   const loadSteps = [
-    ['Rufe die Helden …', () => { for (const id of Object.keys(G)) { heroImg[id] = url(heroCanvas(id)); heroSil[id] = url(heroCanvas(id, { silhouette: true })); } }],
-    ['Packe die Booster …', () => { for (const k of ['starter', 'basic', 'elite']) packImg[k] = url(packCanvas(k)); backImg = url(cardBackCanvas()); }],
+    ['Rufe die Helden …', () => { for (const id of Object.keys(G)) { heroImg[id] = url(heroSprite(id)); heroSil[id] = url(heroSprite(id, { silhouette: true })); } }],
+    ['Packe die Booster …', () => { for (const k of ['starter', 'basic', 'elite', 'green', 'purple']) packImg[k] = url(packCanvas(k)); backImg = url(cardBackCanvas()); }],
+    ['Male den Nachthimmel …', () => { titleImg = url(titleBackdrop()); }],
     ['Wecke die Monster …', () => { for (const t of ['krabbler', 'flitzer', 'brocken', 'boss']) enemyImg[t] = url(enemyCanvas(t, 0)); }],
     ['Lade Schriften …', async () => { try { await Promise.race([document.fonts?.ready, new Promise(r => setTimeout(r, 1500))]); } catch (e) { /* egal */ } }],
   ];
@@ -51,7 +57,7 @@ export async function mount(root, game, { audio, cloud } = {}) {
   const TOWER_FLASH = variant(TOWER, 'flash');
   const CRYSTAL = crystalCanvas();
   const heroes = {};
-  const hero = id => (heroes[id] ||= { n: heroCanvas(id), f: null });
+  const hero = id => (heroes[id] ||= { n: heroSprite(id), f: null });
   const eCache = new Map();
   function enemySprite(type, frame, v) {
     const k = `${type}${frame}${v}`;
@@ -88,12 +94,13 @@ export async function mount(root, game, { audio, cloud } = {}) {
     dpr = Math.min(2, window.devicePixelRatio || 1);
     W = Math.max(1, Math.round(r.width * dpr)); H = Math.max(1, Math.round(r.height * dpr));
     canvas.width = W; canvas.height = H;
-    P = Math.max(2, Math.round(Math.min(W, H) / 270));
+    // Hochformat (Handy): größere Pixel, damit Turm und Helden nicht winzig werden
+    P = Math.max(2, Math.round(Math.min(W, H) / (H > W * 1.25 ? 195 : 270)));
     LW = Math.ceil(W / P); LH = Math.ceil(H / P);
     lo.width = LW; lo.height = LH;
     ground.width = LW + 180; ground.height = LH + 180;
     const short = computeView();
-    sc = Math.max(0.12, (short / 2 - 8) / ARENA.viewR);
+    sc = Math.max(0.2, (short / 2 - 8) / ARENA.viewR);
     cx = tcx; cy = tcy;
     groundKey = '';
   }
@@ -121,6 +128,36 @@ export async function mount(root, game, { audio, cloud } = {}) {
       gx.fillRect(x, y, 1, 1); if (rnd() < 0.5) gx.fillRect(x + 1, y - 1, 1, 1);
       gx.globalAlpha = 1;
     }
+    // große, weiche Flecken (gedithert) gegen den flachen Look
+    const BY = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+    for (let i = 0; i < (GW * GH) / 2600; i++) {
+      const bx = rnd() * GW, by = rnd() * GH, br = 6 + rnd() * 16, col = rnd() < 0.55 ? R.d2 : R.d1;
+      gx.fillStyle = col;
+      for (let y = Math.floor(by - br); y <= by + br; y++) for (let x = Math.floor(bx - br); x <= bx + br; x++) {
+        const d = Math.hypot(x - bx, (y - by) * 1.3) / br;
+        if (d < 1 && BY[((y & 3) << 2) + (x & 3)] < (1 - d) * 14) gx.fillRect(x, y, 1, 1);
+      }
+    }
+    // gepflasterter Platz um den Turm
+    {
+      const prd = seeded(4242 + realm);
+      const PR = 30;
+      const stoneA = shade(R.rock, -0.08), stoneB = shade(R.rock, -0.2), stoneC = shade(R.rock, 0.06), mort = shade(R.base, -0.35);
+      for (let row = -PR; row <= PR; row += 3) {
+        const off = ((row / 3) & 1) ? 2 : 0;
+        for (let col = -PR - 4 + off; col <= PR; col += 5) {
+          const mx = col + 2, my = row + 1;
+          const d = Math.hypot(mx, my * 1.25) / PR;
+          if (d > 1 - prd() * 0.18) continue;
+          if (d > 0.75 && prd() < (d - 0.75) * 2.4) continue;
+          const c = prd() < 0.12 ? stoneB : prd() < 0.2 ? stoneC : stoneA;
+          gx.fillStyle = mort; gx.fillRect(ox + col - 1, oy + row - 1, 6, 4);
+          gx.fillStyle = c; gx.fillRect(ox + col, oy + row, 4, 2);
+          gx.fillStyle = shade(c, 0.1); gx.fillRect(ox + col, oy + row, 4, 1);
+          if (prd() < 0.15) { gx.fillStyle = R.tuft; gx.fillRect(ox + col + 4, oy + row + 1, 1, 1); }
+        }
+      }
+    }
     // Deko: dichter am Rand, frei in der Mitte
     const items = [];
     const n = Math.round((GW * GH) / 1100);
@@ -145,7 +182,7 @@ export async function mount(root, game, { audio, cloud } = {}) {
     if (realm === 2 || realm === 1) {
       for (let i = 0; i < 40; i++) {
         let x = rnd() * GW, y = rnd() * GH;
-        gx.fillStyle = realm === 2 ? '#ff6a2a' : '#bfe8ff';
+        gx.fillStyle = M(realm === 2 ? '#b0603a' : '#9fb4c0');
         for (let k = 0; k < 6; k++) { gx.fillRect(Math.round(x), Math.round(y), 1, 1); x += rnd() * 2 - 0.5; y += rnd() * 2 - 1; }
       }
     }
@@ -185,7 +222,7 @@ export async function mount(root, game, { audio, cloud } = {}) {
     n = Math.max(1, Math.round(n * fx().q));
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2, s = sp * (0.3 + Math.random());
-      parts.push({ x, y, z: opts.z ?? 2, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6, vz: (opts.up ?? 30) * (0.4 + Math.random()), life: life * (0.6 + Math.random() * 0.7), max: life, c: colors[Math.floor(Math.random() * colors.length)], size: opts.size ?? 1, g: opts.g ?? 90 });
+      parts.push({ x, y, z: opts.z ?? 2, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6, vz: (opts.up ?? 30) * (0.4 + Math.random()), life: life * (0.6 + Math.random() * 0.7), max: life, c: M(colors[Math.floor(Math.random() * colors.length)]), size: opts.size ?? 1, g: opts.g ?? 90 });
     }
     if (parts.length > 900) parts.splice(0, parts.length - 900);
   }
@@ -199,14 +236,14 @@ export async function mount(root, game, { audio, cloud } = {}) {
     game.on('hit', h => {
       const [x, y] = toLo(h.x, h.y);
       burst(x, y, ['#ffffff', h.color], h.crit ? 7 : 3, 35, 0.3, { up: 30 });
-      if (h.crit || h.amount >= 12 || h.src === 'beam') addText(x, y - 10, Math.round(h.amount).toLocaleString('de-DE'), h.crit ? '#ffd23f' : '#ffffff', h.crit);
+      if (h.crit || h.amount >= 12 || h.src === 'beam') addText(x, y - 10, Math.round(h.amount).toLocaleString('de-DE'), h.crit ? '#c8b47e' : '#d6d1c6', h.crit);
     }),
     game.on('kill', k => {
       const [x, y] = toLo(k.x, k.y);
       const boss = k.e.type === 'boss';
       const c = k.e.T.color;
       burst(x, y, [c, shade(c, -0.4), shade(c, 0.3), '#ffffff'], boss ? 90 : 16, boss ? 80 : 50, boss ? 1.1 : 0.6, { up: boss ? 90 : 50, size: boss ? 2 : 1 });
-      addText(x + 4, y - 6, `+${k.coins}`, '#ffb52e', false);
+      addText(x + 4, y - 6, `+${k.coins}`, '#b39b6c', false);
       if (boss) { shake = 0.6; shakeAmp = 4; booms.push({ x, y, r: 26, life: 0.6, max: 0.6, fire: true }); }
     }),
     game.on('coreHit', () => { shake = Math.max(shake, 0.3); shakeAmp = Math.max(shakeAmp, 3); towerFlash = 0.12; burst(cx, cy - 6, ['#ff4a5e', '#ffffff', '#8a1020'], 16, 50, 0.5, { up: 60 }); }),
@@ -229,7 +266,7 @@ export async function mount(root, game, { audio, cloud } = {}) {
   ];
 
   function line(x0, y0, x1, y1, color, w = 1) {
-    lx.fillStyle = color;
+    lx.fillStyle = M(color);
     x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
     const dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
     let err = dx - dy, n = 0;
@@ -243,7 +280,7 @@ export async function mount(root, game, { audio, cloud } = {}) {
     }
   }
   function disc(x, y, r, color) {
-    lx.fillStyle = color;
+    lx.fillStyle = M(color);
     const rr = Math.round(r);
     for (let yy = -rr; yy <= rr; yy++) {
       const w = Math.round(Math.sqrt(Math.max(0, r * r - yy * yy)));
@@ -251,7 +288,7 @@ export async function mount(root, game, { audio, cloud } = {}) {
     }
   }
   function ditherDisc(x, y, r, color, density) {
-    lx.fillStyle = color;
+    lx.fillStyle = M(color);
     const rr = Math.round(r);
     for (let yy = -rr; yy <= rr; yy++) for (let xx = -rr; xx <= rr; xx++) {
       if (xx * xx + yy * yy > r * r) continue;
@@ -261,7 +298,7 @@ export async function mount(root, game, { audio, cloud } = {}) {
     }
   }
   function ringPx(x, y, r, color) {
-    lx.fillStyle = color;
+    lx.fillStyle = M(color);
     const steps = Math.max(16, Math.round(r * 7));
     let px = null, py = null;
     for (let i = 0; i < steps; i++) {
@@ -277,10 +314,11 @@ export async function mount(root, game, { audio, cloud } = {}) {
     g.addColorStop(0, rgba + a + ')'); g.addColorStop(1, rgba + '0)');
     ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
   }
-  const hexRgba = hex => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},`; };
+  const hexRgba = hex => { hex = M(hex); const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},`; };
 
   function frame(dt) {
     ui.frame(dt);
+    if (ui.busy) return; // Booster-Opening läuft: Arena ruht (kein Ruckeln)
     const t = game.t;
     const run = game.run;
     const realm = run ? realmOf(run.wave) : 0;
@@ -320,9 +358,9 @@ export async function mount(root, game, { audio, cloud } = {}) {
       lx.drawImage(CRYSTAL, cx - Math.floor(CRYSTAL.width / 2), cy - T.height - CRYSTAL.height - 1 + bob);
       if (run) {
         const k = run.coreHp / run.coreMax, bw = 24, bx = cx - 12, by = cy - T.height - CRYSTAL.height - 6;
-        lx.fillStyle = '#0d0a10'; lx.fillRect(bx - 1, by - 1, bw + 2, 4);
-        lx.fillStyle = '#3a0d18'; lx.fillRect(bx, by, bw, 2);
-        lx.fillStyle = k < 0.3 ? (Math.floor(t * 8) % 2 ? '#ff4a5e' : '#ffd0d6') : '#e8434f'; lx.fillRect(bx, by, Math.max(1, Math.round(bw * k)), 2);
+        lx.fillStyle = M('#0d0a10'); lx.fillRect(bx - 1, by - 1, bw + 2, 4);
+        lx.fillStyle = M('#3a0d18'); lx.fillRect(bx, by, bw, 2);
+        lx.fillStyle = M(k < 0.3 ? (Math.floor(t * 8) % 2 ? '#d0605a' : '#e0c0b8') : '#b0524e'); lx.fillRect(bx, by, Math.max(1, Math.round(bw * k)), 2);
         lx.fillStyle = 'rgba(255,255,255,.35)'; lx.fillRect(bx, by, Math.max(1, Math.round(bw * k)), 1);
       }
     } });
@@ -340,8 +378,8 @@ export async function mount(root, game, { audio, cloud } = {}) {
         lx.translate(x, y - s.height + 2 - hb);
         if (flip) { lx.scale(-1, 1); lx.drawImage(s, -Math.ceil(s.width / 2), 0); } else lx.drawImage(s, -Math.floor(s.width / 2), 0);
         lx.restore();
-        if (g.foil) { lx.fillStyle = `hsl(${(t * 220 + g.slot * 90) % 360} 100% 70%)`; lx.fillRect(x + (flip ? 3 : -4), y - s.height + 3 - hb, 1, 1); lx.fillRect(x + (flip ? -5 : 4), y - 6 - hb, 1, 1); }
-        if (g.lvl > 1) { lx.fillStyle = '#ffd23f'; for (let i = 0; i < Math.min(5, g.lvl - 1); i++) lx.fillRect(x - 4 + i * 2, y + 3, 1, 1); }
+        if (g.foil) { lx.fillStyle = `hsl(${(t * 220 + g.slot * 90) % 360} 30% 65%)`; lx.fillRect(x + (flip ? 3 : -4), y - s.height + 3 - hb, 1, 1); lx.fillRect(x + (flip ? -5 : 4), y - 6 - hb, 1, 1); }
+        if (g.lvl > 1) { lx.fillStyle = M('#ffd23f'); for (let i = 0; i < Math.min(5, g.lvl - 1); i++) lx.fillRect(x - 4 + i * 2, y + 3, 1, 1); }
       } });
     }
     for (const e of game.enemies) {
@@ -361,8 +399,8 @@ export async function mount(root, game, { audio, cloud } = {}) {
         if (e.hp < e.maxHp) {
           const w = Math.max(8, Math.min(24, s.width));
           const bx = x - Math.floor(w / 2), by = y - s.height - 2 - fly;
-          lx.fillStyle = '#0d0a10'; lx.fillRect(bx - 1, by - 1, w + 2, 3);
-          lx.fillStyle = e.type === 'boss' ? '#ff3347' : '#e8434f';
+          lx.fillStyle = M('#0d0a10'); lx.fillRect(bx - 1, by - 1, w + 2, 3);
+          lx.fillStyle = M(e.type === 'boss' ? '#b04848' : '#a85450');
           lx.fillRect(bx, by, Math.max(1, Math.round(w * e.hp / e.maxHp)), 1);
         }
       } });
@@ -382,21 +420,21 @@ export async function mount(root, game, { audio, cloud } = {}) {
       const ang = Math.atan2(p.vy * 0.92, p.vx);
       const id = p.gid;
       if (p.kind === 'splash') {
-        disc(x, y, 2.2, '#ff7a2a'); disc(x, y, 1.2, '#ffe45c'); lx.fillStyle = '#ffffff'; lx.fillRect(x, y, 1, 1);
+        disc(x, y, 2.2, '#ff7a2a'); disc(x, y, 1.2, '#ffe45c'); lx.fillStyle = M('#ffffff'); lx.fillRect(x, y, 1, 1);
         if (Math.random() < 0.7) burst(x, y, ['#ff7a2a', '#ffb52e', '#5a3a2a'], 1, 6, 0.4, { up: 10, g: -10 });
       } else if (p.kind === 'pierce') {
         line(x - Math.cos(ang) * 5, y - Math.sin(ang) * 5, x, y, '#6b4a2a');
-        lx.fillStyle = '#e8ffd0'; lx.fillRect(x, y, 1, 1);
+        lx.fillStyle = M('#e8ffd0'); lx.fillRect(x, y, 1, 1);
       } else if (id === 'frostweberin') {
         line(x - Math.cos(ang) * 4, y - Math.sin(ang) * 4, x, y, '#5fd0ff');
-        lx.fillStyle = '#ffffff'; lx.fillRect(x, y, 1, 1);
+        lx.fillStyle = M('#ffffff'); lx.fillRect(x, y, 1, 1);
       } else if (id === 'funkenwerfer') {
         line(x - Math.cos(ang) * 3, y - Math.sin(ang) * 3, x, y, '#ff7a2a');
-        lx.fillStyle = '#ffe45c'; lx.fillRect(x - 1, y - 1, 2, 2);
+        lx.fillStyle = M('#ffe45c'); lx.fillRect(x - 1, y - 1, 2, 2);
       } else if (id === 'steinwache') {
-        disc(x, y, 1.6, '#8a8f99'); lx.fillStyle = '#c9ccd2'; lx.fillRect(x - 1, y - 1, 1, 1);
+        disc(x, y, 1.6, '#8a8f99'); lx.fillStyle = M('#c9ccd2'); lx.fillRect(x - 1, y - 1, 1, 1);
       } else {
-        lx.fillStyle = '#9aa0a6'; lx.fillRect(x - 1, y - 1, 2, 2); lx.fillStyle = '#e0e4ea'; lx.fillRect(x - 1, y - 1, 1, 1);
+        lx.fillStyle = M('#9aa0a6'); lx.fillRect(x - 1, y - 1, 2, 2); lx.fillStyle = M('#e0e4ea'); lx.fillRect(x - 1, y - 1, 1, 1);
       }
     }
     // Strahl
@@ -405,7 +443,7 @@ export async function mount(root, game, { audio, cloud } = {}) {
       const w = b.heat > 0.6 ? 3 : 2;
       line(x1, y1 - 16, x2, y2 - 5, b.color, w + 1);
       line(x1, y1 - 16, x2, y2 - 5, '#ffffff', 1);
-      for (let i = 0; i < 3; i++) { const k = Math.random(); lx.fillStyle = '#fff6c0'; lx.fillRect(Math.round(x1 + (x2 - x1) * k + (Math.random() - 0.5) * 4), Math.round(y1 - 16 + (y2 - 5 - y1 + 16) * k + (Math.random() - 0.5) * 4), 1, 1); }
+      for (let i = 0; i < 3; i++) { const k = Math.random(); lx.fillStyle = M('#fff6c0'); lx.fillRect(Math.round(x1 + (x2 - x1) * k + (Math.random() - 0.5) * 4), Math.round(y1 - 16 + (y2 - 5 - y1 + 16) * k + (Math.random() - 0.5) * 4), 1, 1); }
       disc(x2, y2 - 5, 2 + b.heat * 2, '#fff2a0');
     }
     // Blitze
@@ -447,7 +485,7 @@ export async function mount(root, game, { audio, cloud } = {}) {
           if (a <= ch * Math.PI * 2) lx.fillRect(mx + xx, my + Math.round(yy * 0.92), 1, 1);
         }
       }
-      lx.fillStyle = '#ffffff';
+      lx.fillStyle = M('#ffffff');
       lx.fillRect(mx - 3, my, 2, 1); lx.fillRect(mx + 2, my, 2, 1); lx.fillRect(mx, my - 3, 1, 2); lx.fillRect(mx, my + 2, 1, 2);
     }
     // Rauch
@@ -486,36 +524,36 @@ export async function mount(root, game, { audio, cloud } = {}) {
     const X = v => (v + ox) * P, Y = v => (v + oy) * P;
     const th = TOWER.height;
     const pulse = 0.45 + Math.sin(t * 2.2) * 0.1 + (towerFlash > 0 ? 0.4 : 0);
-    glow(X(cx), Y(cy - th - 8 + bob), 34 * P, 'rgba(95,227,255,', pulse);
-    glow(X(cx), Y(cy - th - 8 + bob), 10 * P, 'rgba(232,253,255,', 0.55);
-    glow(X(cx), Y(cy - 20), 7 * P, 'rgba(95,227,255,', 0.35);
-    glow(X(cx - 5), Y(cy - 10), 8 * P, 'rgba(255,150,60,', 0.35 + Math.random() * 0.08);
-    glow(X(cx + 4), Y(cy - 10), 8 * P, 'rgba(255,150,60,', 0.35 + Math.random() * 0.08);
+    glow(X(cx), Y(cy - th - 8 + bob), 20 * P, 'rgba(110,135,145,', pulse * 0.32);
+    glow(X(cx), Y(cy - th - 8 + bob), 6 * P, 'rgba(170,185,190,', 0.18);
+    glow(X(cx), Y(cy - 26), 6 * P, 'rgba(190,140,80,', 0.25);
+    glow(X(cx - 6), Y(cy - 14), 9 * P, 'rgba(200,140,80,', 0.28 + Math.random() * 0.06);
+    glow(X(cx + 5), Y(cy - 14), 9 * P, 'rgba(200,140,80,', 0.28 + Math.random() * 0.06);
     for (const p of game.projectiles) {
       const [x, y] = toLo(p.x, p.y);
-      glow(X(x), Y(y - 9), (p.kind === 'splash' ? 12 : 6) * P, hexRgba(p.color), 0.75);
+      glow(X(x), Y(y - 9), (p.kind === 'splash' ? 10 : 5) * P, hexRgba(p.color), 0.45);
     }
     for (const b of game.beams) {
       const [x1, y1] = toLo(b.x1, b.y1), [x2, y2] = toLo(b.x2, b.y2);
       for (let i = 0; i <= 6; i++) { const k = i / 6; glow(X(x1 + (x2 - x1) * k), Y(y1 - 16 + (y2 - y1 + 11) * k), (6 + b.heat * 5) * P, hexRgba(b.color), 0.3); }
-      glow(X(x2), Y(y2 - 5), 14 * P, hexRgba(b.color), 0.7);
+      glow(X(x2), Y(y2 - 5), 12 * P, hexRgba(b.color), 0.45);
     }
-    for (const z of zaps) for (const [x, y] of z.pts) glow(X(x), Y(y), 10 * P, hexRgba(z.color), 0.75);
-    for (const b of booms) glow(X(b.x), Y(b.y - 2), b.r * 2.4 * P, 'rgba(255,140,40,', (b.life / b.max) * 0.95);
-    for (const e of game.enemies) if (e.type === 'boss') { const [x, y] = toLo(e.x, e.y); glow(X(x), Y(y - 12), 26 * P, 'rgba(255,50,70,', 0.3); }
+    for (const z of zaps) for (const [x, y] of z.pts) glow(X(x), Y(y), 8 * P, hexRgba(z.color), 0.45);
+    for (const b of booms) glow(X(b.x), Y(b.y - 2), b.r * 2.2 * P, 'rgba(190,130,80,', (b.life / b.max) * 0.7);
+    for (const e of game.enemies) if (e.type === 'boss') { const [x, y] = toLo(e.x, e.y); glow(X(x), Y(y - 12), 24 * P, 'rgba(150,70,70,', 0.25); }
     for (const g of game.guardians) {
       if (!run || g.fired > 0.12 || g.def.kind === 'beam') continue;
       const [x, y] = toLo(g.x, g.y);
-      glow(X(x + Math.cos(g.aim) * 6), Y(y - 10 + Math.sin(g.aim) * 4), 8 * P, hexRgba(g.def.color), 0.6);
+      glow(X(x + Math.cos(g.aim) * 6), Y(y - 10 + Math.sin(g.aim) * 4), 7 * P, hexRgba(g.def.color), 0.35);
     }
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
 
     // Dunkle Vignette (Fackelschein in der Mitte)
     const vg = ctx.createRadialGradient(X(cx), Y(cy - 16), Math.min(W, H) * 0.22, X(cx), Y(cy - 16), Math.max(W, H) * 0.7);
-    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(0.6, 'rgba(4,2,8,.35)'); vg.addColorStop(1, 'rgba(4,2,8,.85)');
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(0.55, 'rgba(3,3,4,.4)'); vg.addColorStop(1, 'rgba(3,3,4,.9)');
     ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
-    if (run && run.coreHp / run.coreMax < 0.3) { ctx.fillStyle = `rgba(160,10,30,${0.08 + Math.sin(t * 6) * 0.05})`; ctx.fillRect(0, 0, W, H); }
+    if (run && run.coreHp / run.coreMax < 0.3) { ctx.fillStyle = `rgba(110,40,40,${0.08 + Math.sin(t * 6) * 0.05})`; ctx.fillRect(0, 0, W, H); }
 
     // Kamerafahrt im Intro / Titel
     const ph = ui.phase;
