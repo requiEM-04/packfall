@@ -1,17 +1,17 @@
 // Packfall – Oberfläche: Hauptmenü (wie Pokélings), Unterseiten, Run-HUD, Booster öffnen, Willkommen
-import { UPGRADES, U, G, GUARDIANS, ENEMY_TYPES, RARITIES, BOOSTERS, REALMS, realmOf, fmt, fmtNum, WS_MAX } from './core.js?v=0.6.1-6729cd5a';
-import { createOpening } from './opening.js?v=0.6.1-6729cd5a';
-import { createAdmin } from './admin.js?v=0.6.1-6729cd5a';
+import { UPGRADES, U, G, GUARDIANS, ENEMY_TYPES, RARITIES, BOOSTERS, REALMS, realmOf, fmt, fmtNum, WS_MAX } from './core.js?v=0.7-42083dbf';
+import { createOpening } from './opening.js?v=0.7-42083dbf';
+import { createAdmin } from './admin.js?v=0.7-42083dbf';
 
 const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 // Werkstatt-Baum: Positionen in Prozent
 const TREE = {
-  schaden: [27, 16], tempo: [27, 39], panzer: [27, 62], zeiger: [27, 85],
-  krit: [52, 16], magnet: [52, 39], regen: [52, 62],
-  start: [77, 28], gemfund: [77, 50],
+  schaden: [31, 13], tempo: [31, 38], panzer: [31, 63], zeiger: [31, 88],
+  krit: [60, 13], magnet: [60, 38], regen: [60, 63],
+  start: [88, 26], gemfund: [88, 50],
 };
-const ROOT = [6, 50];
+const ROOT = [7, 50];
 
 const ENEMY_INFO = {
   krabbler: { desc: 'Kriecht stur auf den Turm zu. Kommt in Massen.', from: 1 },
@@ -21,6 +21,7 @@ const ENEMY_INFO = {
 };
 
 const PATCH = [
+  ['v0.7', 'Drei neue Musikstücke (Aschewald, Sturmlauf, Glutschlund) mit Lautstärkereglern und Stückauswahl; Musik pausiert, wenn der Tab im Hintergrund ist; Menü übersichtlicher, klarere Schrift; Werkstatt zeigt Infos beim Überfahren; lebendigere Welt mit Nebel, Glühwürmchen, leuchtenden Pilzen und Fledermäusen; neue Konten starten mit eigenem Spielstand'],
   ['v0.6', 'Neue Musik: düsterer Fantasy-Metal mit Gitarren-Riffs, Lead-Gitarre und Chor; Anmeldefenster übersichtlicher, Passwort schon ab 4 Zeichen'],
   ['v0.5', 'Neues Booster-Opening: ein Held pro Pack, Lichtstrahlen verraten die Seltenheit, Bass-Sounds; 12 komplett neu gezeichnete Helden (4 neue); neue Synthwave-Musik; ruhigere Oberfläche; Anmeldefenster beim Start; flüssiger'],
   ['v0.4', 'Neuer, düsterer Look: gedeckte Farben mit Grauton, neuer Turm mit Pflasterplatz, neues Titelbild mit Pixel-Logo und Booster-Fächer'],
@@ -109,7 +110,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
           <p class="kw-ribbon">Booster öffnen · Helden sammeln · Turm halten</p>
           <button type="button" class="kw-press" data-k="press">Drücke Start</button>
         </div>
-        <p class="kw-legal">Prototyp v0.6 · Spielstand wird automatisch gespeichert</p>
+        <p class="kw-legal">Prototyp v0.7 · Spielstand wird automatisch gespeichert</p>
       </div>
       <div class="kw-auth" data-k="auth">
         <div class="kw-auth-in">
@@ -256,6 +257,15 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
       ? (lbRows.length ? lbRows.map((r, i) => `<li class="${r.me ? 'is-me' : ''}"><span class="kw-lb-n">${i + 1}</span><span class="kw-lb-name">${esc(r.name)}</span><span class="kw-lb-v">Welle ${r.best_wave}</span><small>${fmt(r.total_gems)} Gems · ${r.heroes || 0} Helden</small></li>`).join('') : '<li class="kw-lb-empty">Noch niemand eingetragen. Sei der Erste!</li>')
       : `<li class="is-me"><span class="kw-lb-n">1</span><span class="kw-lb-name">${esc(playerName())}</span><span class="kw-lb-v">Welle ${m.best}</span><small>${fmt(m.totalGems)} Gems · ${owned} Helden</small></li>`;
     return `<div class="kw-menu-in">
+      <header class="kw-mhead">
+        <h1 class="kw-menu-logo">${skin.logo ? `<img class="kw-logo-img" src="${skin.logo}" alt="Packfall">` : 'Packfall'}</h1>
+        <div class="kw-pbar">
+          <span>${ic('user')}<b>${esc(playerName())}</b></span>
+          <span>${ic('gem')}<b>${fmt(m.gems)}</b></span>
+          <span>${ic('trophy')}<b>Welle ${m.best}</b></span>
+          <span>${ic('helm')}<b>${owned}/${GUARDIANS.length}</b></span>
+        </div>
+      </header>
       <aside class="kw-box kw-side kw-side-l">
         <h3>${ic('flag')} Fortschritt</h3>
         <dl class="kw-kv">
@@ -269,14 +279,6 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
         <div class="kw-chal"><div><b>Wochen-Herausforderung</b><small>Feste Regeln · 3 Versuche pro Woche</small></div><span class="kw-soon">Bald</span></div>
       </aside>
       <main class="kw-center">
-        <h1 class="kw-menu-logo">${skin.logo ? `<img class="kw-logo-img" src="${skin.logo}" alt="Packfall">` : 'Packfall'}</h1>
-        <p class="kw-ribbon">Booster öffnen · Helden sammeln · Turm halten</p>
-        <div class="kw-pbar">
-          <span>${ic('user')}<b>${esc(playerName())}</b></span>
-          <span>${ic('gem')}<b>${fmt(m.gems)}</b></span>
-          <span>${ic('trophy')}<b>${m.best}</b></span>
-          <span>${ic('helm')}<b>${owned}/${GUARDIANS.length}</b></span>
-        </div>
         <nav class="kw-box kw-mm" aria-label="Hauptmenü">
           ${mb('start', '', 'sword', 'Kämpfen', can ? `Neuer Run · Reich 1 · ${m.best ? `Rekord Welle ${m.best}` : 'Welle 1'}` : 'Öffne zuerst dein Start-Geschenk')}
           ${mb('open', 'booster', 'pack', 'Booster-Laden', giftOpen ? 'Ein Geschenk wartet auf dich!' : 'Helden-Booster · Elite-Booster', giftOpen ? badge('Geschenk') : affordable ? badge('!') : '')}
@@ -358,7 +360,8 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
       const can = met && !maxed && game.meta.gems >= game.wsCost(u.id);
       const cls = `kw-node${L ? ' is-owned' : ''}${!met ? ' is-blocked' : ''}${can ? ' can' : ''}${maxed ? ' is-max' : ''}${wsSel === u.id ? ' is-sel' : ''}`;
       nodes.push(`<button type="button" class="${cls}" style="left:${pos[0]}%;top:${pos[1]}%" data-act="selWs" data-id="${u.id}" aria-label="${u.name}, Stufe ${L} von ${WS_MAX}" aria-pressed="${wsSel === u.id}">
-        ${ic(!met ? 'lock' : u.icon)}<span class="kw-node-lv">${L}</span></button>`);
+        ${ic(!met ? 'lock' : u.icon)}<span class="kw-node-lv">${L}</span>
+        <span class="kw-node-tip${pos[0] > 75 ? ' is-left' : ''}${pos[1] > 70 ? ' is-up' : ''}" role="tooltip"><b>${u.name} <i>Stufe ${L}/${WS_MAX}</i></b><small>${game.wsEffectText(u.id)}</small>${maxed ? '<em>Voll ausgebaut</em>' : !met ? `<em class="is-warn">Benötigt: ${U[u.req[0]].name} Stufe ${u.req[1]}</em>` : `<em>${L === 0 ? 'Freischalten' : 'Nächste: ' + game.wsEffectText(u.id, L + 1)} · ${fmt(game.wsCost(u.id))} Gems</em>`}</span></button>`);
     });
     const u = U[wsSel];
     const L = game.wsLevel(wsSel), maxed = game.wsMaxed(wsSel), met = game.wsReqMet(wsSel), cost = game.wsCost(wsSel);
@@ -424,11 +427,13 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
   function settingsHTML() {
     const s = game.meta.settings;
     const seg = (key, opts) => `<div class="kw-seg" role="group">${opts.map(([v, n]) => `<button type="button" data-act="set" data-k="${key}" data-v="${v}" aria-pressed="${String(s[key]) === String(v)}">${n}</button>`).join('')}</div>`;
+    const slider = (key, d) => { const v = Number.isFinite(+s[key]) ? +s[key] : d; return `<label class="kw-vol"><input type="range" min="0" max="1" step="0.05" value="${v}" data-act="vol" data-k="${key}" aria-label="Lautstärke"><span data-k="${key}lbl">${v > 0 ? Math.round(v * 100) + ' %' : 'Aus'}</span></label>`; };
     const line = (icon, t, sub, ctl) => `<div class="kw-sline"><span class="kw-sline-ic">${ic(icon)}</span><div><b>${t}</b><small>${sub}</small></div>${ctl}</div>`;
     const online = cloud?.st?.status === 'online';
     return `<div class="kw-sgrp kw-box"><h4>${ic('speed')} Audio</h4>
-        ${line('speed', 'Soundeffekte', 'Kampf, Klicks, Münzen', seg('sfx', [[0, 'Aus'], [0.3, 'Leise'], [0.5, 'Mittel'], [0.85, 'Laut']]))}
-        ${line('play', 'Musik', 'Synthwave, im Run mit vollem Beat', seg('music', [[0, 'Aus'], [1, 'Leise'], [2, 'Laut']]))}</div>
+        ${line('speed', 'Soundeffekte', 'Kampf, Klicks, Booster', slider('sfxVol', 0.5))}
+        ${line('play', 'Musik', 'Lautstärke der Musik', slider('musicVol', 0.4))}
+        ${line('scroll', 'Musikstück', `Läuft gerade: <b data-k="nowplaying">${audio?.track || '–'}</b>`, `<div class="kw-seg kw-seg-wrap" role="group">${[['mix', 'Abwechselnd'], ...(audio?.tracks || []).map((n, i) => [i, n])].map(([v, n]) => `<button type="button" data-act="set" data-k="musicTrack" data-v="${v}" aria-pressed="${String(s.musicTrack ?? 'mix') === String(v)}">${n}</button>`).join('')}${(s.musicTrack ?? 'mix') === 'mix' ? '<button type="button" data-act="skipTrack">Nächstes ▸</button>' : ''}</div>`)}</div>
       <div class="kw-sgrp kw-box"><h4>${ic('eye')} Anzeige</h4>
         ${line('eye', 'Grafik', 'Auto passt sich deinem Gerät an', seg('gfx', [['hoch', 'Hoch'], ['mittel', 'Mittel'], ['niedrig', 'Niedrig'], ['auto', 'Auto']]))}
         ${line('crit', 'Bildschirmwackeln', 'Bei Treffern und Bossen', seg('shake', [['on', 'An'], ['off', 'Aus']]))}
@@ -539,6 +544,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
         break;
       case 'slot': selSlot = +v; sfx('nav'); break;
       case 'assign': game.setLineup(selSlot, id); sfx('click'); selSlot = (selSlot + 1) % 4; break;
+      case 'skipTrack': audio?.skip(); sfx('click'); toast('Nächstes Stück kommt gleich.'); later(() => renderScreen(true), 2600); break;
       case 'set': {
         const key = b.dataset.k;
         const val = isNaN(+v) ? v : +v;
@@ -567,6 +573,19 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     if (!b || !el.contains(b) || b.dataset.act === 'import') return;
     if (b.tagName === 'INPUT') return;
     act(b);
+  });
+  el.addEventListener('input', e => {
+    const r = e.target.closest('input[data-act="vol"]');
+    if (!r) return;
+    const v = +r.value;
+    game.meta.settings[r.dataset.k] = v;
+    audio?.apply();
+    const lbl = r.parentElement.querySelector('span');
+    if (lbl) lbl.textContent = v > 0 ? Math.round(v * 100) + ' %' : 'Aus';
+  });
+  el.addEventListener('change', e => {
+    const r = e.target.closest('input[data-act="vol"]');
+    if (r) { game.setSetting(r.dataset.k, +r.value); if (r.dataset.k === 'sfxVol') sfx('click'); return; }
   });
   el.addEventListener('change', e => {
     const inp = e.target.closest('input[data-act="import"]');
