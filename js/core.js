@@ -311,6 +311,7 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
   };
 
   game.addTestGems = n => { meta.gems += n; save(); emit('gems'); };
+  game.grantGems = n => { meta.gems += Math.max(0, Math.floor(n)); save(); emit('gems'); };
   game.canStart = () => meta.lineup.some(id => id && meta.cards[id]);
   game.setFlag = (k, v) => { meta.flags[k] = v; save(); };
   game.setSetting = (k, v) => { meta.settings[k] = v; save(); emit('settings', k); };
