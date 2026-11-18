@@ -1,6 +1,6 @@
 // Packfall – Booster-Opening
 // Pack fällt rein → Antippen → Aufladen (Strahlen teasen die Seltenheit Stufe für Stufe an)
-// → Riss + Bass-Drop → Held erscheint groß im Licht. Effekte auf eigenem Canvas (flüssig, eigene Schleife).
+// → Riss + Bass-Drop → Turm erscheint groß im Licht. Effekte auf eigenem Canvas (flüssig, eigene Schleife).
 
 const TIER_COL = [[176, 172, 162], [126, 164, 196], [166, 138, 200], [222, 186, 108]]; // gewöhnlich, selten, episch, legendär
 const RANK = { common: 0, rare: 1, epic: 2, legendary: 3 };
@@ -54,7 +54,7 @@ export function createOpening(ov, { skin, sfx, settings, info, onClose, onAgain 
     ov.className = `kw-ov kw-bo k-${kind}`;
     ov.dataset.stage = 'drop';
     ov.style.setProperty('--tc', rgb(TIER_COL[0]));
-    title.innerHTML = kind === 'starter' ? '<b>Dein Geschenk!</b><span>Start-Booster</span>' : `<b>${info.packName(kind)}</b><span>Ein Held wartet darin</span>`;
+    title.innerHTML = kind === 'starter' ? '<b>Dein Geschenk!</b><span>Start-Booster</span>' : `<b>${info.packName(kind)}</b><span>Ein Turm wartet darin</span>`;
     const art = skin.packArt(kind);
     packA.innerHTML = art; packB.innerHTML = art;
     pack.hidden = false; pack.style.transform = ''; pack.disabled = false;
