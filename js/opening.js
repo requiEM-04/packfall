@@ -4,7 +4,6 @@
 
 const TIER_COL = [[176, 172, 162], [126, 164, 196], [166, 138, 200], [222, 186, 108]]; // gewöhnlich, selten, episch, legendär
 const RANK = { common: 0, rare: 1, epic: 2, legendary: 3 };
-const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map(v => (v + 0.5) / 16);
 
 export function createOpening(ov, { skin, sfx, settings, info, onClose, onAgain }) {
   const $ = n => ov.querySelector(`[data-k="${n}"]`);
@@ -12,18 +11,18 @@ export function createOpening(ov, { skin, sfx, settings, info, onClose, onAgain 
   const title = $('botitle'), hint = $('packhint'), act = $('boact'), again = $('boagain'), close = $('boclose');
   const rv = $('reveal'), flash = $('boflash');
   const cx2 = cv.getContext('2d');
+  // Effekte in halber Auflösung, weich hochskaliert (keine Pixelpunkte)
   const buf = document.createElement('canvas'), bx = buf.getContext('2d');
-  let img = null, u32 = null, ang = null, dist = null, BW = 0, BH = 0, Q = 3;
+  let BW = 0, BH = 0, Q = 2;
   let raf = 0, lastT = 0, st = null;
 
   function resize() {
     const r = ov.getBoundingClientRect();
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     cv.width = Math.max(1, Math.round(r.width * dpr)); cv.height = Math.max(1, Math.round(r.height * dpr));
-    Q = Math.max(2, Math.round(Math.min(cv.width, cv.height) / 260));
+    Q = 2;
     BW = Math.ceil(cv.width / Q); BH = Math.ceil(cv.height / Q);
     buf.width = BW; buf.height = BH;
-    img = bx.createImageData(BW, BH); u32 = new Uint32Array(img.data.buffer);
     centre();
   }
   function centre() {
@@ -37,12 +36,6 @@ export function createOpening(ov, { skin, sfx, settings, info, onClose, onAgain 
       for (let n = node; n && n !== ov; n = n.offsetParent) { px += n.offsetLeft; py += n.offsetTop; }
     }
     st.cx = (px / W) * BW; st.cy = (py / H) * BH;
-    ang = new Float32Array(BW * BH); dist = new Float32Array(BW * BH);
-    const R = Math.min(BW, BH);
-    for (let y = 0; y < BH; y++) for (let x = 0; x < BW; x++) {
-      const dx = x - st.cx, dy = y - st.cy, i = y * BW + x;
-      ang[i] = Math.atan2(dy, dx); dist[i] = Math.sqrt(dx * dx + dy * dy) / R;
-    }
   }
   const ro = new ResizeObserver(() => { if (st) resize(); });
   ro.observe(ov);
@@ -142,12 +135,13 @@ export function createOpening(ov, { skin, sfx, settings, info, onClose, onAgain 
 
   // ------------------------------------------------------------ Partikel
   function explode(c, n, sp) {
+    const k = Math.min(BW, BH) / 400;
     for (let i = 0; i < n; i++) {
-      const a = Math.random() * Math.PI * 2, v = (20 + Math.random() * 110) * sp;
-      st.parts.push({ x: st.cx, y: st.cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 20, life: 0.6 + Math.random() * 0.9, max: 1.5, c: mix(c, [240, 236, 228], Math.random() * 0.5), s: Math.random() < 0.25 ? 2 : 1, g: 60 });
+      const a = Math.random() * Math.PI * 2, v = (60 + Math.random() * 260) * sp * k;
+      st.parts.push({ x: st.cx, y: st.cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 30 * k, life: 0.5 + Math.random() * 1.1, max: 1.6, c: mix(c, [255, 250, 240], Math.random() * 0.6), s: (0.8 + Math.random() * 1.8) * Math.max(1, k), g: 90 * k, drag: 0.965 });
     }
   }
-  function ring(c, k) { st.rings.push({ r: 4, v: 150 * k, life: 0.7, max: 0.7, c }); }
+  function ring(c, k) { st.rings.push({ r: 6, v: 420 * k * Math.min(BW, BH) / 400, life: 0.75, max: 0.75, c, w: 6 * k }); }
 
   // ------------------------------------------------------------ Schleife
   function loop(now) {
@@ -169,10 +163,11 @@ export function createOpening(ov, { skin, sfx, settings, info, onClose, onAgain 
       if (lt >= st.chargeD) burst();
     }
     if (st.stage === 'reveal') {
-      st.tpower = 0.85; st.spin = 0.22;
-      if (Math.random() < dt * st.spark * 6) {
+      st.tpower = 0.9; st.spin = 0.16;
+      if (Math.random() < dt * st.spark * 10) {
         const a = Math.random() * Math.PI * 2, d = 20 + Math.random() * 60;
-        st.parts.push({ x: st.cx + Math.cos(a) * d, y: st.cy + Math.sin(a) * d * 0.8, vx: 0, vy: -10 - Math.random() * 18, life: 1.2, max: 1.2, c: mix(TIER_COL[st.rank], [245, 240, 230], 0.4), s: 1, g: -4, tw: true });
+        const k = Math.min(BW, BH) / 400;
+        st.parts.push({ x: st.cx + Math.cos(a) * d * k * 1.6, y: st.cy + Math.sin(a) * d * k * 1.3, vx: (Math.random() - 0.5) * 10 * k, vy: (-14 - Math.random() * 24) * k, life: 1.6, max: 1.6, c: mix(TIER_COL[st.rank], [255, 250, 240], 0.5), s: (1 + Math.random() * 1.4) * Math.max(1, k), g: -6 * k, tw: true, drag: 0.99 });
         if (st.rank >= 2 && Math.random() < 0.15) sfx('sparkle');
       }
     }
@@ -200,59 +195,70 @@ export function createOpening(ov, { skin, sfx, settings, info, onClose, onAgain 
     raf = requestAnimationFrame(loop);
   }
 
-  function draw(dt) {
-    if (!u32 || !ang) return;
-    const N = 14, col = st.col, pw = st.power, rot = st.rot, pulse = st.pulse;
-    const cr = col[0] | 0, cg = col[1] | 0, cb = col[2] | 0;
-    const base = (cb << 16) | (cg << 8) | cr;
-    const hot = mix(col, [245, 240, 232], 0.55);
-    const hotc = ((hot[2] | 0) << 16) | ((hot[1] | 0) << 8) | (hot[0] | 0);
-    const haloR = 0.16 + pw * 0.14 + pulse * 0.08;
-    for (let y = 0; y < BH; y++) {
-      const by = (y & 3) << 2;
-      for (let x = 0; x < BW; x++) {
-        const i = y * BW + x, d = dist[i];
-        // Strahlen
-        let a = (ang[i] + rot) * N / (Math.PI * 2); a -= Math.floor(a);
-        const wide = ((Math.floor((ang[i] + rot) * N / (Math.PI * 2)) & 1) ? 0.18 : 0.3);
-        let ray = a < wide ? 1 - Math.abs(a - wide / 2) / (wide / 2) * 0.35 : 0;
-        ray *= Math.max(0, 1 - d * (1.15 - pw * 0.35)) * pw;
-        // Lichthof
-        const halo = d < haloR ? (1 - d / haloR) * (0.55 + pw * 0.45 + pulse * 0.4) : 0;
-        let v = Math.max(ray * (0.42 + 0.5 * Math.max(0, 1 - d * 1.7)), halo);
-        const th = BAYER[by + (x & 3)];
-        if (v > th) {
-          const strong = halo > 0.55 && halo > th + 0.35;
-          u32[i] = 0xff000000 | (strong ? hotc : base);
-        } else u32[i] = 0;
+  function rays(n, rot, width, len, alpha, col, soft) {
+    const g = bx.createRadialGradient(st.cx, st.cy, 0, st.cx, st.cy, len);
+    g.addColorStop(0, rgba(col, alpha)); g.addColorStop(0.18, rgba(col, alpha * 0.75)); g.addColorStop(0.55, rgba(col, alpha * 0.25)); g.addColorStop(1, rgba(col, 0));
+    bx.fillStyle = g;
+    for (let pass = 0; pass < (soft ? 2 : 1); pass++) {
+      const wf = pass === 0 && soft ? 1.9 : 1;
+      if (soft) bx.globalAlpha = pass === 0 ? 0.35 : 1;
+      bx.beginPath();
+      for (let i = 0; i < n; i++) {
+        const a = rot + (i / n) * Math.PI * 2, w = width * (i % 2 ? 0.55 : 1) * wf;
+        bx.moveTo(st.cx, st.cy);
+        bx.lineTo(st.cx + Math.cos(a - w) * len, st.cy + Math.sin(a - w) * len);
+        bx.lineTo(st.cx + Math.cos(a + w) * len, st.cy + Math.sin(a + w) * len);
+        bx.closePath();
       }
+      bx.fill();
     }
-    bx.putImageData(img, 0, 0);
-    // Ringe
+    bx.globalAlpha = 1;
+  }
+  function draw(dt) {
+    if (!BW) return;
+    const col = st.col, pw = st.power, pulse = st.pulse, M = Math.min(BW, BH);
+    const hot = mix(col, [255, 250, 242], 0.6);
+    bx.clearRect(0, 0, BW, BH);
+    bx.globalCompositeOperation = 'lighter';
+    const len = Math.hypot(BW, BH) * 0.8;
+    // breite, langsame Strahlen + feine, gegenläufige Strahlen
+    rays(10, st.rot, 0.085 + pulse * 0.03, len, 0.42 * pw + pulse * 0.2, col, true);
+    rays(16, -st.rot * 0.7 + 0.1, 0.03, len * 0.85, 0.28 * pw + pulse * 0.15, hot, true);
+    // Lichtkern
+    const r0 = M * (0.22 + pw * 0.16 + pulse * 0.12);
+    const g = bx.createRadialGradient(st.cx, st.cy, 0, st.cx, st.cy, r0);
+    g.addColorStop(0, rgba(hot, 0.75 * pw + pulse * 0.3)); g.addColorStop(0.3, rgba(col, 0.45 * pw + pulse * 0.2)); g.addColorStop(1, rgba(col, 0));
+    bx.fillStyle = g; bx.beginPath(); bx.arc(st.cx, st.cy, r0, 0, Math.PI * 2); bx.fill();
+    // Druckwellen
     for (const r of st.rings) {
-      r.life -= dt; r.r += r.v * dt; r.v *= 0.95;
+      r.life -= dt; r.r += r.v * dt; r.v *= 0.94;
       if (r.life <= 0) continue;
       const k = r.life / r.max;
-      bx.fillStyle = `rgba(${r.c[0] | 0},${r.c[1] | 0},${r.c[2] | 0},${k.toFixed(2)})`;
-      const steps = Math.max(24, Math.round(r.r * 6));
-      for (let s = 0; s < steps; s++) { const a = (s / steps) * Math.PI * 2; if ((s & 1) && k < 0.5) continue; bx.fillRect(Math.round(st.cx + Math.cos(a) * r.r), Math.round(st.cy + Math.sin(a) * r.r * 0.9), 1, 1); }
+      bx.strokeStyle = rgba(r.c, 0.55 * k); bx.lineWidth = Math.max(1, r.w * k);
+      bx.beginPath(); bx.ellipse(st.cx, st.cy, r.r, r.r * 0.92, 0, 0, Math.PI * 2); bx.stroke();
+      bx.strokeStyle = rgba([255, 250, 240], 0.35 * k); bx.lineWidth = Math.max(1, r.w * k * 0.35); bx.stroke();
     }
     st.rings = st.rings.filter(r => r.life > 0);
-    // Partikel
+    // Funken mit Schweif
+    bx.lineCap = 'round';
     for (const p of st.parts) {
-      p.life -= dt; p.vy += p.g * dt; p.vx *= 0.985; p.x += p.vx * dt; p.y += p.vy * dt;
+      p.life -= dt; p.vy += p.g * dt; p.vx *= p.drag; p.vy *= p.drag; p.x += p.vx * dt; p.y += p.vy * dt;
       if (p.life <= 0) continue;
-      if (p.tw && (Math.floor(p.life * 12) & 1)) continue;
-      bx.fillStyle = `rgb(${p.c[0] | 0},${p.c[1] | 0},${p.c[2] | 0})`;
-      bx.fillRect(Math.round(p.x), Math.round(p.y), p.s, p.s);
+      const k = Math.min(1, p.life / 0.6);
+      const tw = p.tw ? 0.55 + 0.45 * Math.sin(st.t * 14 + p.x) : 1;
+      bx.strokeStyle = rgba(p.c, 0.5 * k * tw); bx.lineWidth = p.s;
+      bx.beginPath(); bx.moveTo(p.x - p.vx * 0.045, p.y - p.vy * 0.045); bx.lineTo(p.x, p.y); bx.stroke();
+      bx.fillStyle = rgba(p.c, 0.18 * k * tw); bx.beginPath(); bx.arc(p.x, p.y, p.s * 3.2, 0, Math.PI * 2); bx.fill();
+      bx.fillStyle = rgba([255, 252, 245], 0.9 * k * tw); bx.beginPath(); bx.arc(p.x, p.y, p.s * 0.6, 0, Math.PI * 2); bx.fill();
     }
     st.parts = st.parts.filter(p => p.life > 0);
-    if (st.parts.length > 700) st.parts.splice(0, st.parts.length - 700);
+    if (st.parts.length > 500) st.parts.splice(0, st.parts.length - 500);
+    bx.globalCompositeOperation = 'source-over';
 
-    cx2.imageSmoothingEnabled = false;
     cx2.clearRect(0, 0, cv.width, cv.height);
+    cx2.imageSmoothingEnabled = true; cx2.imageSmoothingQuality = 'high';
     cx2.drawImage(buf, 0, 0, BW * Q, BH * Q);
-    if (st.flash > 0.01) { cx2.fillStyle = `rgba(240,236,228,${(st.flash * 0.5).toFixed(2)})`; cx2.fillRect(0, 0, cv.width, cv.height); }
+    if (st.flash > 0.01) { cx2.fillStyle = `rgba(250,246,238,${(st.flash * 0.55).toFixed(2)})`; cx2.fillRect(0, 0, cv.width, cv.height); }
   }
 
   // ------------------------------------------------------------ Eingaben
@@ -266,3 +272,4 @@ export function createOpening(ov, { skin, sfx, settings, info, onClose, onAgain 
 
 function mix(a, b, k) { return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k]; }
 function rgb(c) { return `rgb(${c[0] | 0},${c[1] | 0},${c[2] | 0})`; }
+function rgba(c, a) { return `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${Math.max(0, Math.min(1, a)).toFixed(3)})`; }
