@@ -1,5 +1,6 @@
 // Packfall – Oberfläche: Hauptmenü (wie Pokélings), Unterseiten, Run-HUD, Booster öffnen, Willkommen
 import { UPGRADES, U, G, GUARDIANS, ENEMY_TYPES, RARITIES, BOOSTERS, REALMS, realmOf, fmt, fmtNum, WS_MAX } from './core.js';
+import { createOpening } from './opening.js';
 
 const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -19,6 +20,8 @@ const ENEMY_INFO = {
 };
 
 const PATCH = [
+  ['v0.5', 'Neues Booster-Opening: ein Held pro Pack, Lichtstrahlen verraten die Seltenheit, Bass-Sounds; 12 komplett neu gezeichnete Helden (4 neue); neue Synthwave-Musik; ruhigere Oberfläche; Anmeldefenster beim Start; flüssiger'],
+  ['v0.4', 'Neuer, düsterer Look: gedeckte Farben mit Grauton, neuer Turm mit Pflasterplatz, neues Titelbild mit Pixel-Logo und Booster-Fächer'],
   ['v0.3', 'Neues Hauptmenü, Werkstatt-Baum, Maus-Schlag, Start-Geschenk, Konten (Cloud)'],
   ['v0.2', 'Booster-Stil: düstere Pixel-Arena mit Turm und Helden'],
   ['v0.1', 'Erster Prototyp: Runs, Münzen, Gems, Booster'],
@@ -46,20 +49,22 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     <div class="kw-menu" data-k="menu"></div>
     <div class="kw-screen" data-k="screen" hidden></div>
     <div class="kw-ov kw-bo" data-k="bo" hidden>
-      <div class="kw-bo-flash" data-k="boflash"></div>
-      <div class="kw-bo-in">
+      <canvas class="kw-bo-fx" data-k="bofx"></canvas>
+      <div class="kw-bo-in" data-k="boin">
         <p class="kw-bo-title" data-k="botitle"></p>
-        <button type="button" class="kw-pack" data-k="pack" aria-label="Booster aufreißen">
-          <span class="kw-pack-art" data-k="packart"></span>
-          <span class="kw-pack-top"></span>
-        </button>
-        <p class="kw-pack-hint" data-k="packhint">Antippen zum Aufreißen</p>
-        <div class="kw-cards" data-k="cards"></div>
-        <div class="kw-bo-act">
-          <button type="button" class="kw-btn" data-k="boall">Alle aufdecken</button>
+        <div class="kw-bo-stage">
+          <button type="button" class="kw-pack" data-k="pack" aria-label="Booster öffnen">
+            <span class="kw-pack-a" data-k="packa"></span><span class="kw-pack-b" data-k="packb"></span>
+          </button>
+          <div class="kw-reveal" data-k="reveal" hidden></div>
+        </div>
+        <p class="kw-pack-hint" data-k="packhint">Antippen zum Öffnen</p>
+        <div class="kw-bo-act" data-k="boact" hidden>
+          <button type="button" class="kw-btn" data-k="boagain"></button>
           <button type="button" class="kw-btn kw-btn-primary" data-k="boclose">Weiter</button>
         </div>
       </div>
+      <div class="kw-bo-flash" data-k="boflash"></div>
     </div>
     <div class="kw-ov kw-sum" data-k="sum" hidden>
       <div class="kw-box kw-sum-in" role="dialog" aria-labelledby="kwSumTitle">
@@ -73,7 +78,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     <div class="kw-toast" data-k="toast" role="status"></div>
     <div class="kw-open" data-k="open" data-phase="load">
       <div class="kw-load">
-        <div class="kw-logo kw-logo-sm" aria-hidden="true"><span>PACK</span><span>FALL</span></div>
+        ${skin.logo ? `<img class="kw-logo-img kw-logo-load" src="${skin.logo}" alt="Packfall">` : '<div class="kw-logo kw-logo-sm"><span>PACK</span><span>FALL</span></div>'}
         <div class="kw-box kw-loadbox">
           <div class="kw-loadrow"><b data-k="loadlbl">Baue die Welt auf …</b><span data-k="loadpct">0 %</span></div>
           <div class="kw-loadbar"><i data-k="loadbar"></i></div>
@@ -88,17 +93,47 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
         <button type="button" class="kw-skip" data-k="skip">Überspringen ▸</button>
       </div>
       <div class="kw-title">
-        <h1 class="kw-logo kw-logo-xl" aria-label="Packfall"><span>PACK</span><span>FALL</span></h1>
-        <p class="kw-ribbon">Booster öffnen · Helden sammeln · Turm halten</p>
-        <button type="button" class="kw-press" data-k="press">Drücke Start</button>
-        <p class="kw-legal">Prototyp v0.3 · Spielstand wird automatisch gespeichert</p>
+        <span class="kw-title-bg" data-k="titlebg"></span>
+        <div class="kw-title-main">
+          <h1 class="kw-title-logo">${skin.logo ? `<img class="kw-logo-img" src="${skin.logo}" alt="Packfall">` : 'Packfall'}</h1>
+          <div class="kw-fan" data-k="fan" aria-hidden="true"></div>
+          <p class="kw-ribbon">Booster öffnen · Helden sammeln · Turm halten</p>
+          <button type="button" class="kw-press" data-k="press">Drücke Start</button>
+        </div>
+        <p class="kw-legal">Prototyp v0.5 · Spielstand wird automatisch gespeichert</p>
+      </div>
+      <div class="kw-auth" data-k="auth">
+        <div class="kw-auth-in">
+          ${skin.logo ? `<img class="kw-logo-img kw-auth-logo" src="${skin.logo}" alt="Packfall">` : '<h1>Packfall</h1>'}
+          <p class="kw-ribbon">Booster öffnen · Helden sammeln · Turm halten</p>
+          <div class="kw-auth-wrap">
+            <form class="kw-box kw-auth-box" data-k="authform" novalidate>
+              <div class="kw-atabs" role="tablist">
+                <button type="button" role="tab" data-act="authTab" data-v="login" aria-selected="true">Anmelden</button>
+                <button type="button" role="tab" data-act="authTab" data-v="signup" aria-selected="false">Registrieren</button>
+              </div>
+              <label class="kw-fld">Benutzername<input name="name" maxlength="16" autocomplete="username" spellcheck="false"></label>
+              <label class="kw-fld">Passwort<input name="pw" type="password" maxlength="64" autocomplete="current-password"></label>
+              <label class="kw-fld" data-k="authpw2" hidden>Passwort wiederholen<input name="pw2" type="password" maxlength="64" autocomplete="new-password"></label>
+              <label class="kw-chk"><input type="checkbox" name="remember" checked><span>Angemeldet bleiben</span></label>
+              <p class="kw-aerr" data-k="autherr" role="alert"></p>
+              <button type="submit" class="kw-btn kw-btn-primary kw-auth-go" data-k="authgo">Anmelden</button>
+              <button type="button" class="kw-btn kw-auth-guest" data-act="authGuest">${ic('user')}<span>Als Gast spielen</span></button>
+              <p class="kw-note">Konten sind online: Mit Name und Passwort spielst du auf jedem Gerät weiter. Keine E-Mail nötig, das Passwort wird vorher verschlüsselt. Gäste spielen nur lokal in diesem Browser.</p>
+            </form>
+            <div class="kw-box kw-auth-lb">
+              <h3>${ic('trophy')} Bestenliste</h3>
+              <ol class="kw-lb" data-k="authlb"><li class="kw-lb-empty">Lädt …</li></ol>
+            </div>
+          </div>
+        </div>
       </div>
     </div>`;
   root.appendChild(el);
 
   const k = name => el.querySelector(`[data-k="${name}"]`);
   const E = {};
-  ['gems', 'coins', 'hp', 'hpbar', 'strip', 'tip', 'tr', 'wavebox', 'banner', 'hitflash', 'menu', 'screen', 'bo', 'boflash', 'botitle', 'pack', 'packart', 'packhint', 'cards', 'boall', 'boclose', 'sum', 'sumwave', 'sumlist', 'sumclose', 'intro', 'toast', 'open', 'loadlbl', 'loadpct', 'loadbar', 'loadtip', 'skip', 'press'].forEach(n => { E[n] = k(n); });
+  ['gems', 'coins', 'hp', 'hpbar', 'strip', 'tip', 'tr', 'wavebox', 'banner', 'hitflash', 'menu', 'screen', 'bo', 'sum', 'sumwave', 'sumlist', 'sumclose', 'intro', 'toast', 'open', 'loadlbl', 'loadpct', 'loadbar', 'loadtip', 'skip', 'press', 'titlebg', 'fan', 'auth', 'authform', 'authpw2', 'autherr', 'authgo', 'authlb'].forEach(n => { E[n] = k(n); });
   const stage = el.querySelector('.kw-stage');
 
   let screen = null;          // offene Unterseite
@@ -114,6 +149,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
   const later = (fn, ms) => { const t = setTimeout(() => { timers.delete(t); fn(); }, ms); timers.add(t); return t; };
   const restartAnim = (node, cls) => { node.classList.remove(cls); void node.offsetWidth; node.classList.add(cls); };
   const set = (key, node, html) => { if (last[key] !== html) { node.innerHTML = html; last[key] = html; return true; } return false; };
+  const txt = (node, v) => { if (node._t !== v) { node._t = v; node.textContent = v; } };
   const costHTML = (icon, v) => `${ic(icon)}<span>${fmt(v)}</span>`;
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -224,7 +260,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
         <div class="kw-chal"><div><b>Wochen-Herausforderung</b><small>Feste Regeln · 3 Versuche pro Woche</small></div><span class="kw-soon">Bald</span></div>
       </aside>
       <main class="kw-center">
-        <h1 class="kw-logo" aria-label="Packfall"><span>PACK</span><span>FALL</span></h1>
+        <h1 class="kw-menu-logo">${skin.logo ? `<img class="kw-logo-img" src="${skin.logo}" alt="Packfall">` : 'Packfall'}</h1>
         <p class="kw-ribbon">Booster öffnen · Helden sammeln · Turm halten</p>
         <div class="kw-pbar">
           <span>${ic('user')}<b>${esc(playerName())}</b></span>
@@ -282,7 +318,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
       cells.push(`<div class="kw-shopcell is-gift">
         <div class="kw-price is-free">Gratis</div>
         <div class="kw-shopimg">${skin.packArt('starter')}</div>
-        <b>Start-Geschenk</b><small>3 Helden zum Start · garantiert 1× Selten</small>
+        <b>Start-Geschenk</b><small>Dein erster Held · garantiert Selten</small>
         <button type="button" class="kw-btn kw-btn-primary" data-act="booster" data-v="starter">Öffnen</button></div>`);
     }
     Object.entries(BOOSTERS).filter(([, b]) => !b.hidden).forEach(([kind, b]) => {
@@ -290,12 +326,12 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
       cells.push(`<div class="kw-shopcell k-${kind}">
         <div class="kw-price">${costHTML('gem', b.cost)}</div>
         <div class="kw-shopimg">${skin.packArt(kind)}</div>
-        <b>${b.name}</b><small>${b.cards} Karten${b.guarantee ? ' · mind. 1× Episch' : ''}</small>
+        <b>${b.name}</b><small>1 Held${kind === 'elite' ? ' · mind. Selten' : ''}</small>
         <ul class="kw-odds">${Object.entries(b.odds).map(([r, v]) => `<li style="--rc:${RARITIES[r].color}"><span>${RARITIES[r].name}</span><span>${v} %</span></li>`).join('')}<li class="foil"><span>Glanz</span><span>${Math.round(b.foil * 100)} %</span></li></ul>
         <button type="button" class="kw-btn${can ? ' kw-btn-primary' : ''}" data-act="booster" data-v="${kind}"${can ? '' : ' aria-disabled="true"'}>${can ? 'Öffnen' : `Fehlen ${fmt(b.cost - m.gems)}`}</button></div>`);
     });
     return `<div class="kw-shop">${cells.join('')}</div>
-      <p class="kw-hint">Doppelte Karte = +1 Stufe (max. 10, je +25 % Schaden). Glanz-Karten machen dauerhaft +50 % Schaden.</p>
+      <p class="kw-hint">Jeder Booster enthält einen Helden. Doppelte = +1 Stufe (max. 10, je +25 % Schaden). Glanz-Helden machen dauerhaft +50 % Schaden.</p>
       <button type="button" class="kw-link" data-act="testgems">+300 Gems zum Testen (nur im Prototyp)</button>`;
   }
 
@@ -383,7 +419,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     const online = cloud?.st?.status === 'online';
     return `<div class="kw-sgrp kw-box"><h4>${ic('speed')} Audio</h4>
         ${line('speed', 'Soundeffekte', 'Kampf, Klicks, Münzen', seg('sfx', [[0, 'Aus'], [0.3, 'Leise'], [0.5, 'Mittel'], [0.85, 'Laut']]))}
-        ${line('play', 'Musik', 'Ruhige Hintergrundmusik', seg('music', [[0, 'Aus'], [1, 'Leise'], [2, 'Mittel']]))}</div>
+        ${line('play', 'Musik', 'Synthwave, im Run mit vollem Beat', seg('music', [[0, 'Aus'], [1, 'Leise'], [2, 'Laut']]))}</div>
       <div class="kw-sgrp kw-box"><h4>${ic('eye')} Anzeige</h4>
         ${line('eye', 'Grafik', 'Auto passt sich deinem Gerät an', seg('gfx', [['hoch', 'Hoch'], ['mittel', 'Mittel'], ['niedrig', 'Niedrig'], ['auto', 'Auto']]))}
         ${line('crit', 'Bildschirmwackeln', 'Bei Treffern und Bossen', seg('shake', [['on', 'An'], ['off', 'Aus']]))}
@@ -572,7 +608,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
         <li>${ic('cursor')}<span>Mit der <b>Maus oder dem Finger</b> schlägst du selbst zu – der Kreis lädt sich auf.</span></li>
         <li>${ic('coin')}<span><b>Münzen</b> gibt's nur im Run. <b>Gems</b> bleiben für immer: Werkstatt & Booster.</span></li>
       </ol>
-      ${gift ? `<div class="kw-gift"><span class="kw-gift-img">${skin.packArt('starter')}</span><p><b>Ein Geschenk zum Start</b><br>Dein erster Booster mit 3 Helden – einer davon garantiert selten.</p></div>
+      ${gift ? `<div class="kw-gift"><span class="kw-gift-img">${skin.packArt('starter')}</span><p><b>Ein Geschenk zum Start</b><br>Dein erster Booster – mit einem garantiert seltenen Helden.</p></div>
         <button type="button" class="kw-btn kw-btn-primary kw-btn-lg" data-act="gift">${ic('pack')}<span>Geschenk öffnen</span></button>`
         : `<button type="button" class="kw-btn kw-btn-primary kw-btn-lg" data-act="introClose">${ic('check')}<span>Alles klar</span></button>`}
     </div>`;
@@ -582,102 +618,45 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
   // =====================================================================
   // BOOSTER ÖFFNEN
   // =====================================================================
-  let bo = null;
+  const opening = createOpening(E.bo, {
+    skin, sfx, settings: () => game.meta.settings,
+    info: {
+      packName: kind => BOOSTERS[kind].name,
+      rarName: r => RARITIES[r].name,
+      stats: r => {
+        const d = r.def, st = game.cardStats(d.id, r.lvlTo || 1, game.meta.cards[d.id]?.foil);
+        return d.kind === 'beam' ? `${fmtNum(st.dps)} Schaden/s · Reichweite ${d.range}` : `${fmtNum(st.dmg)} Schaden · ${fmtNum(d.rate)}/s · Reichweite ${d.range}`;
+      },
+      tag: r => {
+        let t = r.isNew ? (r.placed ? 'Neu · steht im Team' : 'Neu · in der Sammlung') : r.refund ? `Max. Stufe · +${r.refund} Gems` : `Doppelt · Stufe ${r.lvlFrom} → ${r.lvlTo}`;
+        if (r.becameFoil) t += ' · jetzt mit Glanz';
+        return t;
+      },
+      again: kind => {
+        const b = BOOSTERS[kind];
+        if (kind === 'starter' || game.meta.gems < b.cost) return '';
+        return `Nochmal ${costHTML('gem', b.cost)}`;
+      },
+    },
+    onClose: () => closeBooster(),
+    onAgain: kind => openBooster(kind),
+  });
+  let boKind = null;
   function openBooster(kind) {
     const b = BOOSTERS[kind];
     if (game.run) return;
     if (game.meta.gems < b.cost) { sfx('deny'); toast(`Dir fehlen ${fmt(b.cost - game.meta.gems)} Gems.`); return; }
     const res = game.openBooster(kind);
     if (!res) return;
-    const fast = game.meta.settings.boosterAnim === 'fast' || reduceMotion();
-    const best = res.reduce((a, r) => (RARITIES[r.rarity].rank > RARITIES[a].rank ? r.rarity : a), 'common');
-    bo = { res, kind, flipped: 0, stage: 'pack', fast };
-    E.bo.hidden = false;
-    E.bo.className = `kw-ov kw-bo k-${kind}`;
-    E.bo.dataset.best = best;
-    E.bo.style.setProperty('--best', RARITIES[best].color);
-    E.botitle.innerHTML = kind === 'starter' ? '<b>Dein Geschenk!</b><span>Start-Booster</span>' : `<b>Neues Paket!</b><span>${b.name}</span>`;
-    E.packart.innerHTML = skin.packArt(kind);
-    E.cards.innerHTML = '';
-    E.boall.hidden = true; E.boclose.hidden = true;
-    E.packhint.hidden = false; E.pack.hidden = false;
-    later(() => { E.bo.classList.add('st-shake'); sfx('shake'); }, 40);
-    later(rip, fast ? 250 : 1700);
-    E.pack.focus({ preventScroll: true });
-  }
-  function cardHTML(r, i) {
-    const d = r.def;
-    const st = game.cardStats(d.id, r.lvlTo || 1, game.meta.cards[d.id]?.foil);
-    const stats = d.kind === 'beam' ? `<span>${fmtNum(st.dps)} Schaden/s</span>` : `<span>${fmtNum(st.dmg)} Schaden</span><span class="kw-rate"> · ${fmtNum(d.rate)}/s</span>`;
-    let tag = r.isNew ? 'Neu' : r.refund ? `Max · +${r.refund} Gems` : `Stufe ${r.lvlFrom} → ${r.lvlTo}`;
-    if (r.becameFoil) tag += ' · Glanz';
-    return `<button type="button" class="kw-card r-${r.rarity}${r.foil ? ' foil' : ''}${r.isNew ? ' is-new' : ''}" style="--i:${i};--rc:${RARITIES[r.rarity].color}" data-i="${i}" aria-label="Karte ${i + 1} aufdecken">
-      <span class="kw-card-in">
-        <span class="kw-card-back">${skin.cardBack()}</span>
-        <span class="kw-card-front">
-          <span class="kw-card-rar">${RARITIES[r.rarity].name}</span>${r.foil ? '<span class="kw-card-foil">Glanz</span>' : ''}
-          <span class="kw-card-art">${skin.cardArt(d, { foil: r.foil, big: true })}</span>
-          <span class="kw-card-name">${d.name}</span>
-          <span class="kw-card-stats">${stats}</span>
-          <span class="kw-card-desc">${d.desc}</span>
-        </span>
-      </span>
-      <span class="kw-card-tag">${tag}</span>
-    </button>`;
-  }
-  function rip() {
-    if (!bo || bo.stage !== 'pack') return;
-    bo.stage = 'rip';
-    E.bo.classList.remove('st-shake'); E.bo.classList.add('st-rip');
-    E.packhint.hidden = true;
-    sfx('rip');
-    later(() => {
-      if (!bo) return;
-      E.pack.hidden = true;
-      E.cards.innerHTML = bo.res.map(cardHTML).join('');
-      E.bo.classList.add('st-cards');
-      bo.stage = 'cards';
-      E.boall.hidden = false;
-      if (bo.fast) revealAll();
-    }, bo.fast ? 60 : 560);
-  }
-  function flip(i) {
-    if (!bo || bo.stage !== 'cards') return;
-    const c = E.cards.children[i];
-    if (!c || c.classList.contains('flipped') || c.classList.contains('charging')) return;
-    const r = bo.res[i];
-    const rank = RARITIES[r.rarity].rank;
-    const doFlip = () => {
-      if (!bo) return;
-      c.classList.remove('charging'); c.classList.add('flipped');
-      c.setAttribute('aria-label', `${r.def.name}, ${RARITIES[r.rarity].name}`);
-      bo.flipped++;
-      sfx(rank >= 3 ? 'fanfare' : 'reveal', r.rarity);
-      if (rank >= 2 || r.foil) { E.boflash.style.setProperty('--fc', RARITIES[r.rarity].color); restartAnim(E.boflash, 'go'); }
-      if (bo.flipped === bo.res.length) {
-        bo.stage = 'done';
-        E.boall.hidden = true; E.boclose.hidden = false;
-        E.bo.classList.add('st-done');
-        later(() => E.boclose.focus({ preventScroll: true }), 50);
-      }
-    };
-    if (rank >= 3 && !bo.fast) { c.classList.add('charging'); later(doFlip, 950); } else doFlip();
-  }
-  function revealAll() {
-    if (!bo) return;
-    let d = 0;
-    bo.res.forEach((r, i) => { later(() => flip(i), d); d += RARITIES[r.rarity].rank >= 3 && !bo.fast ? 1200 : bo.fast ? 140 : 320; });
+    boKind = kind;
+    opening.open(kind, res[0]);
   }
   function closeBooster() {
-    const wasStarter = bo?.kind === 'starter';
-    E.bo.hidden = true; E.bo.className = 'kw-ov kw-bo'; bo = null;
+    const wasStarter = boKind === 'starter';
+    boKind = null;
     last.menu = ''; renderScreen(true);
-    if (wasStarter) { closeScreen(); toast('Deine Helden stehen bereit. Auf „Kämpfen“ geht\'s los!'); later(() => E.menu.querySelector('[data-act="start"]')?.focus({ preventScroll: true }), 60); }
+    if (wasStarter) { closeScreen(); toast('Dein erster Held steht bereit. Auf „Kämpfen“ geht\'s los!'); later(() => E.menu.querySelector('[data-act="start"]')?.focus({ preventScroll: true }), 60); }
   }
-  E.pack.addEventListener('click', rip);
-  E.cards.addEventListener('click', e => { const c = e.target.closest('.kw-card'); if (c) flip(+c.dataset.i); });
-  E.boall.addEventListener('click', revealAll);
-  E.boclose.addEventListener('click', closeBooster);
 
   // ---------- Run-Ende ----------
   function showSummary(s) {
@@ -720,15 +699,18 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
   // ---------- pro Frame ----------
   function frame(dt) {
     const r = game.run;
-    el.dataset.mode = r ? 'run' : 'basis';
-    el.classList.toggle('has-screen', !!screen);
+    const md = r ? 'run' : 'basis';
+    if (el.dataset.mode !== md) el.dataset.mode = md;
+    if (el.classList.contains('has-screen') !== !!screen) el.classList.toggle('has-screen', !!screen);
     if (r) {
-      E.gems.textContent = fmt(game.meta.gems);
-      E.coins.textContent = fmt(r.coins);
-      E.hp.textContent = `${Math.ceil(r.coreHp)}/${Math.round(r.coreMax)}`;
-      E.hpbar.style.transform = `scaleX(${Math.max(0, r.coreHp / r.coreMax)})`;
-      el.classList.toggle('is-low', r.coreHp / r.coreMax < 0.3);
-    } else el.classList.remove('is-low');
+      txt(E.gems, fmt(game.meta.gems));
+      txt(E.coins, fmt(r.coins));
+      txt(E.hp, `${Math.ceil(r.coreHp)}/${Math.round(r.coreMax)}`);
+      const hk = Math.max(0, r.coreHp / r.coreMax).toFixed(3);
+      if (E.hpbar._k !== hk) { E.hpbar._k = hk; E.hpbar.style.transform = `scaleX(${hk})`; }
+      const low = r.coreHp / r.coreMax < 0.3;
+      if (el.classList.contains('is-low') !== low) el.classList.toggle('is-low', low);
+    } else if (el.classList.contains('is-low')) el.classList.remove('is-low');
     renderT -= dt;
     if (renderT > 0) return;
     renderT = 0.2;
@@ -749,11 +731,11 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
   // OPENING: Ladescreen → kurzes Intro → Titelbildschirm → Menü
   // =====================================================================
   const TIPS = [
-    'Tipp: Doppelte Karten machen deine Helden stärker.',
+    'Tipp: Doppelte Helden steigen eine Stufe auf.',
     'Tipp: Mit der Maus schlägst du selbst zu – der Kreis lädt sich auf.',
     'Tipp: Münzen verfallen am Run-Ende, Gems bleiben für immer.',
     'Tipp: Jede 10. Welle kommt ein Schattenfürst. Er bringt viele Gems.',
-    'Tipp: Glanz-Karten machen dauerhaft +50 % Schaden.',
+    'Tipp: Glanz-Helden machen dauerhaft +50 % Schaden.',
   ];
   E.loadtip.textContent = TIPS[Math.floor(Math.random() * TIPS.length)];
   let phase = 'load';
@@ -775,12 +757,14 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     }, 450);
   }
   function toTitle() {
-    if (phase === 'title' || phase === 'out' || phase === 'menu') return;
+    if (phase === 'title' || phase === 'out' || phase === 'menu' || phase === 'auth') return;
     setPhase('title');
     later(() => E.press.focus({ preventScroll: true }), 50);
   }
   function ready() {
     setLoad(1, 'Fertig!');
+    if (skin.titleBg) E.titlebg.innerHTML = skin.titleBg();
+    E.fan.innerHTML = ['starter', 'green', 'elite', 'basic', 'purple'].map((kd, i) => `<span class="kw-fan-p" style="--i:${i}">${skin.packArt(kd)}</span>`).join('');
     let seen = false;
     try { seen = sessionStorage.getItem('packfall.intro') === '1'; sessionStorage.setItem('packfall.intro', '1'); } catch (e) { /* egal */ }
     later(() => {
@@ -790,7 +774,54 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     }, 350);
   }
   E.skip.addEventListener('click', toTitle);
-  E.press.addEventListener('click', () => { audio?.unlock(); audio?.apply(); sfx('fanfare'); toMenu(); });
+  E.press.addEventListener('click', async () => {
+    audio?.unlock(); audio?.apply(); sfx('fanfare');
+    let guest = false;
+    try { guest = sessionStorage.getItem('packfall.guest') === '1'; } catch (e) { /* egal */ }
+    if (cloud?.configured() && cloud.st.restoring) await Promise.race([cloud.restored, new Promise(r => setTimeout(r, 2500))]);
+    if (!cloud?.configured() || cloud.st.status === 'online' || guest) toMenu(); else showAuth();
+  });
+
+  // ---------- Anmeldefenster (wie Pokélings) ----------
+  let authMode = 'login';
+  function setAuthMode(m) {
+    authMode = m;
+    E.auth.querySelectorAll('[data-act="authTab"]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.v === m)));
+    E.authpw2.hidden = m !== 'signup';
+    E.authgo.textContent = m === 'signup' ? 'Konto erstellen' : 'Anmelden';
+    E.authform.elements.pw.autocomplete = m === 'signup' ? 'new-password' : 'current-password';
+    E.autherr.textContent = '';
+  }
+  async function showAuth() {
+    setPhase('auth');
+    setAuthMode('login');
+    later(() => E.authform.elements.name.focus({ preventScroll: true }), 80);
+    await refreshBoard();
+    E.authlb.innerHTML = lbRows
+      ? (lbRows.length ? lbRows.slice(0, 10).map((r, i) => `<li><span class="kw-lb-n">${i + 1}</span><span class="kw-lb-name">${esc(r.name)}</span><span class="kw-lb-v">Welle ${r.best_wave}</span><small>${fmt(r.total_gems)} Gems · ${r.heroes || 0} Helden</small></li>`).join('') : '<li class="kw-lb-empty">Noch niemand eingetragen. Sei der Erste!</li>')
+      : `<li class="kw-lb-empty">${esc(lbMsg || 'Bestenliste gerade nicht erreichbar.')}</li>`;
+  }
+  E.auth.addEventListener('click', e => {
+    const b = e.target.closest('[data-act]');
+    if (!b) return;
+    if (b.dataset.act === 'authTab') { sfx('click'); setAuthMode(b.dataset.v); }
+    if (b.dataset.act === 'authGuest') {
+      sfx('click');
+      try { sessionStorage.setItem('packfall.guest', '1'); } catch (err) { /* egal */ }
+      toMenu();
+    }
+  });
+  E.authform.addEventListener('submit', async e => {
+    e.preventDefault();
+    const f = E.authform.elements, name = f.name.value.trim(), pw = f.pw.value;
+    if (authMode === 'signup' && pw !== f.pw2.value) { E.autherr.textContent = 'Die Passwörter sind nicht gleich.'; sfx('deny'); return; }
+    E.autherr.textContent = authMode === 'signup' ? 'Konto wird erstellt …' : 'Anmelden …';
+    E.authgo.disabled = true;
+    const r = authMode === 'signup' ? await cloud.signup(name, pw, f.remember.checked) : await cloud.login(name, pw, f.remember.checked);
+    E.authgo.disabled = false;
+    if (r.ok) { E.autherr.textContent = ''; f.pw.value = ''; f.pw2.value = ''; sfx('coin'); toast(authMode === 'signup' ? `Willkommen, ${cloud.st.name}!` : `Hallo ${cloud.st.name}!`); refreshBoard(); toMenu(); }
+    else { E.autherr.textContent = r.msg; sfx('deny'); }
+  });
   E.open.addEventListener('keydown', e => {
     if (phase === 'intro' && (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toTitle(); }
   });
@@ -798,6 +829,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
   return {
     el, stage, toast, banner, frame, setLoad, ready,
     get phase() { return phase; },
-    destroy() { offs.forEach(f => f()); timers.forEach(t => clearTimeout(t)); clearTimeout(toastT); el.remove(); },
+    get busy() { return opening.active; },
+    destroy() { opening.destroy(); offs.forEach(f => f()); timers.forEach(t => clearTimeout(t)); clearTimeout(toastT); el.remove(); },
   };
 }
