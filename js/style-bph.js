@@ -1,11 +1,11 @@
 // Booster-Stil: düstere, detaillierte Pixel-Art, Vollbild-Arena mit Turm (Richtung „Booster Pack Heroes“, eigene Grafiken)
-import { ARENA, G, realmOf } from './core.js?v=0.6.1-6729cd5a';
-import { createUI } from './ui.js?v=0.6.1-6729cd5a';
+import { ARENA, G, realmOf } from './core.js?v=0.7-42083dbf';
+import { createUI } from './ui.js?v=0.7-42083dbf';
 import {
   towerCanvas, crystalCanvas, heroCanvas, enemyCanvas, rockCanvas, treeCanvas, bonesCanvas,
   packCanvas, cardBackCanvas, iconSVG, variant, shade, logoCanvas, titleBackdrop, mute,
-} from './bph-art.js?v=0.6.1-6729cd5a';
-import { heroSprite } from './heroes.js?v=0.6.1-6729cd5a';
+} from './bph-art.js?v=0.7-42083dbf';
+import { heroSprite } from './heroes.js?v=0.7-42083dbf';
 const M = c => (typeof c === 'string' && c[0] === '#' && c.length === 7 ? mute(c, 0.5, 0.92) : c);
 
 const REALM_RAW = [
@@ -69,6 +69,26 @@ export async function mount(root, game, { audio, cloud } = {}) {
   let W = 1, H = 1, P = 3, LW = 1, LH = 1, sc = 1, dpr = 1;
   let cx = 0, cy = 0, tcx = 0, tcy = 0;
   let groundKey = '';
+  const glowSpots = [];
+  // weicher Nebel (kachelbar), einmal erzeugt
+  const fog = (() => {
+    const w = 192, h = 96, c = document.createElement('canvas'); c.width = w; c.height = h;
+    const x = c.getContext('2d'), img = x.createImageData(w, h);
+    const rnd = seeded(31337), grid = [];
+    const G = 8; for (let i = 0; i < G * G; i++) grid.push(rnd());
+    const v = (u, q, f) => { const gx2 = (u * f) % G, gy2 = (q * f) % G, x0 = Math.floor(gx2), y0 = Math.floor(gy2), fx2 = gx2 - x0, fy2 = gy2 - y0, sm = t2 => t2 * t2 * (3 - 2 * t2);
+      const a = grid[(y0 % G) * G + (x0 % G)], b = grid[(y0 % G) * G + ((x0 + 1) % G)], c2 = grid[((y0 + 1) % G) * G + (x0 % G)], d = grid[((y0 + 1) % G) * G + ((x0 + 1) % G)];
+      return a + (b - a) * sm(fx2) + (c2 - a) * sm(fy2) + (a - b - c2 + d) * sm(fx2) * sm(fy2); };
+    for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) {
+      const u = (xx / w) * G, q = (yy / h) * G;
+      let n = v(u, q, 1) * 0.6 + v(u, q, 2) * 0.3 + v(u, q, 4) * 0.1;
+      n = Math.max(0, (n - 0.42) / 0.58); n = n * n * (3 - 2 * n);
+      const i = (yy * w + xx) * 4; img.data[i] = 150; img.data[i + 1] = 158; img.data[i + 2] = 170; img.data[i + 3] = Math.round(n * 255);
+    }
+    x.putImageData(img, 0, 0); return c;
+  })();
+  const ash = [], bats = [];
+  let batT = 6;
   let shake = 0, shakeAmp = 0, towerFlash = 0;
   const parts = [], texts = [], zaps = [], booms = [], smokes = [];
   let viewT = 0;
@@ -190,6 +210,30 @@ export async function mount(root, game, { audio, cloud } = {}) {
     const RR = ARENA.spawnR * sc;
     // dunkler Rand-Nebel statt Linie
     void RR;
+    // Leben am Boden: Grasbüschel und leuchtende Pilze
+    glowSpots.length = 0;
+    const rg = seeded(9100 + realm * 7);
+    const blade = [M('#2c3a2c'), M('#34442f'), M('#3e5236')];
+    for (let i = 0; i < (GW * GH) / 700; i++) {
+      const x = Math.floor(rg() * GW), y = Math.floor(rg() * GH);
+      const d = Math.hypot(x - ox, y - oy) / (ARENA.viewR * sc);
+      if (d < 0.22) continue;
+      const n = 2 + Math.floor(rg() * 3);
+      for (let k = 0; k < n; k++) { gx.fillStyle = blade[(k + i) % 3]; const h = 1 + Math.floor(rg() * 3); gx.fillRect(x + k - 1, y - h, 1, h); }
+    }
+    const shroom = [[150, 210, 190], [190, 170, 220], [220, 190, 130]][realm % 3];
+    for (let i = 0; i < (GW * GH) / 5200; i++) {
+      const x = Math.floor(rg() * GW), y = Math.floor(rg() * GH);
+      const d = Math.hypot(x - ox, y - oy) / (ARENA.viewR * sc);
+      if (d < 0.35) continue;
+      const c = `rgb(${shroom[0]},${shroom[1]},${shroom[2]})`;
+      for (let k = 0; k < 1 + Math.floor(rg() * 3); k++) {
+        const mx = x + k * 3 - 2, my = y + (k % 2);
+        gx.fillStyle = M('#4a4440'); gx.fillRect(mx, my - 1, 1, 2);
+        gx.fillStyle = c; gx.fillRect(mx - 1, my - 2, 3, 1); gx.fillStyle = 'rgba(255,255,255,.5)'; gx.fillRect(mx, my - 2, 1, 1);
+      }
+      glowSpots.push({ x: x - ox, y: y - oy, c: shroom, ph: rg() * 6.28 });
+    }
     groundKey = `${realm}:${GW}:${GH}:${sc}`;
   }
 
@@ -546,8 +590,56 @@ export async function mount(root, game, { audio, cloud } = {}) {
       const [x, y] = toLo(g.x, g.y);
       glow(X(x + Math.cos(g.aim) * 6), Y(y - 10 + Math.sin(g.aim) * 4), 7 * P, hexRgba(g.def.color), 0.35);
     }
+    // Pilze und Glühwürmchen leuchten
+    for (const g of glowSpots) {
+      const gx2 = cx + g.x, gy2 = cy + g.y;
+      if (gx2 < -10 || gy2 < -10 || gx2 > LW + 10 || gy2 > LH + 10) continue;
+      glow(X(gx2), Y(gy2 - 2), 7 * P, `rgba(${g.c[0]},${g.c[1]},${g.c[2]},`, 0.13 + Math.sin(t * 1.3 + g.ph) * 0.05);
+    }
+    for (let i = 0; i < 26; i++) {
+      if (Math.sin(t * 2 + i * 1.7) <= 0.2) continue;
+      const a = i * 2.39996, d = 40 + (i * 37) % 120;
+      const fxp = cx + Math.cos(a + t * 0.05) * d * 1.4 + Math.sin(t * 0.7 + i) * 6, fyp = cy + Math.sin(a + t * 0.05) * d * 0.8 + Math.cos(t * 0.5 + i) * 4;
+      glow(X(fxp), Y(fyp), 5 * P, realm === 2 ? 'rgba(230,170,90,' : realm === 1 ? 'rgba(200,225,235,' : 'rgba(190,235,190,', 0.22);
+    }
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
+
+    // Nebelschwaden (weich, zwei Ebenen, ziehen langsam)
+    if (F.q > 0.4) {
+      ctx.imageSmoothingEnabled = true;
+      const fw = Math.max(W, H) * 1.6, fh = fw / 2;
+      for (const [sp, al, oyF] of [[9, 0.11, 0.15], [-14, 0.07, 0.45]]) {
+        const off = ((t * sp * P) % fw + fw) % fw;
+        ctx.globalAlpha = al * (run ? 0.8 : 1);
+        for (let k = -1; k <= 1; k++) ctx.drawImage(fog, off + k * fw - fw * 0.25, H * oyF - fh * 0.35, fw, fh);
+      }
+      ctx.globalAlpha = 1;
+      ctx.imageSmoothingEnabled = false;
+    }
+    // treibende Asche
+    if (ash.length < (F.q > 0.6 ? 60 : 25) && Math.random() < 0.5) ash.push({ x: Math.random() * W, y: H + 10, vx: (Math.random() - 0.3) * 20, vy: -(15 + Math.random() * 30), life: 6 + Math.random() * 6, s: Math.random() < 0.3 ? 2 : 1 });
+    for (const a of ash) {
+      a.life -= dt; a.x += (a.vx + Math.sin(t + a.y * 0.01) * 12) * dt; a.y += a.vy * dt;
+      const al = Math.min(1, a.life / 2) * 0.55;
+      ctx.fillStyle = realm === 2 ? `rgba(220,140,80,${al})` : `rgba(190,185,175,${al * 0.7})`;
+      ctx.fillRect(Math.round(a.x), Math.round(a.y), a.s * P * 0.5, a.s * P * 0.5);
+    }
+    for (let i = ash.length - 1; i >= 0; i--) if (ash[i].life <= 0 || ash[i].y < -10) ash.splice(i, 1);
+    // Fledermäuse ziehen im Menü vorbei
+    if (!run) {
+      batT -= dt;
+      if (batT <= 0) { batT = 7 + Math.random() * 9; const dir = Math.random() < 0.5 ? 1 : -1, n = 3 + Math.floor(Math.random() * 4), y0 = H * (0.12 + Math.random() * 0.35);
+        for (let i = 0; i < n; i++) bats.push({ x: dir > 0 ? -30 - i * 40 : W + 30 + i * 40, y: y0 + (Math.random() - 0.5) * 60, vx: dir * (90 + Math.random() * 40) * (P / 3), ph: Math.random() * 6, life: 30 }); }
+      ctx.fillStyle = 'rgba(8,8,10,.85)';
+      for (const b of bats) {
+        b.x += b.vx * dt; b.life -= dt; const flap = Math.sin(t * 16 + b.ph) > 0, yy = b.y + Math.sin(t * 3 + b.ph) * 10, u = Math.max(2, Math.round(P * 0.7));
+        ctx.fillRect(b.x - u, yy, u * 3, u);
+        if (flap) { ctx.fillRect(b.x - u * 3, yy - u, u * 2, u); ctx.fillRect(b.x + u * 2, yy - u, u * 2, u); }
+        else { ctx.fillRect(b.x - u * 3, yy + u, u * 2, u); ctx.fillRect(b.x + u * 2, yy + u, u * 2, u); }
+      }
+      for (let i = bats.length - 1; i >= 0; i--) if (bats[i].life <= 0 || bats[i].x < -200 || bats[i].x > W + 200) bats.splice(i, 1);
+    }
 
     // Dunkle Vignette (Fackelschein in der Mitte)
     const vg = ctx.createRadialGradient(X(cx), Y(cy - 16), Math.min(W, H) * 0.22, X(cx), Y(cy - 16), Math.max(W, H) * 0.7);
