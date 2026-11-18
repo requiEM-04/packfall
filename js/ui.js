@@ -1,6 +1,7 @@
 // Packfall – Oberfläche: Hauptmenü (wie Pokélings), Unterseiten, Run-HUD, Booster öffnen, Willkommen
 import { UPGRADES, U, G, GUARDIANS, ENEMY_TYPES, RARITIES, BOOSTERS, REALMS, realmOf, fmt, fmtNum, WS_MAX } from './core.js';
 import { createOpening } from './opening.js';
+import { createAdmin } from './admin.js';
 
 const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -20,6 +21,7 @@ const ENEMY_INFO = {
 };
 
 const PATCH = [
+  ['v0.6', 'Neue Musik: düsterer Fantasy-Metal mit Gitarren-Riffs, Lead-Gitarre und Chor; Anmeldefenster übersichtlicher, Passwort schon ab 4 Zeichen'],
   ['v0.5', 'Neues Booster-Opening: ein Held pro Pack, Lichtstrahlen verraten die Seltenheit, Bass-Sounds; 12 komplett neu gezeichnete Helden (4 neue); neue Synthwave-Musik; ruhigere Oberfläche; Anmeldefenster beim Start; flüssiger'],
   ['v0.4', 'Neuer, düsterer Look: gedeckte Farben mit Grauton, neuer Turm mit Pflasterplatz, neues Titelbild mit Pixel-Logo und Booster-Fächer'],
   ['v0.3', 'Neues Hauptmenü, Werkstatt-Baum, Maus-Schlag, Start-Geschenk, Konten (Cloud)'],
@@ -75,6 +77,13 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
       </div>
     </div>
     <div class="kw-ov kw-intro" data-k="intro" hidden></div>
+    <div class="kw-ov kw-news" data-k="news" hidden>
+      <div class="kw-box kw-news-in" role="dialog" aria-labelledby="kwNewsH">
+        <h2 id="kwNewsH" data-k="newsh"></h2>
+        <p data-k="newstxt"></p>
+        <button type="button" class="kw-btn kw-btn-primary" data-k="newsok">Alles klar</button>
+      </div>
+    </div>
     <div class="kw-toast" data-k="toast" role="status"></div>
     <div class="kw-open" data-k="open" data-phase="load">
       <div class="kw-load">
@@ -100,7 +109,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
           <p class="kw-ribbon">Booster öffnen · Helden sammeln · Turm halten</p>
           <button type="button" class="kw-press" data-k="press">Drücke Start</button>
         </div>
-        <p class="kw-legal">Prototyp v0.5 · Spielstand wird automatisch gespeichert</p>
+        <p class="kw-legal">Prototyp v0.6 · Spielstand wird automatisch gespeichert</p>
       </div>
       <div class="kw-auth" data-k="auth">
         <div class="kw-auth-in">
@@ -133,7 +142,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
 
   const k = name => el.querySelector(`[data-k="${name}"]`);
   const E = {};
-  ['gems', 'coins', 'hp', 'hpbar', 'strip', 'tip', 'tr', 'wavebox', 'banner', 'hitflash', 'menu', 'screen', 'bo', 'sum', 'sumwave', 'sumlist', 'sumclose', 'intro', 'toast', 'open', 'loadlbl', 'loadpct', 'loadbar', 'loadtip', 'skip', 'press', 'titlebg', 'fan', 'auth', 'authform', 'authpw2', 'autherr', 'authgo', 'authlb'].forEach(n => { E[n] = k(n); });
+  ['gems', 'coins', 'hp', 'hpbar', 'strip', 'tip', 'tr', 'wavebox', 'banner', 'hitflash', 'menu', 'screen', 'bo', 'sum', 'sumwave', 'sumlist', 'sumclose', 'intro', 'toast', 'open', 'loadlbl', 'loadpct', 'loadbar', 'loadtip', 'skip', 'press', 'titlebg', 'fan', 'auth', 'authform', 'authpw2', 'autherr', 'authgo', 'authlb', 'news', 'newsh', 'newstxt', 'newsok'].forEach(n => { E[n] = k(n); });
   const stage = el.querySelector('.kw-stage');
 
   let screen = null;          // offene Unterseite
@@ -723,7 +732,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
       set('menu', E.menu, menuHTML());
       if (screen && !STATIC.has(screen)) renderScreen(false);
       lbT -= 0.2;
-      if (lbT <= 0) { lbT = 60; refreshBoard().then(() => { last.menu = ''; }); }
+      if (lbT <= 0) { lbT = 60; refreshBoard().then(() => { last.menu = ''; }); checkMail(); }
     }
   }
 
@@ -752,6 +761,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     setPhase('out');
     later(() => {
       setPhase('menu'); E.open.hidden = true; last.menu = '';
+      later(checkMail, 900);
       if (!game.meta.flags.intro) later(() => showIntro(true), 250);
       else later(() => E.menu.querySelector('.kw-mi')?.focus({ preventScroll: true }), 80);
     }, 450);
@@ -781,6 +791,49 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     if (cloud?.configured() && cloud.st.restoring) await Promise.race([cloud.restored, new Promise(r => setTimeout(r, 2500))]);
     if (!cloud?.configured() || cloud.st.status === 'online' || guest) toMenu(); else showAuth();
   });
+
+  // ---------- Admin ----------
+  const adminUI = createAdmin(el, { cloud, sfx, toast, ic, esc, fmt, logo: skin.logo, onExit: () => showAuth() });
+
+  // ---------- Postfach: Nachrichten an alle, Geschenke, Sperre ----------
+  const inbox = [];
+  let inboxWait = false;
+  function pushInbox(h, t) { inbox.push([h, t]); if (E.news.hidden && !inboxWait) nextInbox(); }
+  function nextInbox() {
+    if (!E.intro.hidden || !E.bo.hidden) { if (!inboxWait) { inboxWait = true; later(() => { inboxWait = false; nextInbox(); }, 1200); } return; }
+    const n = inbox.shift();
+    if (!n) { E.news.hidden = true; return; }
+    E.newsh.textContent = n[0]; E.newstxt.textContent = n[1];
+    E.news.hidden = false; sfx('reveal', 'rare');
+    later(() => E.newsok.focus({ preventScroll: true }), 50);
+  }
+  E.newsok.addEventListener('click', () => { sfx('click'); nextInbox(); });
+  let mailBusy = false;
+  async function checkMail() {
+    if (!cloud?.configured() || mailBusy || phase !== 'menu') return;
+    mailBusy = true;
+    try {
+      if (cloud.st.banText) { pushInbox('Konto gesperrt', cloud.st.banText + ' Du spielst jetzt als Gast weiter.'); cloud.st.banText = ''; }
+      if (cloud.st.status === 'online') {
+        const ban = await cloud.checkBan();
+        if (ban) pushInbox('Konto gesperrt', ban + ' Du spielst jetzt als Gast weiter.');
+        const gifts = await cloud.claim();
+        const sum = gifts.reduce((a, g) => a + Math.max(0, g.gems | 0), 0);
+        if (sum > 0) {
+          const msgs = gifts.map(g => g.msg).filter(Boolean);
+          pushInbox('Ein Geschenk für dich!', `+${fmt(sum)} Gems von REQUIEM.${msgs.length ? ' „' + msgs.join(' · ') + '“' : ''}`);
+          last.menu = '';
+        }
+      }
+      const n = await cloud.news();
+      let seen = 0;
+      try { seen = +localStorage.getItem('packfall.news') || 0; } catch (e) { /* egal */ }
+      if (n && n.id > seen) {
+        try { localStorage.setItem('packfall.news', String(n.id)); } catch (e) { /* egal */ }
+        pushInbox('Nachricht von REQUIEM', n.msg);
+      }
+    } finally { mailBusy = false; }
+  }
 
   // ---------- Anmeldefenster (wie Pokélings) ----------
   let authMode = 'login';
@@ -814,6 +867,14 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
   E.authform.addEventListener('submit', async e => {
     e.preventDefault();
     const f = E.authform.elements, name = f.name.value.trim(), pw = f.pw.value;
+    if (authMode === 'login' && /^\s*admin\s*$/i.test(name)) {
+      E.autherr.textContent = 'Admin-Anmeldung …'; E.authgo.disabled = true;
+      const ra = await cloud.adminLogin(pw);
+      E.authgo.disabled = false;
+      if (ra.ok) { E.autherr.textContent = ''; f.pw.value = ''; sfx('coin'); setPhase('admin'); adminUI.show(); }
+      else { E.autherr.textContent = ra.msg; sfx('deny'); }
+      return;
+    }
     if (authMode === 'signup' && pw !== f.pw2.value) { E.autherr.textContent = 'Die Passwörter sind nicht gleich.'; sfx('deny'); return; }
     E.autherr.textContent = authMode === 'signup' ? 'Konto wird erstellt …' : 'Anmelden …';
     E.authgo.disabled = true;
