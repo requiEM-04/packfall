@@ -45,7 +45,7 @@ export function createAdmin(host, { cloud, sfx, toast, ic, esc, fmt, logo, onExi
       return `<div class="kw-adm-row${open ? ' is-open' : ''}${b ? ' is-ban' : ''}">
         <button type="button" class="kw-adm-line" data-adm="row" data-id="${p.uid}">
           <span class="kw-adm-name">${esc(p.pname)}${b ? `<em>gesperrt</em>` : ''}</span>
-          <span>Welle <b>${p.best_wave}</b></span><span>${ic('gem')}<b>${fmt(p.gems)}</b></span><span><b>${p.heroes}</b> Helden</span><span><b>${p.runs}</b> Runs</span>
+          <span>Welle <b>${p.best_wave}</b></span><span>${ic('gem')}<b>${fmt(p.gems)}</b></span><span><b>${p.heroes}</b> Türme</span><span><b>${p.runs}</b> Runs</span>
           <span class="kw-adm-ago">${ago(p.last_save)}</span>
         </button>
         ${open ? `<div class="kw-adm-detail">
