@@ -45,18 +45,42 @@ export const realmOf = wave => Math.floor((Math.max(1, wave) - 1) / 10) % REALMS
 // Upgrades: run=true erscheinen im Run-Shop (Münzen), sobald in der Werkstatt (Gems) freigeschaltet.
 // Werkstatt-Stufe L: Max-Stufe im Run = 5·L, plus kleiner dauerhafter Bonus ab L=2.
 export const UPGRADES = [
-  { id: 'schaden', name: 'Schaden',      icon: 'sword',  run: true,  runBase: 15, runGrowth: 1.30, per: 0.12, unlock: 0,  wsBase: 12, wsGrowth: 1.8,  passive: 0.04 },
-  { id: 'tempo',   name: 'Feuerrate',    icon: 'speed',  run: true,  runBase: 20, runGrowth: 1.34, per: 0.07, unlock: 0,  wsBase: 14, wsGrowth: 1.8,  passive: 0.03 },
-  { id: 'panzer',  name: 'Kern-Panzer',  icon: 'shield', run: true,  runBase: 14, runGrowth: 1.30, per: 15,   unlock: 0,  wsBase: 10, wsGrowth: 1.75, passive: 10 },
-  { id: 'zeiger',  name: 'Zeiger-Schlag', icon: 'cursor', run: true,  runBase: 12, runGrowth: 1.32, per: 0.25, unlock: 0,  wsBase: 12, wsGrowth: 1.8,  passive: 0.05 },
-  { id: 'regen',   name: 'Regeneration', icon: 'heart',  run: true,  runBase: 28, runGrowth: 1.42, per: 0.5,  unlock: 25, wsBase: 16, wsGrowth: 1.85, passive: 0.2, req: ['panzer', 2] },
-  { id: 'krit',    name: 'Krit-Chance',  icon: 'crit',   run: true,  runBase: 36, runGrowth: 1.48, per: 0.025, unlock: 40, wsBase: 20, wsGrowth: 1.9, passive: 0.01, req: ['schaden', 2] },
-  { id: 'magnet',  name: 'Münzmagnet',   icon: 'coin',   run: true,  runBase: 30, runGrowth: 1.45, per: 0.10, unlock: 30, wsBase: 18, wsGrowth: 1.9,  passive: 0.05, req: ['tempo', 2] },
-  { id: 'gemfund', name: 'Gem-Fund',     icon: 'gem',    run: false, unlock: 60, wsBase: 34, wsGrowth: 2.1,  passive: 0.10, req: ['magnet', 2] },
-  { id: 'start',   name: 'Startkapital', icon: 'chest',  run: false, unlock: 20, wsBase: 15, wsGrowth: 1.9,  passive: 30, req: ['magnet', 1] },
+  { id: 'schaden', name: 'Schaden',       icon: 'sword',  per: 0.08, unlock: 0,  wsBase: 12, wsGrowth: 1.7 },
+  { id: 'tempo',   name: 'Feuerrate',     icon: 'speed',  per: 0.05, unlock: 0,  wsBase: 14, wsGrowth: 1.7 },
+  { id: 'panzer',  name: 'Turm-Panzer',   icon: 'shield', per: 15,   unlock: 0,  wsBase: 10, wsGrowth: 1.65 },
+  { id: 'zeiger',  name: 'Zeiger-Schlag', icon: 'cursor', per: 0.2,  unlock: 0,  wsBase: 12, wsGrowth: 1.7 },
+  { id: 'krit',    name: 'Krit-Chance',   icon: 'crit',   per: 0.02, unlock: 40, wsBase: 20, wsGrowth: 1.85, req: ['schaden', 2] },
+  { id: 'magnet',  name: 'Münzmagnet',    icon: 'coin',   per: 0.08, unlock: 30, wsBase: 18, wsGrowth: 1.85, req: ['tempo', 2] },
+  { id: 'regen',   name: 'Regeneration',  icon: 'heart',  per: 0.3,  unlock: 25, wsBase: 16, wsGrowth: 1.8,  req: ['panzer', 2] },
+  { id: 'plaetze', name: 'Heldenplätze',  icon: 'helm',   per: 1,    unlock: 45, wsBase: 120, wsGrowth: 2.4, max: 3, req: ['zeiger', 2] },
+  { id: 'grund',   name: 'Grundmünzen',   icon: 'chest',  per: 4,    unlock: 20, wsBase: 15, wsGrowth: 1.8,  req: ['magnet', 1] },
+  { id: 'gemfund', name: 'Gem-Fund',      icon: 'gem',    per: 0.10, unlock: 60, wsBase: 34, wsGrowth: 2.0,  req: ['magnet', 2] },
+  { id: 'zins',    name: 'Zinsen',        icon: 'coin',   per: 1,    unlock: 50, wsBase: 40, wsGrowth: 2.0,  max: 5, req: ['grund', 2] },
+  { id: 'reroll',  name: 'Gratis-Würfeln', icon: 'speed', per: 1,    unlock: 35, wsBase: 60, wsGrowth: 2.2,  max: 3, req: ['grund', 1] },
 ];
 export const U = Object.fromEntries(UPGRADES.map(u => [u.id, u]));
 export const WS_MAX = 10;
+
+// ---------- Run: Händler, Brett, Relikte ----------
+export const PRICE = { common: 6, rare: 10, epic: 15, legendary: 24 };
+export const STAR_MULT = [0, 1, 2.2, 5];
+export const RELICS = [
+  { id: 'klinge',  name: 'Blutklinge',      icon: 'sword',  desc: '+25 % Schaden für alle Helden.' },
+  { id: 'eile',    name: 'Sanduhr',         icon: 'speed',  desc: '+15 % Feuerrate für alle Helden.' },
+  { id: 'gier',    name: 'Goldzahn',        icon: 'coin',   desc: '+40 % Münzen von Gegnern.' },
+  { id: 'kette',   name: 'Gewitterkrone',   icon: 'crit',   desc: 'Kettenblitze springen auf 2 Gegner mehr.' },
+  { id: 'splitter', name: 'Splitterköcher', icon: 'up',     desc: 'Durchschlag: +2 Gegner.' },
+  { id: 'glut',    name: 'Glutherz',        icon: 'flag',   desc: 'Flächenschaden +40 % Radius.' },
+  { id: 'frost',   name: 'Ewiges Eis',      icon: 'shield', desc: 'Verlangsamen hält doppelt so lang.' },
+  { id: 'mauer',   name: 'Bollwerk',        icon: 'tower',  desc: '+50 Turm-Leben und sofort voll geheilt.' },
+  { id: 'zeiger',  name: 'Fluchzeiger',     icon: 'cursor', desc: 'Cursor-Schlag: doppelter Schaden, größerer Kreis.' },
+  { id: 'stern',   name: 'Sternenstaub',    icon: 'check',  desc: 'Verschmelzen braucht nur 2 statt 3 Kopien.' },
+  { id: 'markt',   name: 'Händlergilde',    icon: 'pack',   desc: 'Händler zeigt 4 Angebote, Neu-Würfeln kostet 1.' },
+  { id: 'kopfgeld', name: 'Kopfgeld',       icon: 'skull',  desc: 'Bosse geben doppelt so viele Gems.' },
+  { id: 'vampir',  name: 'Blutdurst',       icon: 'heart',  desc: 'Je 10 Besiegte heilt der Turm 3 Leben.' },
+  { id: 'zinsen',  name: 'Sparstrumpf',     icon: 'chest',  desc: '+3 Münzen nach jeder Welle.' },
+];
+export const RL = Object.fromEntries(RELICS.map(r => [r.id, r]));
 
 export const BOOSTERS = {
   starter: { name: 'Start-Geschenk', cost: 0, cards: 1, foil: 0, odds: { rare: 100 }, hidden: true },
@@ -71,7 +95,7 @@ export const ARENA = {
   viewR: 540,
   coreR: 34,
   slotR: 150,
-  slotAngles: [-0.75 * Math.PI, -0.25 * Math.PI, 0.25 * Math.PI, 0.75 * Math.PI],
+  slotAngles: [-0.75 * Math.PI, -0.25 * Math.PI, 0.25 * Math.PI, 0.75 * Math.PI, Math.PI, 0],
 };
 
 // ---------- Hilfen ----------
@@ -94,7 +118,7 @@ function defaultMeta() {
     v: 1,
     gems: 0,
     totalGems: 0,
-    ws: { schaden: 1, tempo: 1, panzer: 1, zeiger: 1, regen: 0, krit: 0, magnet: 0, gemfund: 0, start: 0 },
+    ws: { schaden: 0, tempo: 0, panzer: 0, zeiger: 0, regen: 0, krit: 0, magnet: 0, gemfund: 0, grund: 0, plaetze: 0, zins: 0, reroll: 0 },
     cards: {},
     lineup: [null, null, null, null],
     best: 0,
@@ -105,7 +129,7 @@ function defaultMeta() {
     playTime: 0,
     speed: 1,
     flags: { intro: false, gift: false },
-    settings: { sfx: 0.5, music: 1, sfxVol: 0.5, musicVol: 0.4, musicTrack: 'mix', gfx: 'auto', shake: 'on', numbers: 'on', boosterAnim: 'show' },
+    settings: { sfx: 0.5, music: 1, sfxVol: 0.5, musicVol: 0.4, musicTrack: 'mix', autoWave: false, gfx: 'auto', shake: 'on', numbers: 'on', boosterAnim: 'show' },
   };
 }
 
@@ -147,34 +171,36 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
   };
 
   // ----- abgeleitete Werte -----
+  if (meta.ws.start && !meta.ws.grund) meta.ws.grund = meta.ws.start;
+  delete meta.ws.start;
   const wsL = id => meta.ws[id] || 0;
-  const runL = id => (game.run ? game.run.levels[id] || 0 : 0);
-  function wsPassive(id) {
-    const u = U[id]; const L = wsL(id);
-    return u.run ? Math.max(0, L - 1) * u.passive : L * u.passive;
-  }
+  const runL = () => 0;
+  const rel = id => !!game.run?.relics?.includes(id);
+  function wsPassive(id) { return wsL(id) * (U[id]?.per || 0); }
   game.wsLevel = wsL;
   game.runLevel = runL;
   game.wsPassive = wsPassive;
-  game.runMax = id => 5 * wsL(id);
-  game.runCost = id => Math.round(U[id].runBase * Math.pow(U[id].runGrowth, runL(id)));
+  game.wsMax = id => U[id].max || WS_MAX;
+  game.hasRelic = rel;
   game.wsCost = id => {
     const u = U[id]; const L = wsL(id);
     if (L === 0) return u.unlock || Math.round(u.wsBase);
     return Math.round(u.wsBase * Math.pow(u.wsGrowth, L - 1));
   };
-  game.wsMaxed = id => wsL(id) >= WS_MAX;
+  game.wsMaxed = id => wsL(id) >= game.wsMax(id);
   game.wsReqMet = id => { const r = U[id].req; return !r || wsL(r[0]) >= r[1]; };
 
-  const dmgMult = () => (1 + U.schaden.per * runL('schaden')) * (1 + wsPassive('schaden'));
-  const rateMult = () => (1 + U.tempo.per * runL('tempo')) * (1 + wsPassive('tempo'));
-  const critChance = () => Math.min(0.6, U.krit.per * runL('krit') + wsPassive('krit'));
-  const coreMax = () => 100 + U.panzer.per * runL('panzer') + wsPassive('panzer');
-  const regen = () => U.regen.per * runL('regen') + wsPassive('regen');
-  const coinMult = () => (1 + U.magnet.per * runL('magnet')) * (1 + wsPassive('magnet'));
+  const dmgMult = () => (1 + wsPassive('schaden')) * (rel('klinge') ? 1.25 : 1);
+  const rateMult = () => (1 + wsPassive('tempo')) * (rel('eile') ? 1.15 : 1);
+  const critChance = () => Math.min(0.6, wsPassive('krit'));
+  const coreMax = () => 100 + wsPassive('panzer') + (rel('mauer') ? 50 : 0);
+  const regen = () => wsPassive('regen');
+  const coinMult = () => (1 + wsPassive('magnet')) * (rel('gier') ? 1.4 : 1);
   const gemMult = () => 1 + wsPassive('gemfund');
-  const cursorDmg = () => 4 * dmgMult() * (1 + U.zeiger.per * runL('zeiger')) * (1 + wsPassive('zeiger'));
-  game.stats = { dmgMult, rateMult, critChance, coreMax, regen, coinMult, gemMult, cursorDmg };
+  const cursorDmg = () => 4 * dmgMult() * (1 + wsPassive('zeiger')) * (rel('zeiger') ? 2 : 1);
+  const grundCoins = () => 20 + wsPassive('grund');
+  const slotsMax = () => 3 + Math.min(3, wsL('plaetze'));
+  game.stats = { dmgMult, rateMult, critChance, coreMax, regen, coinMult, gemMult, cursorDmg, grundCoins, slotsMax };
   game.setCursor = (x, y, on) => { game.cursor.x = x; game.cursor.y = y; game.cursor.on = on; };
 
   // Text für Effekte
@@ -192,27 +218,28 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
     }
   };
   game.wsEffectText = (id, L = wsL(id)) => {
-    const u = U[id];
-    if (u.run) {
-      if (L === 0) return 'Gesperrt im Run-Shop';
-      const p = Math.max(0, L - 1) * u.passive;
-      let extra = '';
-      if (p > 0) {
-        if (id === 'panzer') extra = ` · dauerhaft +${p} HP`;
-        else if (id === 'regen') extra = ` · dauerhaft +${fmtNum(p)} HP/s`;
-        else extra = ` · dauerhaft +${pctStr(p)}`;
-      }
-      return `Run-Max. Stufe ${5 * L}${extra}`;
+    const u = U[id], v = L * u.per;
+    switch (id) {
+      case 'schaden': return L ? `+${pctStr(v)} Schaden aller Helden` : 'Mehr Schaden für alle Helden';
+      case 'tempo': return L ? `+${pctStr(v)} Feuerrate` : 'Helden schießen schneller';
+      case 'panzer': return L ? `+${v} Turm-Leben` : 'Mehr Leben für den Turm';
+      case 'zeiger': return L ? `+${pctStr(v)} Cursor-Schaden` : 'Dein Cursor-Schlag trifft härter';
+      case 'krit': return L ? `${pctStr(v)} Krit-Chance (×2,5)` : 'Kritische Treffer';
+      case 'magnet': return L ? `+${pctStr(v)} Münzen im Run` : 'Mehr Münzen von Gegnern';
+      case 'regen': return L ? `+${fmtNum(v)} Leben pro Sekunde` : 'Turm heilt sich langsam';
+      case 'plaetze': return `${3 + Math.min(3, L)} Helden-Plätze auf dem Brett`;
+      case 'grund': return `Start mit ${20 + v} Grundmünzen`;
+      case 'gemfund': return L ? `+${pctStr(v)} Gems` : 'Mehr Gems pro Welle';
+      case 'zins': return L ? `Zinsen: +1 Münze je 10 gesparte, max. ${v}` : 'Gesparte Münzen bringen Zinsen';
+      case 'reroll': return L ? `${v}× gratis Neu-Würfeln pro Händler` : 'Gratis Neu-Würfeln beim Händler';
     }
-    if (id === 'gemfund') return L ? `+${pctStr(L * u.passive)} Gems` : 'Mehr Gems pro Welle';
-    if (id === 'start') return L ? `Start mit ${L * u.passive} Münzen` : 'Münzen zum Run-Start';
     return '';
   };
 
   // ----- Karten / Wächter -----
-  game.cardStats = (id, lvl = meta.cards[id]?.lvl || 1, foil = meta.cards[id]?.foil || false) => {
+  game.cardStats = (id, lvl = meta.cards[id]?.lvl || 1, foil = meta.cards[id]?.foil || false, star = 1) => {
     const d = G[id];
-    const m = (1 + 0.25 * (lvl - 1)) * (foil ? 1.5 : 1);
+    const m = (1 + 0.25 * (lvl - 1)) * (foil ? 1.5 : 1) * STAR_MULT[star || 1];
     return { dmg: (d.dmg || 0) * m, dps: (d.dps || 0) * m, rate: d.rate || 0, range: d.range };
   };
   game.power = id => {
@@ -221,12 +248,16 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
     return s.dps ? s.dps : s.dmg * s.rate * (G[id].kind === 'chain' ? 2.5 : G[id].kind === 'splash' ? 2 : G[id].kind === 'pierce' ? 1.6 : 1);
   };
 
+  const starOf = copies => { const st = rel('stern'); return copies >= (st ? 4 : 9) ? 3 : copies >= (st ? 2 : 3) ? 2 : 1; };
+  game.starOf = starOf;
   function buildGuardians() {
-    game.guardians = meta.lineup.map((id, slot) => {
+    const board = game.run ? game.run.board : [];
+    game.guardians = board.map((b, slot) => {
+      const id = b.id;
       if (!id || !meta.cards[id]) return null;
       const a = ARENA.slotAngles[slot];
       return {
-        slot, id, def: G[id], lvl: meta.cards[id].lvl, foil: meta.cards[id].foil,
+        slot, id, def: G[id], lvl: meta.cards[id].lvl, foil: meta.cards[id].foil, star: starOf(b.copies),
         x: Math.cos(a) * ARENA.slotR, y: Math.sin(a) * ARENA.slotR,
         aim: a + Math.PI, cd: 0.3 + slot * 0.15, fired: 9, heat: 0, beamTarget: null, beamAcc: 0,
       };
@@ -313,7 +344,7 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
 
   game.addTestGems = n => { meta.gems += n; save(); emit('gems'); };
   game.grantGems = n => { meta.gems += Math.max(0, Math.floor(n)); save(); emit('gems'); };
-  game.canStart = () => meta.lineup.some(id => id && meta.cards[id]);
+  game.canStart = () => Object.keys(meta.cards).length > 0;
   game.setFlag = (k, v) => { meta.flags[k] = v; save(); };
   game.setSetting = (k, v) => { meta.settings[k] = v; save(); emit('settings', k); };
   game.exportSave = () => JSON.stringify({ game: 'packfall', v: 1, at: new Date().toISOString(), meta });
@@ -363,31 +394,103 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
   // ----- Run -----
   game.startRun = () => {
     if (game.run || !game.canStart()) return false;
-    buildGuardians();
     game.run = {
-      wave: 0, phase: 'pause', pauseT: 0.8, toSpawn: 0, spawnT: 0,
-      coins: wsPassive('start'), coinsTotal: 0, gems: 0, kills: 0, time: 0,
-      levels: Object.fromEntries(UPGRADES.filter(u => u.run).map(u => [u.id, 0])),
+      wave: 0, phase: 'shop', pauseT: 0, toSpawn: 0, spawnT: 0,
+      coins: grundCoins(), coinsTotal: 0, gems: 0, kills: 0, time: 0, levels: {},
+      board: [], offers: [], free: 0, relics: [], relicChoice: null, autoT: 0, healCost: 8,
       coreHp: 0, coreMax: 0, bossAlive: false, prevBest: meta.best,
     };
     game.run.coreMax = coreMax();
     game.run.coreHp = game.run.coreMax;
     game.enemies = []; game.projectiles = []; game.beams = [];
     game.cursor.charge = 1;
+    openShop();
+    buildGuardians();
     emit('runStart');
     return true;
   };
 
-  game.buyRun = id => {
-    const r = game.run; if (!r) return false;
-    if (runL(id) >= game.runMax(id)) return false;
-    const c = game.runCost(id);
+  // ----- Händler -----
+  const offerCount = () => (rel('markt') ? 4 : 3);
+  const priceOf = id => Math.round(PRICE[G[id].rarity] * (1 + Math.max(0, (game.run?.wave || 0)) * 0.04));
+  game.priceOf = priceOf;
+  game.slotsMax = slotsMax;
+  game.rerollCost = () => (game.run?.free > 0 ? 0 : rel('markt') ? 1 : 2);
+  function rollOffers() {
+    const r = game.run, w = r.wave;
+    const owned = Object.keys(meta.cards);
+    const wt = { common: Math.max(15, 62 - w * 1.2), rare: 27 + w * 0.6, epic: 9 + w * 0.4, legendary: 2 + w * 0.15 };
+    const pools = {};
+    for (const id of owned) (pools[G[id].rarity] ||= []).push(id);
+    r.offers = [];
+    for (let i = 0; i < offerCount(); i++) {
+      const rars = Object.keys(pools);
+      let tot = 0; for (const k of rars) tot += wt[k];
+      let x = rng() * tot, pick = rars[0];
+      for (const k of rars) { x -= wt[k]; if (x <= 0) { pick = k; break; } }
+      const pool = pools[pick];
+      r.offers.push(pool[Math.floor(rng() * pool.length)]);
+    }
+  }
+  function openShop() {
+    const r = game.run;
+    r.phase = 'shop';
+    r.free = wsL('reroll');
+    r.autoT = meta.settings.autoWave ? 5 : 0;
+    rollOffers();
+    emit('shop');
+  }
+  game.shopReroll = () => {
+    const r = game.run; if (!r || r.phase !== 'shop') return false;
+    const c = game.rerollCost();
     if (r.coins < c) return false;
-    r.coins -= c; r.levels[id]++;
-    if (id === 'panzer') { const old = r.coreMax; r.coreMax = coreMax(); r.coreHp += r.coreMax - old; }
-    emit('runBuy', id);
+    if (r.free > 0) r.free--; else r.coins -= c;
+    rollOffers(); r.autoT = 0; emit('shop'); return true;
+  };
+  game.shopBuy = i => {
+    const r = game.run; if (!r || r.phase !== 'shop') return { ok: false };
+    const id = r.offers[i]; if (!id) return { ok: false };
+    const c = priceOf(id);
+    if (r.coins < c) return { ok: false, why: 'coins' };
+    let b = r.board.find(x => x.id === id);
+    if (!b) {
+      if (r.board.length >= slotsMax()) return { ok: false, why: 'slots' };
+      b = { id, copies: 0, spent: 0 }; r.board.push(b);
+    }
+    const before = starOf(b.copies);
+    b.copies++; b.spent += c; r.coins -= c; r.offers[i] = null; r.autoT = 0;
+    const after = starOf(b.copies);
+    buildGuardians(); emit('shop'); emit('lineup');
+    return { ok: true, id, star: after, merged: after > before };
+  };
+  game.shopSell = slot => {
+    const r = game.run; if (!r || r.phase !== 'shop') return false;
+    const b = r.board[slot]; if (!b) return false;
+    r.coins += Math.floor(b.spent * 0.5);
+    r.board.splice(slot, 1); r.autoT = 0;
+    buildGuardians(); emit('shop'); emit('lineup');
     return true;
   };
+  game.shopHeal = () => {
+    const r = game.run; if (!r || r.phase !== 'shop' || r.coreHp >= r.coreMax || r.coins < r.healCost) return false;
+    r.coins -= r.healCost; r.coreHp = Math.min(r.coreMax, r.coreHp + 30); r.healCost += 4; r.autoT = 0; emit('shop'); return true;
+  };
+  game.nextWave = () => {
+    const r = game.run; if (!r || r.phase !== 'shop') return false;
+    if (!r.board.length) return false;
+    r.phase = 'pause'; r.pauseT = 0.6; emit('shop');
+    return true;
+  };
+  game.setAutoWave = on => { meta.settings.autoWave = !!on; save(); if (game.run?.phase === 'shop') game.run.autoT = on ? 5 : 0; emit('shop'); };
+  game.pickRelic = i => {
+    const r = game.run; if (!r || r.phase !== 'relic') return false;
+    const id = r.relicChoice?.[i]; if (!id) return false;
+    r.relics.push(id); r.relicChoice = null;
+    if (id === 'mauer') { r.coreMax = coreMax(); r.coreHp = r.coreMax; }
+    buildGuardians(); emit('relic', id); openShop();
+    return true;
+  };
+  game.buyRun = () => false;
 
   game.endRun = (reason = 'fall') => {
     const r = game.run; if (!r) return;
@@ -456,13 +559,14 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
     const r = game.run;
     e.dead = true;
     r.kills++; meta.kills++;
-    const coins = Math.max(1, Math.round(e.T.coin * Math.ceil(1 + r.wave * 0.35) * coinMult()));
+    const coins = Math.max(1, Math.round(e.T.coin * (1 + Math.floor(r.wave / 5)) * coinMult()));
+    if (rel('vampir') && r.kills % 10 === 0) r.coreHp = Math.min(r.coreMax, r.coreHp + 3);
     r.coins += coins; r.coinsTotal += coins;
     emit('kill', { x: e.x, y: e.y, e, coins });
     if (e.type === 'boss') {
       r.bossAlive = false;
       meta.bossKills = (meta.bossKills || 0) + 1;
-      addGems((10 + Math.floor(r.wave / 2)) * gemMult(), 'boss');
+      addGems((10 + Math.floor(r.wave / 2)) * gemMult() * (rel('kopfgeld') ? 2 : 1), 'boss');
     }
   }
 
@@ -481,7 +585,7 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
   }
 
   function fire(g, target) {
-    const d = g.def; const s = game.cardStats(g.id, g.lvl, g.foil);
+    const d = g.def; const s = game.cardStats(g.id, g.lvl, g.foil, g.star);
     const crit = rollCrit();
     const dmg = s.dmg * dmgMult() * (crit ? 2.5 : 1);
     g.fired = 0;
@@ -489,7 +593,7 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
       const pts = [{ x: g.x, y: g.y }];
       const hit = new Set();
       let cur = target; let f = 1;
-      for (let i = 0; i <= d.chain && cur; i++) {
+      for (let i = 0; i <= d.chain + (rel('kette') ? 2 : 0) && cur; i++) {
         pts.push({ x: cur.x, y: cur.y });
         hit.add(cur);
         damage(cur, dmg * f, crit, d.color, 'zap');
@@ -510,7 +614,7 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
       id: uid++, kind: d.kind, gid: g.id, x: g.x + Math.cos(ang) * 14, y: g.y + Math.sin(ang) * 14,
       vx: Math.cos(ang) * d.speed, vy: Math.sin(ang) * d.speed, speed: d.speed,
       target, dmg, crit, color: d.color, life: (d.range / d.speed) * 1.6,
-      pierce: d.pierce || 0, hitSet: null, splash: d.splash || 0, slow: d.slow || 0, slowT: d.slowT || 0,
+      pierce: (d.pierce || 0) + (d.pierce && rel('splitter') ? 2 : 0), hitSet: null, splash: (d.splash || 0) * (rel('glut') ? 1.4 : 1), slow: d.slow || 0, slowT: (d.slowT || 0) * (rel('frost') ? 2 : 1),
       sx: g.x, sy: g.y, tx: target.x, ty: target.y,
     };
     if (p.kind === 'pierce') p.hitSet = new Set();
@@ -574,6 +678,10 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
     if (r.phase === 'pause') {
       r.pauseT -= dt;
       if (r.pauseT <= 0) startWave();
+    } else if (r.phase === 'shop') {
+      if (meta.settings.autoWave && r.board.length) { r.autoT -= dt; if (r.autoT <= 0) game.nextWave(); }
+    } else if (r.phase === 'relic') {
+      /* warten auf Auswahl */
     } else if (r.phase === 'spawn') {
       r.spawnT -= dt;
       if (r.spawnT <= 0) {
@@ -590,9 +698,15 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
         let gems = (1 + Math.floor(w / 4) + (w <= 10 ? 1 : 0)) * gemMult();
         if (w > meta.best) { gems += 3 * gemMult(); meta.best = w; emit('record', w); }
         addGems(gems, 'wave');
+        const interest = Math.min(wsL('zins'), Math.floor(r.coins / 10)) + (rel('zinsen') ? 3 : 0);
+        if (interest > 0) { r.coins += interest; r.coinsTotal += interest; }
         save();
-        emit('waveClear', { wave: w });
-        r.phase = 'pause'; r.pauseT = 1.4;
+        emit('waveClear', { wave: w, interest });
+        if (w === 5 || w % 10 === 0) {
+          const pool = RELICS.filter(x => !r.relics.includes(x.id)).sort(() => rng() - 0.5).slice(0, 3).map(x => x.id);
+          if (pool.length) { r.phase = 'relic'; r.relicChoice = pool; emit('relicChoice', pool); }
+          else openShop();
+        } else openShop();
       }
     }
 
@@ -631,7 +745,7 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
         if (t) {
           g.heat = g.beamTarget === t ? Math.min(1, g.heat + dt / 3) : 0;
           g.beamTarget = t;
-          const s = game.cardStats(g.id, g.lvl, g.foil);
+          const s = game.cardStats(g.id, g.lvl, g.foil, g.star);
           const amt = s.dps * dmgMult() * rm * (1 + g.heat) * dt;
           g.beamAcc += amt;
           t.hp -= amt; t.flash = Math.max(t.flash, 0.05);
@@ -648,6 +762,7 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
 
     // Maus-Cursor: Flächenschlag, sobald geladen und Gegner im Kreis
     const cu = game.cursor;
+    cu.r = rel('zeiger') ? 68 : 52;
     cu.charge = Math.min(1, cu.charge + dt / cu.interval);
     if (cu.on && cu.charge >= 1) {
       const inside = game.enemies.filter(e => !e.dead && (e.x - cu.x) ** 2 + (e.y - cu.y) ** 2 < (cu.r + e.r) ** 2);
