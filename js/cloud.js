@@ -5,7 +5,7 @@ export const CLOUD = {
   key: 'sb_publishable_wXWEObdmuEbB37sfVdkeRA_ODpO1rtZ', // öffentlicher Schlüssel, geschützt durch Row Level Security
 };
 const TOK = 'packfall.cloud';
-const GUEST = 'packfall.save.v1';
+const GUEST = 'packfall.save.v2';
 const NAME_RE = /^[A-Za-z0-9_äöüÄÖÜß-]{3,16}$/;
 const RESERVED = /^(admin|packfall-admin|requiem-admin)/i;
 
@@ -16,7 +16,7 @@ async function sha(s) {
 const norm = n => String(n).trim().toLowerCase();
 const emailFor = async n => 'u' + (await sha('pf:' + norm(n))).slice(0, 28) + '@packfall.app';
 const pwFor = (n, pw) => sha('packfall|' + norm(n) + '|' + pw);
-const progress = m => (m?.totalGems || 0) + (m?.best || 0) * 50 + (m?.packs || 0) * 20 + Object.keys(m?.cards || {}).length * 30;
+const progress = m => (m?.v !== 2 ? -1 : (m.totalGems || 0) + (m.best || 0) * 50 + (m.packs || 0) * 20 + Object.keys(m.towers || {}).length * 30 + Object.values(m.levels || {}).reduce((a, l) => a + (l.stars || 0) * 40, 0));
 
 export function createCloud(game) {
   const st = { sess: null, name: null, uid: null, status: 'guest', msg: '', lastSync: 0, busy: false, remember: true, restoring: false };
@@ -125,7 +125,7 @@ export function createCloud(game) {
     if (!(await ready())) return;
     const m = game.meta;
     const r = await api('/rest/v1/saves', { method: 'POST', body: { user_id: st.uid, data: m, updated_at: new Date().toISOString() }, headers: { Prefer: 'resolution=merge-duplicates' } });
-    await api('/rest/v1/board', { method: 'POST', body: { user_id: st.uid, name: st.name, best_wave: m.best | 0, total_gems: m.totalGems | 0, runs: m.runs | 0, heroes: Object.keys(m.cards || {}).length, updated_at: new Date().toISOString() }, headers: { Prefer: 'resolution=merge-duplicates' } });
+    await api('/rest/v1/board', { method: 'POST', body: { user_id: st.uid, name: st.name, best_wave: m.best | 0, total_gems: m.totalGems | 0, runs: m.runs | 0, heroes: Object.keys(m.towers || {}).length, updated_at: new Date().toISOString() }, headers: { Prefer: 'resolution=merge-duplicates' } });
     if (r.ok) { st.lastSync = Date.now(); st.msg = ''; } else st.msg = netError(r);
     changed();
   }
@@ -220,7 +220,7 @@ export function createCloud(game) {
   })();
 
   // automatisch speichern
-  ['runEnd', 'ws', 'booster', 'lineup', 'waveClear'].forEach(ev => game.on(ev, () => { if (st.sess) pushSave(false); }));
+  ['runEnd', 'ws', 'booster', 'loadout'].forEach(ev => game.on(ev, () => { if (st.sess) pushSave(false); }));
 
   return { st, configured, restored, signup, login, logout, pushSave, board, me, checkBan, claim, news, settings, adminLogin, admin, adminLogout, hashPw, get isAdmin() { return !!adm.sess; }, on: f => { listeners.add(f); return () => listeners.delete(f); } };
 }
