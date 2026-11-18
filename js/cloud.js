@@ -5,6 +5,7 @@ export const CLOUD = {
   key: 'sb_publishable_wXWEObdmuEbB37sfVdkeRA_ODpO1rtZ', // öffentlicher Schlüssel, geschützt durch Row Level Security
 };
 const TOK = 'packfall.cloud';
+const GUEST = 'packfall.save.v1';
 const NAME_RE = /^[A-Za-z0-9_äöüÄÖÜß-]{3,16}$/;
 const RESERVED = /^(admin|packfall-admin|requiem-admin)/i;
 
@@ -80,6 +81,7 @@ export function createCloud(game) {
     st.busy = false;
     if (!r.ok) { changed(); return { ok: false, msg: r.status === 422 || r.status === 400 ? 'Dieser Name ist schon vergeben.' : /gesperrt|Database error/i.test(JSON.stringify(r.j || '')) ? 'Neue Konten sind gerade gesperrt.' : netError(r) }; }
     if (!setSess(r.j, name)) { changed(); return { ok: false, msg: 'Konto erstellt, aber keine Sitzung erhalten. Bitte einloggen.' }; }
+    game.useSlot(GUEST + '.' + st.uid, true); // neues Konto = neuer Spielstand (mit Einführung + Geschenk)
     await api('/rest/v1/profiles', { method: 'POST', body: { id: st.uid, name }, headers: { Prefer: 'resolution=merge-duplicates' } });
     await pushSave(true);
     return { ok: true };
@@ -96,6 +98,7 @@ export function createCloud(game) {
     setSess(r.j, r.j?.user?.user_metadata?.name || name);
     const b = await me();
     if (b.banned) { await logout(); return { ok: false, msg: banText(b) }; }
+    game.useSlot(GUEST + '.' + st.uid);
     await pullSave();
     return { ok: true };
   }
@@ -104,6 +107,7 @@ export function createCloud(game) {
     if (st.sess) await api('/auth/v1/logout', { method: 'POST' });
     st.sess = null; st.uid = null; st.name = null; st.status = 'guest';
     try { localStorage.removeItem(TOK); sessionStorage.removeItem(TOK); } catch (e) { /* egal */ }
+    game.useSlot(GUEST);
     changed();
   }
 
@@ -209,7 +213,7 @@ export function createCloud(game) {
       if (t?.rt && configured()) {
         st.restoring = true;
         st.sess = { access_token: '', refresh_token: t.rt, exp: 0 }; st.name = t.name; st.uid = t.uid;
-        if (await ready()) { const b = await me(); if (b.banned) { st.banText = banText(b); await logout(); } else await pullSave(); } else { st.sess = null; st.status = 'guest'; changed(); }
+        if (await ready()) { const b = await me(); if (b.banned) { st.banText = banText(b); await logout(); } else { game.useSlot(GUEST + '.' + st.uid); await pullSave(); } } else { st.sess = null; st.status = 'guest'; changed(); }
       }
     } catch (e) { /* egal */ }
     st.restoring = false;
