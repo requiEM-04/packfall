@@ -1,7 +1,7 @@
 // Packfall – 3D-Schlachtfeld (Three.js): sauberes Raster-Brett, maschinelle Türme mit 5 sichtbaren Ausbaustufen,
 // Gegner mit rötlicher Kontur, Kern, Effekte. Dazu ein Icon-Renderer für Karten/Menüs.
 import * as THREE from './vendor/three.module.min.js';
-import { COLS, ROWS, T, ENEMIES } from './core.js?v=0.9-84fac17a';
+import { COLS, ROWS, T, ENEMIES, THEMES } from './core.js?v=0.9.1-86e62b3e';
 
 const V3 = THREE.Vector3;
 const C = { steel: '#4d545c', dark: '#2b2f34', iron: '#3a3f45', brass: '#a88f5e', copper: '#9a6a4c', stone: '#5a5650', stoneD: '#3d3b37', black: '#17181b', olive: '#4c5246', rust: '#6e4232', gold: '#c7a456' };
@@ -93,13 +93,33 @@ const muted = (hex, k = 1) => { const c = new THREE.Color(hex); c.multiplyScalar
 // =====================================================================
 // TÜRME (jede Ausbaustufe sichtbar)
 // =====================================================================
+// Seltenheit sieht man: Sockel, Zierringe, Leuchtadern – je seltener, desto krasser
+const RS = {
+  common:    { base: '#3d3b37', plate: '#3a3f45', trim: '#a88f5e', trim2: '#c7a456', glow: null },
+  rare:      { base: '#2c323a', plate: '#36404c', trim: '#7f97b4', trim2: '#a8c4e0', glow: '#6aa8ec' },
+  epic:      { base: '#2a2434', plate: '#362c46', trim: '#8a74a8', trim2: '#b49ad8', glow: '#a874ff' },
+  legendary: { base: '#3a3122', plate: '#4a3d26', trim: '#c9a456', trim2: '#f0d080', glow: '#ffcc55' },
+  mythic:    { base: '#1e171b', plate: '#2c2228', trim: '#8a2a2a', trim2: '#c83a3a', glow: '#ff3232' },
+};
 function towerBase(k, d, lv, big = false) {
-  const R = big ? 0.47 : 0.43;
-  k.cyl('dark', R + 0.03, R + 0.07, 0.1, 8, C.stoneD, [0, 0.05, 0], [0, Math.PI / 8, 0]);
-  k.cyl('metal', R - 0.02, R + 0.01, 0.1, 8, C.iron, [0, 0.15, 0], [0, Math.PI / 8, 0]);
-  k.cyl('metal', R - 0.01, R - 0.01, 0.022, 8, lv >= 3 ? C.gold : C.brass, [0, 0.21, 0], [0, Math.PI / 8, 0]);
-  for (let i = 0; i <= lv; i++) { const a = (i - lv / 2) * 0.28; k.sph('glow', 0.026, d.accent, [Math.sin(a) * (R + 0.015), 0.15, Math.cos(a) * (R + 0.015)], [1, 1, 1], 8); }
-  if (lv >= 2) for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; k.box('metal', 0.2, 0.08, 0.04, C.steel, [Math.sin(a) * (R + 0.02), 0.1, Math.cos(a) * (R + 0.02)], [0, a, 0]); }
+  const R = big ? 0.47 : 0.43, S = RS[d.rarity] || RS.common, rk = { common: 0, rare: 1, epic: 2, legendary: 3, mythic: 4 }[d.rarity] || 0;
+  k.cyl('dark', R + 0.03, R + 0.07, 0.1, 8, S.base, [0, 0.05, 0], [0, Math.PI / 8, 0]);
+  k.cyl('metal', R - 0.02, R + 0.01, 0.1, 8, S.plate, [0, 0.15, 0], [0, Math.PI / 8, 0]);
+  k.cyl('metal', R - 0.01, R - 0.01, 0.022, 8, lv >= 3 ? S.trim2 : S.trim, [0, 0.21, 0], [0, Math.PI / 8, 0]);
+  for (let i = 0; i <= lv; i++) { const a = (i - lv / 2) * 0.28; k.sph('glow', 0.026, S.glow || d.accent, [Math.sin(a) * (R + 0.015), 0.15, Math.cos(a) * (R + 0.015)], [1, 1, 1], 8); }
+  if (lv >= 2) for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; k.box('metal', 0.2, 0.08, 0.04, S.plate, [Math.sin(a) * (R + 0.02), 0.1, Math.cos(a) * (R + 0.02)], [0, a, 0]); }
+  if (rk >= 1) k.tor('glow', R - 0.005, 0.009, S.glow, [0, 0.224, 0], [Math.PI / 2, 0, 0], 32);
+  if (rk >= 2) for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 + Math.PI / 8; k.box('glow', 0.012, 0.06, 0.09, S.glow, [Math.sin(a) * (R + 0.052), 0.06, Math.cos(a) * (R + 0.052)], [0, a, 0]); }
+  if (rk === 3) for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2; k.cone('metal', 0.045, 0.2, 6, S.trim2, [Math.sin(a) * (R + 0.05), 0.2, Math.cos(a) * (R + 0.05)]); k.sph('glow', 0.018, S.glow, [Math.sin(a) * (R + 0.05), 0.31, Math.cos(a) * (R + 0.05)], [1, 1, 1], 6); }
+  if (rk === 4) for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; k.cone('metal', 0.04, 0.22 + (i % 2) * 0.1, 5, '#1a1418', [Math.sin(a) * (R + 0.06), 0.16, Math.cos(a) * (R + 0.06)], [Math.cos(a) * 0.25, 0, -Math.sin(a) * 0.25]); }
+}
+function rarityAura(root, ud, d) {
+  if (d.rarity !== 'mythic' && d.rarity !== 'legendary') return;
+  const S = RS[d.rarity], kr = new Kit();
+  kr.tor('glow', 0.62, 0.008, S.glow, [0, 0, 0], [Math.PI / 2, 0, 0], 64);
+  if (d.rarity === 'mythic') for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; kr.box('glow', 0.06, 0.006, 0.025, S.glow, [Math.sin(a) * 0.62, 0, Math.cos(a) * 0.62], [0, a, 0]); }
+  const r = kr.build(false); r.position.y = 0.05; r.userData.orbit = 1; root.add(r); ud.rings.push(r);
+  const h = halo(S.glow, 1.6, d.rarity === 'mythic' ? 0.28 : 0.16); h.position.y = 0.3; root.add(h); ud.halos.push(h); h.userData.base = 1;
 }
 function holder(parent, p) { const g = new THREE.Group(); g.position.set(p[0], p[1], p[2]); g.userData.p0 = g.position.clone(); parent.add(g); return g; }
 function addMuzzle(ud, parent, p) { const o = new THREE.Object3D(); o.position.set(p[0], p[1], p[2]); parent.add(o); ud.muzzle = o; }
@@ -107,20 +127,21 @@ function addMuzzle(ud, parent, p) { const o = new THREE.Object3D(); o.position.s
 export function buildTower(id, lv = 0) {
   const d = T[id], A = d.accent;
   const root = new THREE.Group();
+  const BR = (RS[d.rarity] || RS.common).trim, GD = (RS[d.rarity] || RS.common).trim2;
   const kb = new Kit(); towerBase(kb, d, lv, id === 'haubitze'); root.add(kb.build());
   const head = new THREE.Group(); head.position.y = 0.22; root.add(head);
   const ud = { head, spin: [], recoil: [], rings: [], orbs: [], gears: [], press: null, smoke: [], muzzle: null, aimHead: true, halos: [] };
   const k = new Kit();
-  const turntable = (r = 0.3) => { k.cyl('metal', r, r + 0.04, 0.08, 16, C.iron, [0, 0.04, 0]); k.tor('metal', r + 0.02, 0.012, C.brass, [0, 0.08, 0], [Math.PI / 2, 0, 0], 24); };
+  const turntable = (r = 0.3) => { k.cyl('metal', r, r + 0.04, 0.08, 16, C.iron, [0, 0.04, 0]); k.tor('metal', r + 0.02, 0.012, BR, [0, 0.08, 0], [Math.PI / 2, 0, 0], 24); };
   switch (id) {
     case 'repetierer': {
       turntable(0.28);
       k.box('paint', 0.42, 0.26, 0.44, C.steel, [0, 0.21, -0.03]);
-      k.box('metal', 0.45, 0.035, 0.47, lv >= 3 ? C.gold : C.brass, [0, 0.345, -0.03]);
+      k.box('metal', 0.45, 0.035, 0.47, lv >= 3 ? GD : BR, [0, 0.345, -0.03]);
       k.box('paint', 0.11, 0.14, 0.3, C.olive, [0.27, 0.17, -0.06]);
       k.sph('glow', 0.034, A, [-0.13, 0.29, 0.19], [1, 1, 1], 10);
       if (lv >= 1) k.box('metal', 0.5, 0.2, 0.04, C.iron, [0, 0.2, 0.2]);
-      if (lv >= 3) { k.cyl('metal', 0.09, 0.09, 0.16, 14, C.brass, [-0.3, 0.2, -0.04], [0, 0, Math.PI / 2]); k.cyl('metal', 0.09, 0.09, 0.16, 14, C.brass, [0.36, 0.2, -0.04], [0, 0, Math.PI / 2]); }
+      if (lv >= 3) { k.cyl('metal', 0.09, 0.09, 0.16, 14, BR, [-0.3, 0.2, -0.04], [0, 0, Math.PI / 2]); k.cyl('metal', 0.09, 0.09, 0.16, 14, BR, [0.36, 0.2, -0.04], [0, 0, Math.PI / 2]); }
       if (lv >= 4) { k.box('paint', 0.5, 0.1, 0.3, C.dark, [0, 0.4, -0.08]); k.sph('glow', 0.03, A, [0.13, 0.29, 0.19], [1, 1, 1], 10); }
       head.add(k.build());
       const n = [3, 4, 6, 6, 6][lv], len = [0.42, 0.46, 0.55, 0.56, 0.68][lv], clusters = lv >= 3 ? [-0.12, 0.12] : [0];
@@ -129,7 +150,7 @@ export function buildTower(id, lv = 0) {
         const sp = new THREE.Group(); rec.add(sp);
         const kk = new Kit();
         for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2; kk.cyl('metal', 0.022, 0.024, len, 8, C.black, [Math.cos(a) * 0.05, Math.sin(a) * 0.05, len / 2], [Math.PI / 2, 0, 0]); }
-        kk.cyl('metal', 0.075, 0.075, 0.04, 14, C.brass, [0, 0, len * 0.55], [Math.PI / 2, 0, 0]);
+        kk.cyl('metal', 0.075, 0.075, 0.04, 14, BR, [0, 0, len * 0.55], [Math.PI / 2, 0, 0]);
         kk.cyl('metal', 0.07, 0.07, 0.03, 14, C.iron, [0, 0, len - 0.02], [Math.PI / 2, 0, 0]);
         kk.cyl('metal', 0.08, 0.08, 0.1, 14, C.iron, [0, 0, 0.04], [Math.PI / 2, 0, 0]);
         sp.add(kk.build());
@@ -141,7 +162,7 @@ export function buildTower(id, lv = 0) {
     case 'moerser': {
       turntable(0.32);
       k.cyl('paint', 0.3, 0.34, 0.22, 16, C.steel, [0, 0.19, 0]);
-      k.tor('metal', 0.31, 0.02, lv >= 3 ? C.gold : C.brass, [0, 0.3, 0], [Math.PI / 2, 0, 0]);
+      k.tor('metal', 0.31, 0.02, lv >= 3 ? GD : BR, [0, 0.3, 0], [Math.PI / 2, 0, 0]);
       k.box('metal', 0.12, 0.22, 0.12, C.iron, [-0.2, 0.36, -0.1]); k.box('metal', 0.12, 0.22, 0.12, C.iron, [0.2, 0.36, -0.1]);
       if (lv >= 2) for (let i = 0; i < 3; i++) k.sph('metal', 0.06, C.black, [-0.24 + i * 0.12, 0.33, -0.27], [1, 1, 1], 10);
       head.add(k.build());
@@ -152,7 +173,7 @@ export function buildTower(id, lv = 0) {
       const kk = new Kit();
       for (const [x, y] of tubes) {
         kk.cyl('metal', r, r * 1.15, 0.5, 16, C.dark, [x, y, 0.22], [Math.PI / 2, 0, 0]);
-        kk.tor('metal', r + 0.01, 0.018, C.brass, [x, y, 0.46], [0, 0, 0], 18);
+        kk.tor('metal', r + 0.01, 0.018, BR, [x, y, 0.46], [0, 0, 0], 18);
         if (lv >= 3) kk.tor('glow', r + 0.012, 0.012, '#e07a3a', [x, y, 0.28], [0, 0, 0], 18);
       }
       piv.add(kk.build());
@@ -168,17 +189,17 @@ export function buildTower(id, lv = 0) {
       k.box('dark', w + 0.1, 0.06, 0.4, '#2c2622', [0, 0.36, -0.03], [0.3, 0, 0]);
       k.box('glow', 0.14, 0.1, 0.02, '#e09a4a', [0.12, 0.1, 0.255]);
       k.box('metal', 0.18, 0.14, 0.02, C.iron, [0.12, 0.1, 0.25]);
-      k.cyl('metal', 0.06, 0.06, 0.04, 16, C.gold, [-0.14, 0.33, 0.18]); k.cyl('metal', 0.06, 0.06, 0.04, 16, C.gold, [-0.14, 0.37, 0.18]);
+      k.cyl('metal', 0.06, 0.06, 0.04, 16, GD, [-0.14, 0.33, 0.18]); k.cyl('metal', 0.06, 0.06, 0.04, 16, GD, [-0.14, 0.37, 0.18]);
       const chim = lv >= 1 ? [[-0.2, -0.14], [0.2, -0.14]] : [[-0.2, -0.14]];
       if (lv >= 3) chim.push([0, -0.18]);
-      for (const [x, z] of chim) { k.cyl('paint', 0.05, 0.06, 0.5 + lv * 0.04, 10, C.stoneD, [x, 0.42, z]); k.cyl('metal', 0.065, 0.065, 0.04, 10, C.brass, [x, 0.66 + lv * 0.02, z]); ud.smoke.push(new V3(x, 0.92 + lv * 0.04, z)); }
-      if (lv >= 4) { k.sph('metal', 0.14, C.gold, [0.12, 0.42, 0.02], [1, 0.8, 1], 18); k.sph('glow', 0.03, '#f2d48a', [0.12, 0.54, 0.02], [1, 1, 1], 8); }
+      for (const [x, z] of chim) { k.cyl('paint', 0.05, 0.06, 0.5 + lv * 0.04, 10, C.stoneD, [x, 0.42, z]); k.cyl('metal', 0.065, 0.065, 0.04, 10, BR, [x, 0.66 + lv * 0.02, z]); ud.smoke.push(new V3(x, 0.92 + lv * 0.04, z)); }
+      if (lv >= 4) { k.sph('metal', 0.14, GD, [0.12, 0.42, 0.02], [1, 0.8, 1], 18); k.sph('glow', 0.03, '#f2d48a', [0.12, 0.54, 0.02], [1, 1, 1], 8); }
       if (lv >= 2) for (let i = 0; i < 3; i++) k.box('glow', 0.05, 0.06, 0.01, '#d9a050', [-0.18 + i * 0.12, 0.22, 0.255]);
       head.add(k.build());
       const gear = new THREE.Group(); gear.position.set(w / 2 + 0.06, 0.18, 0.06); head.add(gear);
       const kg = new Kit();
-      kg.cyl('metal', 0.13, 0.13, 0.04, 20, C.brass, [0, 0, 0], [0, 0, Math.PI / 2]);
-      for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; kg.box('metal', 0.04, 0.05, 0.05, C.brass, [0, Math.cos(a) * 0.15, Math.sin(a) * 0.15], [a, 0, 0]); }
+      kg.cyl('metal', 0.13, 0.13, 0.04, 20, BR, [0, 0, 0], [0, 0, Math.PI / 2]);
+      for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; kg.box('metal', 0.04, 0.05, 0.05, BR, [0, Math.cos(a) * 0.15, Math.sin(a) * 0.15], [a, 0, 0]); }
       kg.cyl('metal', 0.03, 0.03, 0.08, 10, C.iron, [0, 0, 0], [0, 0, Math.PI / 2]);
       gear.add(kg.build()); ud.gears.push(gear);
       if (lv >= 2) {
@@ -192,7 +213,7 @@ export function buildTower(id, lv = 0) {
       turntable(0.29);
       k.box('paint', 0.36, 0.2, 0.34, C.steel, [0, 0.17, -0.04]);
       const tanks = lv >= 4 ? [-0.2, 0, 0.2] : [-0.13, 0.13];
-      for (const x of tanks) { k.cyl('glow', 0.07, 0.07, 0.26, 14, '#7fb6c8', [x, 0.36, -0.14]); k.cyl('metal', 0.085, 0.085, 0.04, 14, C.brass, [x, 0.5, -0.14]); k.cyl('metal', 0.085, 0.085, 0.04, 14, C.brass, [x, 0.22, -0.14]); }
+      for (const x of tanks) { k.cyl('glow', 0.07, 0.07, 0.26, 14, '#7fb6c8', [x, 0.36, -0.14]); k.cyl('metal', 0.085, 0.085, 0.04, 14, BR, [x, 0.5, -0.14]); k.cyl('metal', 0.085, 0.085, 0.04, 14, BR, [x, 0.22, -0.14]); }
       if (lv >= 4) for (let i = 0; i < 4; i++) k.oct('glow', 0.05, '#cfeff7', [-0.18 + i * 0.12, 0.33, 0.12], [0, 0, 0], [0.6, 1.6, 0.6]);
       head.add(k.build());
       const rec = holder(head, [0, 0.2, 0.12]);
@@ -211,7 +232,7 @@ export function buildTower(id, lv = 0) {
       turntable(0.29);
       k.box('paint', 0.36, 0.22, 0.32, C.dark, [0, 0.17, 0]);
       const tanks = lv >= 3 ? [-0.14, 0, 0.14] : [-0.09, 0.09];
-      for (const x of tanks) { k.cyl('paint', 0.075, 0.075, 0.34, 14, C.rust, [x, 0.33, -0.16], [Math.PI / 2, 0, 0]); k.sph('paint', 0.075, C.rust, [x, 0.33, -0.33], [1, 1, 0.6], 12); k.tor('metal', 0.078, 0.01, C.brass, [x, 0.33, -0.08], [0, 0, 0], 14); }
+      for (const x of tanks) { k.cyl('paint', 0.075, 0.075, 0.34, 14, C.rust, [x, 0.33, -0.16], [Math.PI / 2, 0, 0]); k.sph('paint', 0.075, C.rust, [x, 0.33, -0.33], [1, 1, 0.6], 12); k.tor('metal', 0.078, 0.01, BR, [x, 0.33, -0.08], [0, 0, 0], 14); }
       if (lv >= 2) k.box('metal', 0.42, 0.24, 0.04, C.iron, [0, 0.22, 0.17]);
       head.add(k.build());
       const noz = lv >= 4 ? [-0.07, 0.07] : [0];
@@ -234,7 +255,7 @@ export function buildTower(id, lv = 0) {
       k.cyl('metal', 0.045, 0.06, H, 10, C.copper, [0, H / 2, 0]);
       const rings = 3 + lv;
       for (let i = 0; i < rings; i++) { const y = 0.2 + i * (H - 0.25) / rings, r = 0.19 - i * 0.012; k.tor('metal', r, 0.03, C.copper, [0, y, 0], [Math.PI / 2, 0, 0], 22); }
-      for (let i = 0; i < 3; i++) { const a = i / 3 * Math.PI * 2; k.cyl('metal', 0.015, 0.015, H * 0.7, 6, C.brass, [Math.sin(a) * 0.22, H * 0.35, Math.cos(a) * 0.22], [Math.cos(a) * 0.12, 0, -Math.sin(a) * 0.12]); }
+      for (let i = 0; i < 3; i++) { const a = i / 3 * Math.PI * 2; k.cyl('metal', 0.015, 0.015, H * 0.7, 6, BR, [Math.sin(a) * 0.22, H * 0.35, Math.cos(a) * 0.22], [Math.cos(a) * 0.12, 0, -Math.sin(a) * 0.12]); }
       k.tor('metal', 0.14, 0.035, C.steel, [0, H + 0.02, 0], [Math.PI / 2, 0, 0], 20);
       if (lv >= 2) for (const x of [-0.3, 0.3]) { k.cyl('metal', 0.025, 0.035, 0.42, 8, C.copper, [x, 0.21, 0]); k.tor('metal', 0.07, 0.018, C.copper, [x, 0.3, 0], [Math.PI / 2, 0, 0], 14); k.sph('glow', 0.04, A, [x, 0.45, 0], [1, 1, 1], 10); }
       head.add(k.build());
@@ -262,7 +283,7 @@ export function buildTower(id, lv = 0) {
       const len = 0.5 + lv * 0.05;
       kk.box('metal', 0.24, 0.14, 0.18, C.iron, [0, 0, 0]);
       for (const [x, y] of bar) { kk.cyl('metal', 0.022, 0.026, len, 8, C.black, [x, y, len / 2], [Math.PI / 2, 0, 0]); kk.cyl('metal', 0.032, 0.032, 0.07, 8, C.iron, [x, y, len - 0.03], [Math.PI / 2, 0, 0]); }
-      if (lv >= 2) kk.box('metal', 0.3, 0.02, 0.14, C.brass, [0, 0.08, 0.02]);
+      if (lv >= 2) kk.box('metal', 0.3, 0.02, 0.14, BR, [0, 0.08, 0.02]);
       piv.add(kk.build());
       ud.recoil.push({ o: rec, amt: 0.04 });
       addMuzzle(ud, piv, [0, 0, len + 0.03]);
@@ -277,7 +298,7 @@ export function buildTower(id, lv = 0) {
       const rec = holder(head, [0, 0.3, 0.02]);
       const kk = new Kit();
       const len = 0.75 + lv * 0.1;
-      for (const x of [-0.075, 0.075]) { kk.box('metal', 0.05, 0.11, len, C.steel, [x, 0, len / 2 - 0.05]); kk.box('metal', 0.054, 0.02, len, lv >= 3 ? C.gold : C.brass, [x, 0.065, len / 2 - 0.05]); }
+      for (const x of [-0.075, 0.075]) { kk.box('metal', 0.05, 0.11, len, C.steel, [x, 0, len / 2 - 0.05]); kk.box('metal', 0.054, 0.02, len, lv >= 3 ? GD : BR, [x, 0.065, len / 2 - 0.05]); }
       const coils = 2 + lv;
       for (let i = 0; i < coils; i++) kk.tor('glow', 0.1, 0.016, A, [0, 0, 0.05 + i * (len - 0.15) / coils], [0, 0, 0], 18);
       kk.box('glow', 0.02, 0.02, len * 0.9, '#c8f4f4', [0, 0, len / 2 - 0.03]);
@@ -298,7 +319,7 @@ export function buildTower(id, lv = 0) {
       const n = T.raketenwerk.lv[lv].n, cols = n <= 2 ? 2 : n <= 4 ? 2 : 3, rows = Math.ceil(n / cols);
       const W = 0.16 * cols + 0.08, Hh = 0.16 * rows + 0.08;
       kk.box('paint', W, Hh, 0.42, C.olive, [0, 0, 0]);
-      kk.box('metal', W + 0.02, 0.025, 0.44, C.brass, [0, Hh / 2, 0]);
+      kk.box('metal', W + 0.02, 0.025, 0.44, BR, [0, Hh / 2, 0]);
       for (let i = 0; i < n; i++) { const cx = (i % cols - (cols - 1) / 2) * 0.16, cy = (Math.floor(i / cols) - (rows - 1) / 2) * 0.16; kk.cyl('metal', 0.06, 0.06, 0.03, 12, C.black, [cx, cy, 0.215], [Math.PI / 2, 0, 0]); kk.cone('paint', 0.045, 0.09, 10, '#9a3d34', [cx, cy, 0.24], [Math.PI / 2, 0, 0]); }
       if (lv >= 3) kk.sph('glow', 0.025, A, [W / 2 + 0.01, Hh / 2 - 0.04, 0.12], [1, 1, 1], 8);
       piv.add(kk.build());
@@ -310,7 +331,7 @@ export function buildTower(id, lv = 0) {
       ud.aimHead = false;
       const H = 0.55 + lv * 0.05;
       k.cyl('paint', 0.12, 0.22, H, 6, C.stone, [0, H / 2, 0]);
-      k.cyl('metal', 0.14, 0.14, 0.05, 6, C.brass, [0, H, 0]);
+      k.cyl('metal', 0.14, 0.14, 0.05, 6, BR, [0, H, 0]);
       for (let i = 0; i < 3; i++) { const a = i / 3 * Math.PI * 2; k.box('metal', 0.04, H * 0.8, 0.04, C.iron, [Math.sin(a) * 0.2, H * 0.4, Math.cos(a) * 0.2], [0, a, 0.12]); k.sph('glow', 0.025, A, [Math.sin(a) * 0.17, H * 0.82, Math.cos(a) * 0.17], [1, 1, 1], 8); }
       head.add(k.build());
       const ko = new Kit(); ko.oct('glow', 0.12 + lv * 0.01, '#d9c8ff', [0, 0, 0], [0, 0, 0], [1, 1.6, 1]);
@@ -328,14 +349,14 @@ export function buildTower(id, lv = 0) {
       turntable(0.26);
       const H = 0.5 + lv * 0.04;
       k.cyl('metal', 0.07, 0.12, H, 10, C.steel, [0, H / 2 + 0.06, 0]);
-      k.tor('metal', 0.1, 0.02, C.gold, [0, H * 0.5, 0], [Math.PI / 2, 0, 0], 16);
+      k.tor('metal', 0.1, 0.02, GD, [0, H * 0.5, 0], [Math.PI / 2, 0, 0], 16);
       for (const x of [-0.16, 0.16]) k.box('metal', 0.03, H * 0.6, 0.18, C.iron, [x, H * 0.4, -0.02]);
       head.add(k.build());
       const top = holder(head, [0, H + 0.12, 0]);
       const kk = new Kit();
       kk.sph('metal', 0.15, C.dark, [0, 0, -0.02], [1, 0.9, 1.2], 18);
       kk.cyl('metal', 0.07, 0.11, 0.24, 16, C.steel, [0, 0, 0.18], [Math.PI / 2, 0, 0]);
-      kk.tor('metal', 0.09, 0.02, C.gold, [0, 0, 0.3], [0, 0, 0], 18);
+      kk.tor('metal', 0.09, 0.02, GD, [0, 0, 0.3], [0, 0, 0], 18);
       kk.sph('glow', 0.06, '#ff8a8a', [0, 0, 0.31], [1, 1, 0.5], 14);
       for (const x of [-1, 1]) kk.box('metal', 0.18, 0.02, 0.12, C.iron, [x * 0.17, 0, -0.04], [0, 0, x * 0.2]);
       if (lv >= 3) kk.box('glow', 0.32, 0.012, 0.012, A, [0, 0.07, 0]);
@@ -346,12 +367,48 @@ export function buildTower(id, lv = 0) {
       ud.laserTop = top;
       break;
     }
+    case 'plasmareaktor': {
+      turntable(0.32);
+      k.cyl('paint', 0.26, 0.32, 0.3, 6, '#2e252b', [0, 0.2, -0.08]);
+      k.box('paint', 0.5, 0.12, 0.46, '#3a2e34', [0, 0.38, -0.05]);
+      for (const sd of [-1, 1]) { k.box('paint', 0.08, 0.32, 0.42, '#2e252b', [sd * 0.29, 0.26, -0.04], [0, 0, sd * 0.12]); k.box('glow', 0.014, 0.26, 0.36, '#ff3b3b', [sd * 0.338, 0.27, -0.04], [0, 0, sd * 0.12]); }
+      for (let i = 0; i < 3 + lv; i++) k.cone('metal', 0.03, 0.2, 5, BR, [-0.2 + i * 0.4 / (2 + lv), 0.5, -0.25], [-0.5, 0, 0]);
+      head.add(k.build());
+      const co = new Kit(); co.sph('glow', 0.11 + lv * 0.012, '#ff4545', [0, 0, 0], [1, 1, 1], 16);
+      const cm = co.build(false); cm.position.set(0, 0.64, -0.08); head.add(cm); ud.orbs.push(cm);
+      const hh = halo('#ff2a2a', 0.95 + lv * 0.12, 0.8); hh.position.copy(cm.position); head.add(hh); ud.halos.push(hh);
+      for (let i = 0; i < 1 + Math.ceil(lv / 2); i++) { const kr = new Kit(); kr.tor('glow', 0.18 + i * 0.05, 0.012, '#ff5050', [0, 0, 0], [Math.PI / 2, 0, 0], 36); const rr = kr.build(false); rr.position.copy(cm.position); rr.rotation.x = 0.5 + i; head.add(rr); ud.rings.push(rr); }
+      const rec = holder(head, [0, 0.3, 0.16]);
+      const kk = new Kit(); const len = 0.44 + lv * 0.05;
+      for (const x of lv >= 3 ? [-0.15, 0, 0.15] : [-0.1, 0.1]) {
+        kk.box('paint', 0.075, 0.09, len, '#33292f', [x, 0, len / 2]);
+        kk.box('glow', 0.018, 0.018, len * 0.9, '#ff3a3a', [x, 0.054, len / 2]);
+        kk.cyl('metal', 0.05, 0.045, 0.08, 8, BR, [x, 0, len], [Math.PI / 2, 0, 0]);
+        kk.sph('glow', 0.03, '#ff8a8a', [x, 0, len + 0.04], [1, 1, 1], 8);
+      }
+      rec.add(kk.build()); ud.recoil.push({ o: rec, amt: 0.06 }); addMuzzle(ud, rec, [0, 0, len + 0.06]);
+      break;
+    }
+    case 'himmelsspeer': {
+      ud.aimHead = false;
+      const H = 0.9 + lv * 0.1;
+      for (let i = 0; i < 4; i++) { const y0 = i * H / 4, w = 0.32 - i * 0.055; k.box('paint', w, H / 4 + 0.01, w, '#2e252b', [0, y0 + H / 8, 0], [0, i * 0.2, 0]); k.box('glow', w + 0.014, 0.014, w + 0.014, '#ff3a3a', [0, y0 + H / 4, 0], [0, i * 0.2, 0]); }
+      for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; k.box('metal', 0.05, H * 0.7, 0.05, BR, [Math.sin(a) * 0.25, H * 0.35, Math.cos(a) * 0.25], [Math.cos(a) * 0.15, 0, -Math.sin(a) * 0.15]); k.sph('glow', 0.03, '#ff4a4a', [Math.sin(a) * 0.2, H * 0.72, Math.cos(a) * 0.2], [1, 1, 1], 8); }
+      head.add(k.build());
+      const ko = new Kit(); ko.oct('glow', 0.13 + lv * 0.015, '#ff5a5a', [0, 0, 0], [0, 0, 0], [1, 1.8, 1]);
+      const o = ko.build(false); o.position.y = H + 0.34; head.add(o); ud.orbs.push(o); o.userData.spinY = 1;
+      const hh = halo('#ff2a2a', 1.25 + lv * 0.15, 0.85); hh.position.y = H + 0.34; head.add(hh); ud.halos.push(hh);
+      for (let i = 0; i < 2 + Math.floor(lv / 2); i++) { const kr = new Kit(); kr.tor('glow', 0.22 + i * 0.08, 0.012, '#ff4040', [0, 0, 0], [Math.PI / 2, 0, 0], 40); const rr = kr.build(false); rr.position.y = H + 0.34; rr.rotation.x = 0.3 + i * 0.6; head.add(rr); ud.rings.push(rr); }
+      const bk = new Kit(); bk.cyl('glow', 0.012, 0.012, 2.5 + lv * 0.6, 6, '#ff6060', [0, (2.5 + lv * 0.6) / 2, 0]); const bm = bk.build(false); bm.position.y = H + 0.42; bm.userData.skip = true; head.add(bm);
+      addMuzzle(ud, head, [0, H + 0.34, 0]);
+      break;
+    }
     case 'haubitze': {
       turntable(0.36);
       k.box('paint', 0.5, 0.26, 0.56, C.steel, [0, 0.2, -0.05]);
       k.box('metal', 0.56, 0.06, 0.2, C.iron, [0, 0.36, -0.18], [0.3, 0, 0]);
       k.box('metal', 0.08, 0.3, 0.4, C.iron, [-0.29, 0.2, -0.03]); k.box('metal', 0.08, 0.3, 0.4, C.iron, [0.29, 0.2, -0.03]);
-      if (lv >= 2) for (let i = 0; i < 6; i++) k.sph('metal', 0.022, C.brass, [-0.3 + (i % 2) * 0.6, 0.12 + Math.floor(i / 2) * 0.08, 0.17], [1, 1, 1], 6);
+      if (lv >= 2) for (let i = 0; i < 6; i++) k.sph('metal', 0.022, BR, [-0.3 + (i % 2) * 0.6, 0.12 + Math.floor(i / 2) * 0.08, 0.17], [1, 1, 1], 6);
       if (lv >= 4) k.box('glow', 0.36, 0.03, 0.02, A, [0, 0.27, 0.23]);
       head.add(k.build());
       const rec = holder(head, [0, 0.27, 0.1]);
@@ -361,13 +418,14 @@ export function buildTower(id, lv = 0) {
       kk.cyl('metal', r, r * 1.3, len, 16, C.dark, [0, 0, len / 2], [Math.PI / 2, 0, 0]);
       kk.cyl('metal', r * 1.5, r * 1.5, 0.16, 16, C.iron, [0, 0, 0.1], [Math.PI / 2, 0, 0]);
       kk.box('metal', r * 3.2, r * 1.6, 0.14, C.iron, [0, 0, len], [0, 0, 0]);
-      if (lv >= 3) kk.tor('metal', r * 1.25, 0.02, C.gold, [0, 0, len * 0.6], [0, 0, 0], 16);
+      if (lv >= 3) kk.tor('metal', r * 1.25, 0.02, GD, [0, 0, len * 0.6], [0, 0, 0], 16);
       piv.add(kk.build());
       ud.recoil.push({ o: rec, amt: 0.14 });
       addMuzzle(ud, piv, [0, 0, len + 0.1]);
       break;
     }
   }
+  rarityAura(root, ud, d);
   root.userData = ud;
   return root;
 }
@@ -531,11 +589,13 @@ function seeded(s) { s = s >>> 0 || 1; return () => { s = (s * 16807) % 21474836
 function boardTexture(run, renderer) {
   const px = 64, c = document.createElement('canvas'); c.width = COLS * px; c.height = ROWS * px;
   const x = c.getContext('2d'), r = seeded(1234 + (run.li === 'endless' ? 99 : run.li) * 7);
-  x.fillStyle = '#1b201f'; x.fillRect(0, 0, c.width, c.height);
+  const TH = THEMES[run.L.theme] || THEMES.wald, tb = TH.tile;
+  x.fillStyle = `rgb(${tb[0] - 18},${tb[1] - 18},${tb[2] - 18})`; x.fillRect(0, 0, c.width, c.height);
   for (let rr = 0; rr < ROWS; rr++) for (let cc = 0; cc < COLS; cc++) {
     const g = run.grid[rr * COLS + cc];
     if (g === 1) continue;
-    const v = (r() - 0.5) * 7, base = g === 2 ? [40, 44, 46] : [44 + v, 51 + v, 48 + v];
+    const v = (r() - 0.5) * 7, base = g === 2 ? [tb[0] - 6, tb[1] - 6, tb[2] - 4] : [tb[0] + v, tb[1] + v, tb[2] + v];
+    if (g === 4) { blockTile(x, run, cc, rr, px, TH); continue; }
     const X = cc * px + 2, Y = rr * px + 2, S = px - 4;
     const grd = x.createLinearGradient(X, Y, X + S, Y + S);
     grd.addColorStop(0, `rgb(${base[0] + 7},${base[1] + 7},${base[2] + 7})`); grd.addColorStop(1, `rgb(${base[0] - 5},${base[1] - 5},${base[2] - 5})`);
@@ -548,7 +608,8 @@ function boardTexture(run, renderer) {
   for (const p of run.paths) {
     const pts = p.P.map(q => [q.x * px, q.z * px]);
     const stroke = (w, col) => { x.strokeStyle = col; x.lineWidth = w; x.lineJoin = 'round'; x.lineCap = 'round'; x.beginPath(); pts.forEach(([a, b], i) => (i ? x.lineTo(a, b) : x.moveTo(a, b))); x.stroke(); };
-    stroke(px * 1.0, '#2a2723'); stroke(px * 0.9, '#6d665a'); stroke(px * 0.7, '#7a7264'); stroke(px * 0.36, 'rgba(140,132,116,.35)');
+    stroke(px * 1.0, TH.path[0]); stroke(px * 0.9, TH.path[1]); stroke(px * 0.7, TH.path[2]); stroke(px * 0.36, 'rgba(255,255,255,.06)');
+    if (TH.glow) { x.save(); x.globalCompositeOperation = 'lighter'; x.shadowColor = TH.glow; x.shadowBlur = 14; x.globalAlpha = 0.35; stroke(px * 0.95, 'rgba(0,0,0,0)'); x.strokeStyle = TH.glow; x.lineWidth = 2; x.beginPath(); pts.forEach(([a, b], i) => (i ? x.lineTo(a, b) : x.moveTo(a, b))); x.stroke(); x.restore(); }
   }
   x.save();
   for (const p of run.paths) {
@@ -570,6 +631,23 @@ function boardTexture(run, renderer) {
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
   return t;
+}
+function blockTile(x, run, cc, rr, px, TH) {
+  const type = (run.L.blocks || []).find(b => b[0] === cc && b[1] === rr)?.[2] || 'rock';
+  const X = cc * px, Y = rr * px;
+  if (type === 'pool') {
+    const g = x.createRadialGradient(X + px / 2, Y + px / 2, 4, X + px / 2, Y + px / 2, px * 0.6);
+    g.addColorStop(0, '#1d3a42'); g.addColorStop(0.7, '#13262c'); g.addColorStop(1, '#0c1518');
+    x.fillStyle = g; x.beginPath(); x.roundRect(X + 3, Y + 3, px - 6, px - 6, 16); x.fill();
+    x.strokeStyle = 'rgba(160,200,210,.18)'; x.lineWidth = 1.5; for (let i = 0; i < 3; i++) { x.beginPath(); x.ellipse(X + px / 2, Y + px / 2, 8 + i * 8, 4 + i * 4, 0, 0, 7); x.stroke(); }
+  } else if (type === 'lava') {
+    const g = x.createRadialGradient(X + px / 2, Y + px / 2, 2, X + px / 2, Y + px / 2, px * 0.6);
+    g.addColorStop(0, '#ffd36a'); g.addColorStop(0.35, '#ff7a24'); g.addColorStop(0.8, '#7a1e0e'); g.addColorStop(1, '#2a0e0a');
+    x.fillStyle = g; x.beginPath(); x.roundRect(X + 3, Y + 3, px - 6, px - 6, 14); x.fill();
+  } else {
+    const tb = TH.tile;
+    x.fillStyle = `rgb(${tb[0] - 10},${tb[1] - 10},${tb[2] - 10})`; x.beginPath(); x.roundRect(X + 2, Y + 2, px - 4, px - 4, 6); x.fill();
+  }
 }
 function groundTexture() {
   const c = document.createElement('canvas'); c.width = c.height = 512;
@@ -711,9 +789,11 @@ export function createBattle(canvas, game, { quality = () => 'auto' } = {}) {
   function buildLevel(run) {
     disposeLevel();
     const grp = new THREE.Group(); scene.add(grp);
+    const TH = THEMES[run.L.theme] || THEMES.wald;
+    scene.background.set(TH.bg); scene.fog.color.set(TH.bg);
     // Brett
     const tex = boardTexture(run, renderer);
-    const side = new THREE.MeshStandardMaterial({ color: '#25272a', roughness: 0.95 });
+    const side = new THREE.MeshStandardMaterial({ color: TH.side, roughness: 0.95 });
     const top = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.88, metalness: 0.02 });
     const slab = new THREE.Mesh(new THREE.BoxGeometry(COLS, 0.6, ROWS), [side, side, top, side, side, side]);
     slab.position.set(COLS / 2, -0.3, ROWS / 2); slab.receiveShadow = true; grp.add(slab);
@@ -722,11 +802,11 @@ export function createBattle(canvas, game, { quality = () => 'auto' } = {}) {
     lip.box('dark', 0.18, 0.12, ROWS, '#34363a', [-0.09, -0.02, ROWS / 2]); lip.box('dark', 0.18, 0.12, ROWS, '#34363a', [COLS + 0.09, -0.02, ROWS / 2]);
     // Umgebung: ein paar Felsen, tote Bäume, Ruinen – nur AUSSERHALB des Bretts
     const r = seeded(4242 + (run.li === 'endless' ? 9 : run.li));
-    for (let i = 0; i < 46; i++) {
+    for (let i = 0; i < 18; i++) {
       let x, z;
       do { x = -6 + r() * (COLS + 12); z = -5 + r() * (ROWS + 10); } while (x > -1.4 && x < COLS + 1.4 && z > -1.4 && z < ROWS + 1.4);
       const kind = r();
-      if (kind < 0.55) lip.rock('dark', 0.3 + r() * 0.6, ['#2c2e30', '#34322e', '#26292b'][i % 3], [x, -0.5, z], [r() * 3, r() * 3, r() * 3], [1, 0.6 + r() * 0.5, 1]);
+      if (kind < 0.55) lip.rock('dark', 0.3 + r() * 0.6, TH.deco[i % 2], [x, -0.5, z], [r() * 3, r() * 3, r() * 3], [1, 0.6 + r() * 0.5, 1]);
       else if (kind < 0.8) { const h = 1 + r() * 1.4; lip.cyl('dark', 0.05, 0.1, h, 6, '#2a2420', [x, -0.6 + h / 2, z], [r() * 0.2, 0, r() * 0.2]); for (let b = 0; b < 3; b++) lip.cyl('dark', 0.02, 0.04, 0.5, 5, '#2a2420', [x + (r() - 0.5) * 0.3, -0.6 + h * (0.6 + b * 0.12), z], [r() - 0.5, 0, (r() - 0.5) * 2]); }
       else { const h = 0.4 + r() * 1.2; lip.box('dark', 0.36, h, 0.36, '#3a3834', [x, -0.6 + h / 2, z], [0, r(), (r() - 0.5) * 0.15]); }
     }
@@ -747,6 +827,16 @@ export function createBattle(canvas, game, { quality = () => 'auto' } = {}) {
       const hl = halo('#c0453a', 2.4, 0.55); hl.position.set(ex, 0.6, ez); grp.add(hl);
       portals.push({ sw, x: ex, z: ez });
     }
+    // Hindernisse auf dem Brett (die einzige Deko)
+    const lavaSpots = [];
+    for (const [c, rr2, type] of run.L.blocks || []) {
+      const x = c + 0.5, z = rr2 + 0.5;
+      if (type === 'tree') { lip.cyl('dark', 0.05, 0.08, 0.5, 6, '#2a2018', [x, 0.25, z]); lip.cone('paint', 0.36, 0.7, 7, '#22301f', [x, 0.7, z]); lip.cone('paint', 0.27, 0.55, 7, '#273825', [x, 1.05, z]); lip.cone('paint', 0.17, 0.4, 7, '#2c4029', [x, 1.32, z]); }
+      else if (type === 'rock') { lip.rock('dark', 0.34, TH.deco[0], [x - 0.08, 0.16, z], [0.4, 0.8, 0.2], [1, 0.75, 1]); lip.rock('dark', 0.2, TH.deco[1], [x + 0.2, 0.1, z + 0.14], [1, 0.3, 0.6], [1, 0.8, 1]); }
+      else if (type === 'ruin') { lip.box('paint', 0.3, 0.9, 0.3, TH.deco[0], [x - 0.1, 0.45, z], [0, 0.3, 0.05]); lip.box('paint', 0.34, 0.1, 0.34, TH.deco[1], [x - 0.1, 0.92, z], [0, 0.3, 0.05]); lip.box('paint', 0.26, 0.24, 0.5, TH.deco[1], [x + 0.18, 0.12, z + 0.1], [0, 1.1, 0.4]); }
+      else if (type === 'crystal') { const gc = TH.glow || '#8fd6e6'; lip.rock('dark', 0.26, TH.deco[1], [x, 0.08, z], [0, 0, 0], [1, 0.5, 1]); lip.oct('glow', 0.14, gc, [x, 0.42, z], [0.1, 0.4, 0.15], [1, 2.2, 1]); lip.oct('glow', 0.09, gc, [x + 0.16, 0.24, z + 0.08], [0.4, 0, 0.5], [1, 2, 1]); const h = halo(gc, 1.4, 0.45); h.position.set(x, 0.45, z); grp.add(h); }
+      else if (type === 'lava') { const h = halo('#ff7a2a', 1.6, 0.55); h.position.set(x, 0.15, z); grp.add(h); lavaSpots.push([x, z]); }
+    }
     const lipMesh = lip.build(true); grp.add(lipMesh);
     // Kern
     const core = new THREE.Group(); core.position.set(run.core.x, 0, run.core.z); grp.add(core);
@@ -764,7 +854,7 @@ export function createBattle(canvas, game, { quality = () => 'auto' } = {}) {
     const cRings = [];
     for (let i = 0; i < 2; i++) { const kr = new Kit(); kr.tor('glow', 0.5 + i * 0.12, 0.012, '#8fd6e6', [0, 0, 0], [Math.PI / 2, 0, 0], 48); const m = kr.build(false); m.position.y = 1.05; core.add(m); cRings.push(m); }
     const cLight = new THREE.PointLight('#7fd0e0', 6, 5, 1.6); cLight.position.y = 1.2; core.add(cLight);
-    level = { grp, tex, slab, top, side, core, crystal, crystalMat, cHalo, cRings, cLight, portals, run };
+    level = { grp, tex, slab, top, side, core, crystal, crystalMat, cHalo, cRings, cLight, portals, run, lavaSpots };
     for (const t2 of [...towers.values()]) { scene.remove(t2.obj); disposeObj(t2.obj); }
     towers.clear();
     // Platzier-Felder
@@ -867,7 +957,8 @@ export function createBattle(canvas, game, { quality = () => 'auto' } = {}) {
     game.on('shot', ({ t: tw, kind }) => {
       const o = towers.get(tw.uid); if (!o) return;
       const p = muzzleWorld(o.obj);
-      const c = kind === 'frost' ? CO.ice : kind === 'missile' ? CO.fire : CO.spark;
+      if (kind === 'orbital') { const p0 = muzzleWorld(o.obj); burst(p0.x, p0.y, p0.z, 20, CO.red, 2, 0.5, 0.15); return; }
+      const c = kind === 'frost' ? CO.ice : kind === 'missile' ? CO.fire : kind === 'plasma' ? CO.red : CO.spark;
       const big = kind === 'howitzer' ? 2.2 : kind === 'shell' ? 1.3 : 0.7;
       for (let i = 0; i < 2; i++) addP.emit(p.x, p.y, p.z, 0, 0, 0, 0.07, 0.5 * big, c, 0.9);
       burst(p.x, p.y, p.z, kind === 'bullet' ? 2 : 6, c, 2, 0.15, 0.08 * big);
@@ -903,7 +994,11 @@ export function createBattle(canvas, game, { quality = () => 'auto' } = {}) {
       if (ud.press) ud.press.position.y = ud.press.userData.p0.y + Math.abs(Math.sin(t * 3 + tw.uid)) * 0.06;
       for (const r of ud.rings) { if (r.userData.orbit) r.rotation.y += dt * 2; else r.rotation.z += dt * (0.8 + busy); }
       for (const ob of ud.orbs) { ob.rotation.y += dt * (ob.userData.spinY ? 1.2 : 0); const f = 0.9 + Math.sin(t * 13 + tw.uid) * 0.06 + (tw.def.kind === 'tesla' && tw.recoil > 0.5 ? 0.3 : 0); ob.scale.setScalar(f); }
-      for (const h of ud.halos) h.material.opacity = 0.45 + (tw.def.kind === 'laser' ? Math.min(1, tw.heat / 2.5) * 0.5 : Math.sin(t * 3 + tw.uid) * 0.12) + (tw.recoil > 0.5 ? 0.3 : 0);
+      for (const h of ud.halos) if (!h.userData.base) h.material.opacity = 0.45 + (tw.def.kind === 'laser' ? Math.min(1, tw.heat / 2.5) * 0.5 : Math.sin(t * 3 + tw.uid) * 0.12) + (tw.recoil > 0.5 ? 0.3 : 0);
+      const rar = tw.def.rarity;
+      if (rar === 'legendary' && R() < dt * 2.2 * pq()) { const a = R() * 6.28, rr = 0.3 + R() * 0.3; addP.emit(tw.x + Math.sin(a) * rr, 0.2, tw.z + Math.cos(a) * rr, 0, 0.6 + R() * 0.5, 0, 1.2, 0.07, CO.gold, 0.9, -0.1); }
+      else if (rar === 'mythic' && R() < dt * 7 * pq()) { const a = R() * 6.28, rr = 0.25 + R() * 0.4; addP.emit(tw.x + Math.sin(a) * rr, 0.15, tw.z + Math.cos(a) * rr, 0, 0.7 + R() * 0.8, 0, 1.1, 0.08 + R() * 0.05, R() < 0.7 ? CO.red : CO.fire, 0.9, -0.2); }
+      else if (rar === 'epic' && R() < dt * 0.9 * pq()) { const a = R() * 6.28; addP.emit(tw.x + Math.sin(a) * 0.4, 0.2, tw.z + Math.cos(a) * 0.4, 0, 0.5, 0, 1.2, 0.06, CO.purple, 0.8, -0.1); }
       if (ud.smoke.length && R() < dt * 2.2 * pq()) { const s = ud.smoke[Math.floor(R() * ud.smoke.length)]; const w = s.clone().applyMatrix4(o.obj.matrixWorld); smoke.emit(w.x, w.y, w.z, (R() - 0.5) * 0.1, 0.35, (R() - 0.5) * 0.1, 2.2, 0.28, CO.smokeL, 0.35, -0.05, 0.3, 2.2); }
       // Flammen
       if (tw.def.kind === 'flame' && tw.flaming > 0.05) {
@@ -1002,6 +1097,10 @@ export function createBattle(canvas, game, { quality = () => 'auto' } = {}) {
         _mat.compose(_pos.set(p.x, p.y, p.z), _quat.identity(), _sc.setScalar(s)); shellMesh.setMatrixAt(ns, _mat); ns++;
         _mat.compose(_pos, _quat, _sc.setScalar(s * 1.6)); orbMesh.setMatrixAt(no, _mat); orbMesh.setColorAt(no, _col.setRGB(1.2, 0.6, 0.25)); no++;
         if (R() < 0.7) smoke.emit(p.x, p.y, p.z, 0, 0.1, 0, 0.6, s * 3, CO.smokeL, 0.35, -0.2, 0.5, 1.4);
+      } else if (p.kind === 'plasma') {
+        _mat.compose(_pos.set(p.x, p.y, p.z), _quat.identity(), _sc.setScalar(0.13)); orbMesh.setMatrixAt(no, _mat); orbMesh.setColorAt(no, _col.setRGB(2.6, 0.5, 0.45)); no++;
+        _mat.compose(_pos, _quat, _sc.setScalar(0.26)); orbMesh.setMatrixAt(no, _mat); orbMesh.setColorAt(no, _col.setRGB(0.7, 0.08, 0.08)); no++;
+        for (let q2 = 0; q2 < 2; q2++) addP.emit(p.x + (R() - 0.5) * 0.1, p.y + (R() - 0.5) * 0.1, p.z + (R() - 0.5) * 0.1, (R() - 0.5) * 0.4, (R() - 0.5) * 0.4, (R() - 0.5) * 0.4, 0.35, 0.16, CO.red, 0.9);
       } else if (p.kind === 'missile') {
         _d.set(p.vx, p.vy, p.vz); if (_d.lengthSq() < 1e-6) _d.set(0, 1, 0);
         _quat.setFromUnitVectors(new V3(0, 0, 1), _d.normalize());
@@ -1065,6 +1164,22 @@ export function createBattle(canvas, game, { quality = () => 'auto' } = {}) {
         if (!f._seen) { f._seen = true; burst(f.x, f.y, f.z, 14, CO.ice, 1.8, 0.45, 0.12, { grav: 1 }); ringFx.push({ x: f.x, z: f.z, y: 0.04, r: f.r, life: 0.35, max: 0.35, c: CO.ice }); }
       }
     }
+    // Orbitalschläge: Zielkreis + dünner Leitstrahl während des Aufladens
+    for (const st of game.run?.strikes || []) {
+      const k = 1 - Math.max(0, st.t) / st.T;
+      beam(st.x, 0.1, st.z, st.x, 30, st.z, 0.03 + k * 0.08, CO.red, 0.6 + k * 1.2);
+      if (!st._ring || st._ring < t - 0.12) { st._ring = t; ringFx.push({ x: st.x, z: st.z, y: 0.05, r: st.splash * (1.4 - k * 0.6), life: 0.25, max: 0.25, c: CO.red }); }
+    }
+    for (const f of game.fx) {
+      if (f.kind === 'orbital') {
+        const k = f.life / f.max;
+        if (!f._seen) { f._seen = true; shake = Math.max(shake, 0.45); burst(f.x, 0.3, f.z, 70, CO.red, 5 * f.r, 0.7, 0.3, { grav: 4 }); burst(f.x, 0.3, f.z, 40, CO.fire2, 3 * f.r, 0.5, 0.25); burst(f.x, 0.2, f.z, 24, CO.smoke, 1.5 * f.r, 1.4, 0.7, { smoke: true, grav: -0.6, alpha: 0.6, grow: 2 }); ringFx.push({ x: f.x, z: f.z, y: 0.05, r: f.r * 1.6, life: 0.7, max: 0.7, c: CO.red }); for (let q2 = 0; q2 < 4; q2++) addP.emit(f.x, 0.5, f.z, 0, 0, 0, 0.25, f.r * 3, CO.fire2, 0.9); }
+        beam(f.x, 0, f.z, f.x, 40, f.z, 0.25 + f.r * 0.5 * k, col('#ff2a2a'), 1.2 * k);
+        beam(f.x, 0, f.z, f.x, 40, f.z, 0.08 + 0.2 * k, col('#ffd0c8'), 2 * k);
+      } else if (f.kind === 'plasmaBoom' && !f._seen) {
+        f._seen = true; burst(f.x, 0.5, f.z, 30, CO.red, 3 * f.r, 0.5, 0.2, { grav: 3 }); for (let q2 = 0; q2 < 2; q2++) addP.emit(f.x, 0.5, f.z, 0, 0, 0, 0.2, f.r * 2, CO.red, 0.9); ringFx.push({ x: f.x, z: f.z, y: 0.05, r: f.r * 1.2, life: 0.4, max: 0.4, c: CO.red });
+      }
+    }
     beamMesh.count = beamN; beamMesh.instanceMatrix.needsUpdate = true; if (beamMesh.instanceColor) beamMesh.instanceColor.needsUpdate = true;
     // Ringe
     let nr = 0;
@@ -1110,6 +1225,7 @@ export function createBattle(canvas, game, { quality = () => 'auto' } = {}) {
     const st = sel.tower && game.towers.includes(sel.tower) ? sel.tower : null;
     if (!rangeAt && st) { const s = game.stats(st); if (s.range) rangeAt = { x: st.x, z: st.z, r: s.range, c: st.def.accent }; }
     else if (!rangeAt && !placing && sel.hover?.inside) { const h = game.towerAt(sel.hover.c, sel.hover.r); if (h) { const s = game.stats(h); if (s.range) rangeAt = { x: h.x, z: h.z, r: s.range, c: h.def.accent, soft: true }; } }
+    if (rangeAt && rangeAt.r >= 50) rangeAt = null;
     rangeGrp.visible = !!rangeAt;
     if (rangeAt) {
       rangeGrp.position.set(rangeAt.x, 0.02, rangeAt.z); rangeGrp.scale.set(rangeAt.r, 1, rangeAt.r);
@@ -1150,6 +1266,7 @@ export function createBattle(canvas, game, { quality = () => 'auto' } = {}) {
     level.cHalo.material.color.copy(cc); level.cLight.color.copy(cc);
     level.cRings.forEach((r, i) => { r.rotation.x = Math.PI / 2 + Math.sin(t * 0.7 + i) * 0.5; r.rotation.y += dt * (i ? -1 : 1.3); });
     for (const p of level.portals) p.sw.rotation.z = -t * 2;
+    for (const [lx, lz] of level.lavaSpots) if (R() < dt * 2.5 * pq()) addP.emit(lx + (R() - 0.5) * 0.6, 0.1, lz + (R() - 0.5) * 0.6, 0, 0.6 + R() * 0.6, 0, 1, 0.1, CO.fire, 0.8, -0.2);
     if (R() < dt * 3 * pq()) { const p = level.portals[Math.floor(R() * level.portals.length)]; addP.emit(p.x + (R() - 0.5) * 0.8, 0.2 + R() * 1, p.z + (R() - 0.5) * 0.8, 0, 0.3, 0, 1, 0.12, CO.red, 0.7, -0.2); }
     if (R() < dt * 4 * pq()) addP.emit(run.core.x + (R() - 0.5) * 1.6, 0.1, run.core.z + (R() - 0.5) * 1.6, 0, 0.6, 0, 1.6, 0.08, CO.cyan, 0.7, -0.15);
     addP.update(dt); smoke.update(dt);
@@ -1220,7 +1337,11 @@ export function createIconRenderer(size = 256) {
   function shoot(obj, { silhouette = false, yaw = -0.6, pitch = 0.42 } = {}) {
     scene.add(obj);
     obj.updateMatrixWorld(true);
-    box.setFromObject(obj); box.getCenter(ctr); box.getSize(sz);
+    // Bildausschnitt nur aus den echten Modellteilen (ohne Leuchtsprites und Himmelsstrahl)
+    box.makeEmpty();
+    obj.traverse(o => { if (o.isMesh && !o.userData.skip) { o.geometry.computeBoundingBox(); box.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld)); } });
+    obj.traverse(o => { if (o.userData.skip) o.visible = false; });
+    box.getCenter(ctr); box.getSize(sz);
     const r = Math.max(sz.x, sz.y * 1.05, sz.z) * 0.62 + 0.05;
     const D = r / Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)) * 1.08;
     cam.position.set(ctr.x + Math.sin(yaw) * Math.cos(pitch) * D, ctr.y + Math.sin(pitch) * D, ctr.z + Math.cos(yaw) * Math.cos(pitch) * D);
@@ -1244,3 +1365,5 @@ export function createIconRenderer(size = 256) {
     dispose() { renderer.dispose(); renderer.forceContextLoss?.(); },
   };
 }
+
+export { Kit, halo, envMap };
