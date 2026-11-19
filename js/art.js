@@ -1,5 +1,5 @@
 // Packfall – glatte Vektor-Grafik: Icons, Booster-Packs, Map-Vorschauen (keine Pixel)
-import { COLS, ROWS, buildPath } from './core.js?v=0.9-84fac17a';
+import { COLS, ROWS, buildPath, THEMES } from './core.js?v=0.9.1-86e62b3e';
 
 // ---------- Icons (24×24, Linienstil) ----------
 const S = (d, extra = '') => `<path d="${d}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"${extra}/>`;
@@ -44,6 +44,7 @@ const ICONS = {
   sell: S('M12 4v10M8 10l4 4 4-4') + S('M5 17.5h14'),
   wave: S('M3 9c2.2 0 2.2-2 4.5-2S9.8 9 12 9s2.3-2 4.5-2S18.8 9 21 9M3 15c2.2 0 2.2-2 4.5-2s2.3 2 4.5 2 2.3-2 4.5-2 2.3 2 4.5 2'),
   cursor: S('M12 3v4M12 17v4M3 12h4M17 12h4'),
+  medal: `<path d="M8 2.5h3l1 5-2.5 1.5zM16 2.5h-3l-1 5 2.5 1.5z" fill="currentColor" opacity=".55"/><circle cx="12" cy="15" r="6.3" fill="currentColor"/><circle cx="12" cy="15" r="4.3" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="1.2"/><path d="M12 12.4l.9 1.8 2 .3-1.45 1.4.35 2-1.8-.95-1.8.95.35-2-1.45-1.4 2-.3z" fill="rgba(0,0,0,.35)"/>`,
   calendar: S('M5 6h14v14H5zM5 10h14M9 3.5V7M15 3.5V7'),
 };
 export function iconSVG(name) {
@@ -89,15 +90,20 @@ export function mapPreview(L, w = 400, h = 240) {
   const dpr = 2; c.width = w * dpr; c.height = h * dpr;
   const x = c.getContext('2d'); x.scale(dpr, dpr);
   const cs = Math.min(w / COLS, h / ROWS), ox = (w - cs * COLS) / 2, oy = (h - cs * ROWS) / 2;
-  x.fillStyle = '#16191b'; x.fillRect(0, 0, w, h);
+  const TH = THEMES[L.theme] || THEMES.wald, tb = TH.tile, blk = new Map((L.blocks || []).map(b => [b[1] * COLS + b[0], b[2]]));
+  x.fillStyle = TH.bg; x.fillRect(0, 0, w, h);
   for (let r = 0; r < ROWS; r++) for (let q = 0; q < COLS; q++) {
-    x.fillStyle = (q + r) % 2 ? '#262c2b' : '#232928';
+    const d = (q + r) % 2 ? 4 : 0, b = blk.get(r * COLS + q);
+    x.fillStyle = b === 'lava' ? '#d8652a' : b === 'pool' ? '#1c3a44' : b ? `rgb(${tb[0] - 14},${tb[1] - 14},${tb[2] - 14})` : `rgb(${tb[0] - 8 + d},${tb[1] - 8 + d},${tb[2] - 8 + d})`;
     x.fillRect(ox + q * cs + 0.6, oy + r * cs + 0.6, cs - 1.2, cs - 1.2);
+    if (b === 'crystal') { x.fillStyle = TH.glow || '#8fd6e6'; x.beginPath(); x.arc(ox + (q + 0.5) * cs, oy + (r + 0.5) * cs, cs * 0.22, 0, 7); x.fill(); }
+    if (b === 'tree') { x.fillStyle = '#2c4029'; x.beginPath(); x.arc(ox + (q + 0.5) * cs, oy + (r + 0.5) * cs, cs * 0.34, 0, 7); x.fill(); }
+    if (b === 'rock' || b === 'ruin') { x.fillStyle = TH.deco[0]; x.beginPath(); x.arc(ox + (q + 0.5) * cs, oy + (r + 0.5) * cs, cs * 0.3, 0, 7); x.fill(); }
   }
   x.save(); x.beginPath(); x.rect(ox, oy, cs * COLS, cs * ROWS); x.clip();
   for (const pts of L.paths) {
     const P = buildPath(pts).P;
-    for (const [lw, col] of [[cs * 0.98, '#3c3934'], [cs * 0.78, '#8b8170']]) {
+    for (const [lw, col] of [[cs * 0.98, TH.path[0]], [cs * 0.78, TH.path[2]]]) {
       x.strokeStyle = col; x.lineWidth = lw; x.lineJoin = 'round'; x.lineCap = 'round';
       x.beginPath(); P.forEach((p, i) => { const X = ox + p.x * cs, Y = oy + p.z * cs; i ? x.lineTo(X, Y) : x.moveTo(X, Y); }); x.stroke();
     }
