@@ -87,8 +87,8 @@ export const ENEMIES = {
   flieger: { name: 'Aschekrähe', hp: 14, speed: 1.7, reward: 6, dmg: 1, size: 0.3, air: true, desc: 'Fliegt. Nur Türme mit Luftabwehr treffen sie.' },
   heiler: { name: 'Seuchenschamane', hp: 35, speed: 1.0, reward: 12, dmg: 2, size: 0.38, heal: 0.05, desc: 'Heilt Gegner in seiner Nähe. Zuerst ausschalten!' },
   brut: { name: 'Brutmutter', hp: 60, speed: 0.8, reward: 14, dmg: 3, size: 0.46, spawn: 4, desc: 'Platzt beim Tod und lässt vier Schwärmer frei.' },
-  koloss: { name: 'Koloss', hp: 550, speed: 0.55, reward: 120, dmg: 20, size: 0.7, armor: 0.25, boss: true, desc: 'Boss. Kommt in jeder 10. Welle und am Levelende.' },
-  fuerst: { name: 'Schattenfürst', hp: 2600, speed: 0.45, reward: 600, dmg: 100, size: 0.9, armor: 0.3, boss: true, summon: true, desc: 'Endboss von Welt 1. Ruft unterwegs Läufer herbei.' },
+  koloss: { name: 'Koloss', hp: 330, speed: 0.55, reward: 120, dmg: 50, size: 0.7, armor: 0.25, boss: true, desc: 'Boss in jeder 10. Welle und am Ende. Durchgelassen kostet er bis zu 50 Leben – je verletzter, desto weniger.' },
+  fuerst: { name: 'Schattenfürst', hp: 2200, speed: 0.45, reward: 600, dmg: 150, size: 0.9, armor: 0.3, boss: true, summon: true, desc: 'Endboss von Welt 1. Ruft unterwegs Läufer herbei.' },
 };
 
 // ---------- Maps (Welt 1) & Schwierigkeitsgrade wie bei Bloons ----------
@@ -124,7 +124,7 @@ export const LEVELS = [
 export const ENDLESS = { name: 'Ewige Wacht', theme: 'schatten', waves: Infinity, hp: 2.6, foes: ['laeufer', 'flitzer', 'schwarm', 'flieger', 'panzer', 'heiler', 'brut'], endless: true, tip: 'So weit du kommst. Zählt für die Bestenliste.',
   paths: [[[-1, 5], [4, 5], [4, 1], [9, 1], [9, 10], [14, 10], [14, 5], [18, 5]]], blocks: [[6, 7, 'crystal'], [11, 4, 'crystal'], [16, 9, 'crystal']] };
 export const DIFFS = {
-  leicht: { name: 'Leicht', waves: 12, hp: 1.0, cash: 1.1, medal: 'Bronze' },
+  leicht: { name: 'Leicht', waves: 12, hp: 0.92, cash: 1.1, medal: 'Bronze' },
   mittel: { name: 'Mittel', waves: 18, hp: 1.3, cash: 1.0, medal: 'Silber' },
   schwer: { name: 'Schwer', waves: 25, hp: 1.7, cash: 0.9, medal: 'Gold' },
 };
@@ -200,6 +200,12 @@ export function buildPath(pts) {
 export function waveHp(L, w) {
   let m = L.hp * (1 + 0.15 * (w - 1) + 0.011 * (w - 1) ** 2);
   if (L.endless && w > 25) m *= Math.pow(1.075, w - 25);
+  return m;
+}
+// Bosse wachsen langsamer als normale Gegner – sonst sind sie ab Welle 10 kaum zu stoppen
+export function bossHp(L, w) {
+  let m = L.hp * (1 + 0.12 * (w - 1));
+  if (L.endless && w > 25) m *= Math.pow(1.05, w - 25);
   return m;
 }
 export function waveGroups(L, w, li = 0) {
@@ -564,7 +570,7 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
     R.queue.sort((a, b) => a.at - b.at);
     R.spawnT = 0;
     R.nextT = 0;
-    R.hpMult = waveHp(R.L, R.wave);
+    R.hpMult = waveHp(R.L, R.wave); R.bossMult = bossHp(R.L, R.wave);
     const boss = R.queue.some(q => ENEMIES[q.type].boss);
     emit('waveStart', { wave: R.wave, waves: R.waves, boss, income: inc });
     if (boss) emit('boss', R.wave);
@@ -573,7 +579,7 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
   function spawn(type, d = 0, pi = null) {
     const R = game.run, E = ENEMIES[type];
     if (pi == null) { pi = R.pathTurn % R.paths.length; R.pathTurn++; }
-    const hp = E.hp * R.hpMult * (E.boss ? 1 : 1);
+    const hp = E.hp * (E.boss ? R.bossMult : R.hpMult);
     const e = { uid: uid++, type, E, hp, maxHp: hp, armor: E.armor || 0, speed: E.speed, d, pi, path: R.paths[pi], x: 0, z: 0, y: E.air ? 1.1 : 0,
       slow: 0, slowT: 0, frozenT: 0, stunT: 0, burn: 0, burnT: 0, melt: 0, meltT: 0, air: !!E.air, boss: !!E.boss, dead: false, hitT: 0, dmgAcc: 0, numT: 0,
       wob: rng() * 6.28, off: (rng() - 0.5) * 0.36, summonT: 3, dir: 0, born: game.t };
@@ -868,8 +874,10 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
       if (e.d >= e.path.len) {
         e.dead = true; e.leaked = true;
         if (e.boss) R.bossAlive--;
-        R.coreHp -= e.E.dmg; R.leaked++;
-        emit('coreHit', { e, dmg: e.E.dmg });
+        // Bosse: Schaden je nach verbleibendem Leben (wie bei Bloons) – unverletzt voller Schaden
+        const cd = e.boss ? Math.round(e.E.dmg * (0.4 + 0.6 * Math.max(0, e.hp / e.maxHp))) : e.E.dmg;
+        R.coreHp -= cd; R.leaked++;
+        emit('coreHit', { e, dmg: cd });
         if (R.coreHp <= 0) {
           if (R.shield) { R.shield = false; R.coreHp = R.coreMax * 0.3; emit('shield'); }
           else { R.coreHp = 0; defeat(); return; }
