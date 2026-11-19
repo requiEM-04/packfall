@@ -1,7 +1,7 @@
 // Packfall – 3D-Schlachtfeld (Three.js): sauberes Raster-Brett, maschinelle Türme mit 5 sichtbaren Ausbaustufen,
 // Gegner mit rötlicher Kontur, Kern, Effekte. Dazu ein Icon-Renderer für Karten/Menüs.
 import * as THREE from './vendor/three.module.min.js';
-import { COLS, ROWS, T, ENEMIES, THEMES } from './core.js?v=0.9.4-d1cb9d7c';
+import { COLS, ROWS, T, ENEMIES, THEMES } from './core.js?v=0.10-199c7e81';
 
 const V3 = THREE.Vector3;
 const C = { steel: '#4d545c', dark: '#2b2f34', iron: '#3a3f45', brass: '#a88f5e', copper: '#9a6a4c', stone: '#5a5650', stoneD: '#3d3b37', black: '#17181b', olive: '#4c5246', rust: '#6e4232', gold: '#c7a456' };
@@ -124,7 +124,7 @@ function rarityAura(root, ud, d) {
 function holder(parent, p) { const g = new THREE.Group(); g.position.set(p[0], p[1], p[2]); g.userData.p0 = g.position.clone(); parent.add(g); return g; }
 function addMuzzle(ud, parent, p) { const o = new THREE.Object3D(); o.position.set(p[0], p[1], p[2]); parent.add(o); ud.muzzle = o; }
 
-export function buildTower(id, lv = 0) {
+export function buildTower(id, lv = 0, mastery = 1) {
   const d = T[id], A = d.accent;
   const root = new THREE.Group();
   const BR = (RS[d.rarity] || RS.common).trim, GD = (RS[d.rarity] || RS.common).trim2;
@@ -426,6 +426,14 @@ export function buildTower(id, lv = 0) {
     }
   }
   rarityAura(root, ud, d);
+  // Turm-Level (PvZ2-Stil): ab Level 5 Veteranen-Ring, auf Level 10 Meister-Aura in der Turmfarbe
+  if (mastery >= 5) {
+    const kv = new Kit(), mc = mastery >= 10 ? d.accent : '#c9a456';
+    kv.tor('glow', 0.52, 0.011, mc, [0, 0, 0], [Math.PI / 2, 0, 0], 56);
+    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; kv.oct('glow', 0.03, mc, [Math.sin(a) * 0.52, 0, Math.cos(a) * 0.52], [0, a, 0], [1, 1.6, 1]); }
+    const r = kv.build(false); r.position.y = 0.015; root.add(r);
+    if (mastery >= 10) { r.userData.orbit = 1; ud.rings.push(r); const h = halo(d.accent, 1.5, 0.32); h.position.y = 0.25; h.userData.base = 1; root.add(h); ud.halos.push(h); ud.master = true; }
+  }
   root.userData = ud;
   return root;
 }
@@ -976,7 +984,7 @@ export function createBattle(canvas, game, { quality = () => 'auto' } = {}) {
       let o = towers.get(tw.uid);
       if (!o || o.lv !== tw.lv) {
         if (o) { scene.remove(o.obj); disposeObj(o.obj); }
-        const obj = buildTower(tw.id, tw.lv);
+        const obj = buildTower(tw.id, tw.lv, game.towerLevel(tw.id));
         obj.position.set(tw.x, 0, tw.z);
         scene.add(obj);
         o = { obj, lv: tw.lv, born: o ? 0.5 : 0, pop: o ? 1 : 0 };
@@ -998,7 +1006,8 @@ export function createBattle(canvas, game, { quality = () => 'auto' } = {}) {
       const rar = tw.def.rarity;
       if (rar === 'legendary' && R() < dt * 2.2 * pq()) { const a = R() * 6.28, rr = 0.3 + R() * 0.3; addP.emit(tw.x + Math.sin(a) * rr, 0.2, tw.z + Math.cos(a) * rr, 0, 0.6 + R() * 0.5, 0, 1.2, 0.07, CO.gold, 0.9, -0.1); }
       else if (rar === 'mythic' && R() < dt * 7 * pq()) { const a = R() * 6.28, rr = 0.25 + R() * 0.4; addP.emit(tw.x + Math.sin(a) * rr, 0.15, tw.z + Math.cos(a) * rr, 0, 0.7 + R() * 0.8, 0, 1.1, 0.08 + R() * 0.05, R() < 0.7 ? CO.red : CO.fire, 0.9, -0.2); }
-      else if (rar === 'epic' && R() < dt * 0.9 * pq()) { const a = R() * 6.28; addP.emit(tw.x + Math.sin(a) * 0.4, 0.2, tw.z + Math.cos(a) * 0.4, 0, 0.5, 0, 1.2, 0.06, CO.purple, 0.8, -0.1); }
+      if (ud.master && R() < dt * 2 * pq()) { const a = R() * 6.28; addP.emit(tw.x + Math.sin(a) * 0.5, 0.05, tw.z + Math.cos(a) * 0.5, 0, 0.5, 0, 1, 0.07, col(tw.def.accent), 0.8, -0.1); }
+      if (rar === 'epic' && R() < dt * 0.9 * pq()) { const a = R() * 6.28; addP.emit(tw.x + Math.sin(a) * 0.4, 0.2, tw.z + Math.cos(a) * 0.4, 0, 0.5, 0, 1.2, 0.06, CO.purple, 0.8, -0.1); }
       if (ud.smoke.length && R() < dt * 2.2 * pq()) { const s = ud.smoke[Math.floor(R() * ud.smoke.length)]; const w = s.clone().applyMatrix4(o.obj.matrixWorld); smoke.emit(w.x, w.y, w.z, (R() - 0.5) * 0.1, 0.35, (R() - 0.5) * 0.1, 2.2, 0.28, CO.smokeL, 0.35, -0.05, 0.3, 2.2); }
       // Flammen
       if (tw.def.kind === 'flame' && tw.flaming > 0.05) {
