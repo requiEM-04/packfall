@@ -1,7 +1,7 @@
 // Packfall – Oberfläche: Hauptmenü (wie Pokélings), Unterseiten, Run-HUD, Booster öffnen, Willkommen
-import { UPGRADES, U, TOWERS, T, ENEMIES, RARITIES, BOOSTERS, LEVELS, ENDLESS, levelDef, DIFFS, DIFF_IDS, THEMES, MODES, MAX_LV, fmt, fmtNum } from './core.js?v=0.9.2-e9185933';
-import { createOpening } from './opening.js?v=0.9.2-e9185933';
-import { createAdmin } from './admin.js?v=0.9.2-e9185933';
+import { UPGRADES, U, TOWERS, T, ENEMIES, RARITIES, BOOSTERS, LEVELS, ENDLESS, levelDef, DIFFS, DIFF_IDS, THEMES, MODES, MAX_LV, fmt, fmtNum } from './core.js?v=0.9.4-d1cb9d7c';
+import { createOpening } from './opening.js?v=0.9.4-d1cb9d7c';
+import { createAdmin } from './admin.js?v=0.9.4-d1cb9d7c';
 
 const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -19,6 +19,8 @@ const starsHTML = (n, max = 5) => Array.from({ length: max }, (_, i) => `<i clas
 const WHY = { cell: 'Hier kann nicht gebaut werden.', cash: 'Nicht genug Münzen.', loadout: 'Dieser Turm ist nicht im Loadout.' };
 
 const PATCH = [
+  ['v0.9.4', 'Menü: Fortschritt und Bestenliste rechts bündig unter der Leiste oben rechts; Kern im Hintergrund ohne die kleinen Türme'],
+  ['v0.9.3', 'Bosse überarbeitet: Kolosse haben deutlich weniger Leben und sind jetzt wirklich besiegbar – wer einen durchlässt, verliert dafür bis zu 50 Kern-Leben, je nachdem wie viel Leben er noch hat (wie bei Bloons). Leicht ist etwas einsteigerfreundlicher'],
   ['v0.9.2', 'Musik wird einmal vorab berechnet und läuft danach als fertige Schleife – kein Haken und Abbrechen mehr, auch wenn die Grafik viel zu tun hat; kein Auswahl-Rahmen mehr um den Booster'],
   ['v0.9.1', 'Maps wie bei Bloons: jede Map auf Leicht, Mittel oder Schwer (12/18/25 Wellen) mit Bronze-, Silber- und Gold-Abzeichen; 8 neu gebaute Maps mit eigenem Look, eigenen Gegnern und Hindernissen; neue Seltenheit Mythisch mit Blutmond-Reaktor und Himmelsspeer; seltene Türme sehen jetzt deutlich krasser aus; kein geschenkter Standard-Turm mehr; Intro entfernt, neuer Titel und Menü mit düsterer 3D-Landschaft; Musik stottert und bricht nicht mehr ab'],
   ['v0.9', 'Packfall ist jetzt ein echtes Tower Defense: Welt „Aschewald“ mit 8 Leveln und Endlos-Modus, bis zu 3 Sterne pro Level, Türme frei aufs Raster setzen und bis Stufe 5 ausbauen, Zielwahl, Wellen früher rufen. 12 maschinelle Türme mit sichtbaren Ausbaustufen, Loadout mit bis zu 5 Türmen, 9 Gegnerarten mit roter Kontur und Bosse. Komplett neue 3D-Grafik ohne Pixel, neue Werkstatt, Intro nur noch einmal am Tag, neuer Ladescreen. Weil das Spiel ganz neu ist, startet jeder Spielstand frisch.'],
@@ -102,7 +104,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
           <p class="kw-ribbon">Booster öffnen · Türme bauen · Kern halten</p>
           <button type="button" class="kw-press" data-k="press">Drücke Start</button>
         </div>
-        <p class="kw-legal">Prototyp v0.9.2 · Spielstand wird automatisch gespeichert</p>
+        <p class="kw-legal">Prototyp v0.9.4 · Spielstand wird automatisch gespeichert</p>
       </div>
       <div class="kw-auth" data-k="auth">
         <div class="kw-auth-in">
