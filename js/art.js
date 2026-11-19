@@ -1,5 +1,5 @@
 // Packfall – glatte Vektor-Grafik: Icons, Booster-Packs, Map-Vorschauen (keine Pixel)
-import { COLS, ROWS, buildPath, THEMES } from './core.js?v=0.9.1-86e62b3e';
+import { COLS, ROWS, buildPath, THEMES } from './core.js?v=0.9.2-e9185933';
 
 // ---------- Icons (24×24, Linienstil) ----------
 const S = (d, extra = '') => `<path d="${d}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"${extra}/>`;
