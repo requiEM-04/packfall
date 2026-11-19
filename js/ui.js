@@ -1,13 +1,13 @@
 // Packfall – Oberfläche: Hauptmenü (wie Pokélings), Unterseiten, Run-HUD, Booster öffnen, Willkommen
-import { UPGRADES, U, TOWERS, T, ENEMIES, RARITIES, BOOSTERS, LEVELS, ENDLESS, levelDef, DIFFS, DIFF_IDS, THEMES, MODES, MAX_LV, fmt, fmtNum } from './core.js?v=0.9.4-d1cb9d7c';
-import { createOpening } from './opening.js?v=0.9.4-d1cb9d7c';
-import { createAdmin } from './admin.js?v=0.9.4-d1cb9d7c';
+import { UPGRADES, U, TOWERS, T, ENEMIES, RARITIES, BOOSTERS, LEVELS, ENDLESS, levelDef, DIFFS, DIFF_IDS, THEMES, MODES, MAX_LV, TLV_MAX, LVL_BONUS, PACK_CARDS, perksOf, perkText, cardsNeed, fmt, fmtNum } from './core.js?v=0.10-199c7e81';
+import { createOpening } from './opening.js?v=0.10-199c7e81';
+import { createAdmin } from './admin.js?v=0.10-199c7e81';
 
 const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 // Werkstatt-Baum: Positionen in Prozent
 const TREE = {
-  kapital: [26, 14], kern: [26, 40], kaliber: [26, 64], platz4: [26, 88],
+  kapital: [26, 14], mechanik: [26, 40], kaliber: [26, 64], platz4: [26, 88],
   kopfgeld: [50, 10], ingenieur: [50, 30], notschild: [50, 48], optik: [50, 68], platz5: [50, 88],
   kasse: [74, 8], gemfund: [74, 24], recycling: [74, 40],
 };
@@ -19,6 +19,8 @@ const starsHTML = (n, max = 5) => Array.from({ length: max }, (_, i) => `<i clas
 const WHY = { cell: 'Hier kann nicht gebaut werden.', cash: 'Nicht genug Münzen.', loadout: 'Dieser Turm ist nicht im Loadout.' };
 
 const PATCH = [
+  ['v0.10', 'Türme wie in Plants vs. Zombies 2: Booster geben Karten, mit Karten und Gems wertest du Türme bis Level 10 auf (+8 % pro Level); Level 3, 5, 7 und 10 bringen Belohnungen, ab Level 5 Veteranen-Ring, auf Level 10 Meister-Aura; Karten auch als Map-Belohnung. Alte Sterne wurden fair in Level und Karten umgerechnet. Der Kern hat jetzt immer 100 Leben, durchgelassene Gegner ziehen je nach Modus unterschiedlich viel ab (Leicht ×0,75 · Mittel ×1 · Schwer ×1,5 · Endlos ×1,25); Kernpanzer-Gems wurden erstattet, neu ist Mechanik (+Feuerrate). Kampfleiste oben springt nicht mehr'],
+  ['v0.9.5', 'Kampfleiste oben behält immer dieselbe Größe – sie springt nicht mehr, wenn sich Geld, Leben oder Welle ändern'],
   ['v0.9.4', 'Menü: Fortschritt und Bestenliste rechts bündig unter der Leiste oben rechts; Kern im Hintergrund ohne die kleinen Türme'],
   ['v0.9.3', 'Bosse überarbeitet: Kolosse haben deutlich weniger Leben und sind jetzt wirklich besiegbar – wer einen durchlässt, verliert dafür bis zu 50 Kern-Leben, je nachdem wie viel Leben er noch hat (wie bei Bloons). Leicht ist etwas einsteigerfreundlicher'],
   ['v0.9.2', 'Musik wird einmal vorab berechnet und läuft danach als fertige Schleife – kein Haken und Abbrechen mehr, auch wenn die Grafik viel zu tun hat; kein Auswahl-Rahmen mehr um den Booster'],
@@ -104,7 +106,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
           <p class="kw-ribbon">Booster öffnen · Türme bauen · Kern halten</p>
           <button type="button" class="kw-press" data-k="press">Drücke Start</button>
         </div>
-        <p class="kw-legal">Prototyp v0.9.4 · Spielstand wird automatisch gespeichert</p>
+        <p class="kw-legal">Prototyp v0.10 · Spielstand wird automatisch gespeichert</p>
       </div>
       <div class="kw-auth" data-k="auth">
         <div class="kw-auth-in">
@@ -194,7 +196,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
       if (!id) return `<div class="kw-ls is-empty"><kbd>${i + 1}</kbd></div>`;
       const d = T[id], cost = game.towerCost(id), n = R.built[id] || 0, poor = R.cash < cost, full = n >= d.limit;
       return `<button type="button" class="kw-ls r-${d.rarity}${sel.place === id ? ' is-sel' : ''}${poor || full ? ' is-poor' : ''}" style="--ac:${d.accent};--rc:${RARITIES[d.rarity].color}" data-act="pick" data-id="${id}" title="${d.name} · ${d.role}">
-        <kbd>${i + 1}</kbd><span class="kw-ls-art">${skin.towerArt(id)}</span><b>${d.name}</b><span class="kw-ls-cost">${ic('coin')}${fmt(cost)}</span><small>${full ? 'Limit' : `${n}/${d.limit}`}</small></button>`;
+        <kbd>${i + 1}</kbd><span class="kw-ls-lv">Lv ${game.towerLevel(id)}</span><span class="kw-ls-art">${skin.towerArt(id)}</span><b>${d.name}</b><span class="kw-ls-cost">${ic('coin')}${fmt(cost)}</span><small>${full ? 'Limit' : `${n}/${d.limit}`}</small></button>`;
     }).join('');
     let wb;
     if (R.phase === 'prep') wb = `<button type="button" class="kw-wb is-go" data-act="callWave">${ic('play')}<span><b>Welle 1 starten</b><small>Leertaste</small></span></button>`;
@@ -228,7 +230,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     const modes = d.kind === 'farm' || d.kind === 'support' ? '' : `<div class="kw-tp-mode"><small>Ziel</small><div class="kw-seg">${Object.entries(MODES).map(([k2, n]) => `<button type="button" data-act="mode" data-v="${k2}" aria-pressed="${tw.mode === k2}">${n}</button>`).join('')}</div></div>`;
     const buff = tw.buff ? `<p class="kw-tp-buff">${ic('up')} Verstärkt: +${Math.round(tw.buff.dmg * 100)} % Schaden, +${Math.round(tw.buff.rate * 100)} % Tempo</p>` : '';
     return `<div class="kw-box kw-tp-in" style="--ac:${d.accent};--rc:${RARITIES[d.rarity].color}">
-      <header><span class="kw-tp-art">${skin.towerArt(tw.id, { max: tw.lv >= 4 })}</span><div><b>${d.name}</b><small>${tw.lv ? d.lv[tw.lv].name : d.role}</small><span class="kw-pips">${pips}</span></div><button type="button" class="kw-x" data-act="deselect" aria-label="Schließen">${ic('x')}</button></header>
+      <header><span class="kw-tp-art">${skin.towerArt(tw.id, { max: tw.lv >= 4 })}</span><div><b>${d.name} <i class="kw-tp-lv">Lv ${game.towerLevel(tw.id)}</i></b><small>${tw.lv ? d.lv[tw.lv].name : d.role}</small><span class="kw-pips">${pips}</span></div><button type="button" class="kw-x" data-act="deselect" aria-label="Schließen">${ic('x')}</button></header>
       <dl class="kw-tp-st">${rows.join('')}</dl>${buff}
       ${d.kind !== 'farm' && d.kind !== 'support' ? '<p class="kw-tp-kills"></p>' : ''}
       ${cost != null ? `<button type="button" class="kw-btn kw-tp-up${canUp ? ' kw-btn-primary' : ''}" data-act="upT"${canUp ? '' : ' aria-disabled="true"'}><span><b>${d.lv[tw.lv + 1].name}</b><small>Ausbau auf Stufe ${tw.lv + 2} · Taste E</small></span><em>${ic('coin')}${fmt(cost)}</em></button>` : '<p class="kw-tp-max">Voll ausgebaut</p>'}
@@ -345,7 +347,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
           ${mb('open', 'welt', 'sword', 'Kämpfen', nxName, '', true)}
           ${mb('open', 'booster', 'pack', 'Booster-Laden', giftOpen ? 'Ein Geschenk wartet auf dich!' : 'Turm-Booster · Elite-Booster', giftOpen ? badge('Geschenk') : affordable ? badge('!') : '')}
           ${mb('open', 'werkstatt', 'anvil', 'Werkstatt', avail ? `${avail} Ausbau${avail === 1 ? '' : 'ten'} möglich` : 'Dauerhafte Verbesserungen', avail ? badge(avail) : '')}
-          ${mb('open', 'tuerme', 'turret', 'Türme', `Sammlung ${owned}/${TOWERS.length} · Loadout ${loadoutIds().filter(Boolean).length}/${game.loadoutSize()}`)}
+          ${mb('open', 'tuerme', 'turret', 'Türme', game.readyCount() ? `${game.readyCount()} Aufwertung${game.readyCount() === 1 ? '' : 'en'} bereit` : `Sammlung ${owned}/${TOWERS.length} · Loadout ${loadoutIds().filter(Boolean).length}/${game.loadoutSize()}`, game.readyCount() ? badge(game.readyCount()) : '')}
           ${mb('open', 'bestiarium', 'skull', 'Bestiarium', `${Object.keys(ENEMIES).length} Gegnerarten`)}
           ${mb('open', 'statistik', 'chart', 'Statistik', `${fmt(m.runs)} Spiele · ${fmt(m.kills)} Gegner besiegt`)}
           ${mb('open', 'einstellungen', 'gear', 'Einstellungen', `Anleitung · Sound · Grafik · ${cloud?.st?.status === 'online' ? 'Abmelden' : 'Login'}`)}
@@ -413,12 +415,12 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
       cells.push(`<div class="kw-shopcell k-${kind}">
         <div class="kw-price">${costHTML('gem', b.cost)}</div>
         <div class="kw-shopimg">${skin.packArt(kind)}</div>
-        <b>${b.name}</b><small>1 Turm${kind === 'elite' ? ' · mind. Selten' : ''}</small>
-        <ul class="kw-odds">${Object.entries(b.odds).map(([r, v]) => `<li style="--rc:${RARITIES[r].color}"><span>${RARITIES[r].name}</span><span>${v} %</span></li>`).join('')}<li class="foil"><span>Glanz</span><span>${Math.round(b.foil * 100)} %</span></li></ul>
+        <b>${b.name}</b><small>Karten für 1 Turm${kind === 'elite' ? ' · mind. Selten' : ''}</small>
+        <ul class="kw-odds">${Object.entries(b.odds).map(([r, v]) => `<li style="--rc:${RARITIES[r].color}"><span>${RARITIES[r].name}</span><span>${v} %</span></li>`).join('')}</ul>
         <button type="button" class="kw-btn${can ? ' kw-btn-primary' : ''}" data-act="booster" data-v="${kind}"${can ? '' : ' aria-disabled="true"'}>${can ? 'Öffnen' : `Fehlen ${fmt(b.cost - m.gems)}`}</button></div>`);
     });
     return `<div class="kw-shop">${cells.join('')}</div>
-      <p class="kw-hint">Jeder Booster enthält einen Turm. Doppelte geben Sterne (bis ★5, je +10 % Stärke). Glanz-Türme sind dauerhaft 10 % stärker.</p>
+      <p class="kw-hint">Jeder Booster enthält Karten für einen Turm: Gewöhnlich 6–10, Selten 3–6, Episch 2–4, Legendär 1–2, Mythisch 1. Mit Karten und Gems wertest du Türme auf (bis Level 10).</p>
       <button type="button" class="kw-link" data-act="testgems">+300 Gems zum Testen (nur im Prototyp)</button>`;
   }
 
@@ -475,7 +477,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     const L = levelDef(i, diffSel);
     const foes = i === 'endless' ? [...L.foes, 'koloss', 'fuerst'] : [...L.foes, L.final || 'koloss'];
     const lo = loadoutIds();
-    const diffs = i === 'endless' ? '' : `<h4>Schwierigkeit</h4><div class="kw-diffs">${DIFF_IDS.map(d => `<button type="button" class="kw-diff m-${MEDAL[d]}${diffSel === d ? ' is-sel' : ''}${game.hasMedal(i, d) ? ' has' : ''}" data-act="diff" data-v="${d}"><span class="kw-diff-m">${ic('medal')}</span><b>${DIFFS[d].name}</b><small>${DIFFS[d].waves} Wellen</small></button>`).join('')}</div>`;
+    const diffs = i === 'endless' ? '' : `<h4>Schwierigkeit</h4><div class="kw-diffs">${DIFF_IDS.map(d => `<button type="button" class="kw-diff m-${MEDAL[d]}${diffSel === d ? ' is-sel' : ''}${game.hasMedal(i, d) ? ' has' : ''}" data-act="diff" data-v="${d}"><span class="kw-diff-m">${ic('medal')}</span><b>${DIFFS[d].name}</b><small>${DIFFS[d].waves} Wellen · Abzug ×${String(DIFFS[d].leak).replace('.', ',')}</small></button>`).join('')}</div>`;
     const desc = i === 'endless' ? 'Unendlich viele Wellen. Jede 10. Welle ein Koloss, jede 25. der Schattenfürst. Zählt für die Bestenliste.'
       : `${L.paths.length > 1 ? '2 Eingänge · ' : ''}${info.clears ? `${info.clears}× geschafft` : 'noch nicht geschafft'} · Abzeichen ${DIFFS[diffSel].medal}${game.hasMedal(i, diffSel) ? ' ✓' : ''}`;
     return `<div class="kw-welt">
@@ -498,31 +500,46 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
 
   // ---------- Türme: Sammlung & Loadout ----------
   let towSel = null;
+  const lvBadge = id => `<span class="kw-lvb${game.towerLevel(id) >= TLV_MAX ? ' is-max' : ''}">${game.towerLevel(id)}</span>`;
+  function cardBar(id) {
+    const need = game.cardsNeed(id), have = game.towerCards(id);
+    if (need == null) return '<span class="kw-cbar is-max"><i style="--k:1"></i><b>MAX</b></span>';
+    const k = Math.min(1, have / need), ready = have >= need;
+    return `<span class="kw-cbar${ready ? ' is-ready' : ''}"><i style="--k:${k.toFixed(3)}"></i>${ready ? ic('up') : ''}<b>${have}/${need}</b></span>`;
+  }
   function tuermeHTML() {
     const m = game.meta, size = game.loadoutSize();
     if (!towSel || !T[towSel]) towSel = Object.keys(m.towers)[0] || TOWERS[0].id;
     const lo = m.loadout.map((id, i) => (i >= size ? `<div class="kw-lo is-locked">${ic('lock')}<small>Werkstatt</small></div>`
-      : id ? `<button type="button" class="kw-lo r-${T[id].rarity}" style="--rc:${RARITIES[T[id].rarity].color}" data-act="tsel" data-id="${id}"><span class="kw-lo-art">${skin.towerArt(id)}</span><b>${T[id].name}</b><small>${ic('coin')}${fmt(game.towerCost(id))}</small></button>`
+      : id ? `<button type="button" class="kw-lo r-${T[id].rarity}" style="--rc:${RARITIES[T[id].rarity].color}" data-act="tsel" data-id="${id}">${lvBadge(id)}<span class="kw-lo-art">${skin.towerArt(id)}</span><b>${T[id].name}</b><small>${ic('coin')}${fmt(game.towerCost(id))}</small></button>`
         : `<div class="kw-lo is-empty">${ic('plus')}<small>Platz ${i + 1}</small></div>`)).join('');
     const coll = TOWERS.map(d => {
       const own = m.towers[d.id];
       if (!own) return `<button type="button" class="kw-tc r-${d.rarity} is-unknown${towSel === d.id ? ' is-sel' : ''}" style="--rc:${RARITIES[d.rarity].color}" data-act="tsel" data-id="${d.id}"><span class="kw-tc-art">${skin.towerArt(d.id, { unknown: true })}</span><b>???</b><small>${RARITIES[d.rarity].name}</small></button>`;
-      const inLo = m.loadout.includes(d.id);
-      return `<button type="button" class="kw-tc r-${d.rarity}${towSel === d.id ? ' is-sel' : ''}${inLo ? ' is-in' : ''}${own.foil ? ' foil' : ''}" style="--rc:${RARITIES[d.rarity].color}" data-act="tsel" data-id="${d.id}"><span class="kw-tc-art">${skin.towerArt(d.id)}</span><b>${d.name}</b><span class="kw-tstars">${starsHTML(game.starOf(d.id))}</span>${inLo ? `<em title="Im Loadout">${ic('check')}</em>` : ''}</button>`;
+      const inLo = m.loadout.includes(d.id), ready = game.cardsReady(d.id);
+      return `<button type="button" class="kw-tc r-${d.rarity}${towSel === d.id ? ' is-sel' : ''}${inLo ? ' is-in' : ''}${ready ? ' is-ready' : ''}" style="--rc:${RARITIES[d.rarity].color}" data-act="tsel" data-id="${d.id}">${lvBadge(d.id)}<span class="kw-tc-art">${skin.towerArt(d.id)}</span><b>${d.name}</b>${cardBar(d.id)}${inLo ? `<em title="Im Loadout">${ic('check')}</em>` : ''}</button>`;
     }).join('');
-    const d = T[towSel], own = m.towers[towSel], st = game.starOf(towSel), nxt = game.nextStarAt(towSel), inLo = m.loadout.includes(towSel);
-    const val = lv => (d.kind === 'farm' ? `${fmt(game.towerStats(d.id, lv).income)}/Welle` : d.kind === 'support' ? `+${Math.round(game.towerStats(d.id, lv).bDmg * 100)} %` : `${fmtNum(game.dps(d.id, lv), 1)}`);
+    const d = T[towSel], own = m.towers[towSel], inLo = m.loadout.includes(towSel), L = game.towerLevel(towSel);
+    const P = perksOf(d.id);
+    const path = own ? `<ol class="kw-lvpath">${Array.from({ length: TLV_MAX }, (_, i) => {
+      const lv = i + 1, pk = P[lv], done = L >= lv;
+      return `<li class="${done ? 'on' : ''}${lv === L + 1 ? ' next' : ''}${pk ? ' has-perk' : ''}"><span class="kw-lvpath-n">${lv}</span><span class="kw-lvpath-t">${pk ? `<b>${pk.name}</b><small>${perkText(pk)}${lv === 5 ? ' · Veteranen-Ring' : lv === 10 ? ' · Meister-Aura' : ''}</small>` : `<small>+${Math.round(LVL_BONUS * 100)} % Stärke</small>`}</span>${lv > 1 ? `<span class="kw-lvpath-c">${cardsNeed(d.id, lv)} ${ic('pack')}</span>` : ''}</li>`;
+    }).join('')}</ol>` : '';
+    const need = game.cardsNeed(d.id), cost = game.lvlCost(d.id), can = game.canLevel(d.id);
+    const upBtn = !own ? '' : need == null ? '<p class="kw-tdet-max">Meister · Level 10 erreicht</p>'
+      : `<button type="button" class="kw-btn kw-tdet-up${can ? ' kw-btn-primary' : ''}" data-act="lvlUp" data-id="${d.id}"${can ? '' : ' aria-disabled="true"'}>${ic('up')}<span>Auf Level ${L + 1} aufwerten</span><em>${ic('gem')}${fmt(cost)}</em></button>`;
     const detail = `<div class="kw-box kw-tdet r-${d.rarity}" style="--rc:${RARITIES[d.rarity].color};--ac:${d.accent}">
-      <div class="kw-tdet-art">${own ? skin.towerArt(d.id, { max: true }) : skin.towerArt(d.id, { unknown: true })}${own ? '<small>Stufe 5</small>' : ''}</div>
+      <div class="kw-tdet-art">${own ? skin.towerArt(d.id, { max: true }) : skin.towerArt(d.id, { unknown: true })}${own ? `<span class="kw-tdet-lv">Level ${L}</span>` : ''}</div>
       <small class="kw-tdet-rar">${RARITIES[d.rarity].name} · ${d.role}</small>
       <h3>${own ? d.name : '???'}</h3>
-      <p>${own ? d.desc : 'Noch nicht gefunden. Kommt aus Boostern.'}</p>
-      ${own ? `<div class="kw-tdet-star"><span class="kw-tstars">${starsHTML(st)}</span><small>${nxt ? `${own.copies}/${nxt} Kopien bis ★${st + 1}` : 'Maximale Sterne'}${own.foil ? ' · Glanz' : ''}</small></div>
-      <table class="kw-tdet-tab"><thead><tr><th>Stufe</th><th>Ausbau</th><th>${ic('coin')}</th><th>${d.kind === 'farm' ? 'Ertrag' : d.kind === 'support' ? 'Bonus' : 'Schaden/s'}</th></tr></thead><tbody>${d.lv.map((L, i) => `<tr><td>${i + 1}</td><td>${i ? L.name : 'Bauen'}</td><td>${fmt(game.towerCost(d.id, i))}</td><td>${val(i)}</td></tr>`).join('')}</tbody></table>
-      <p class="kw-tdet-meta">${d.kind === 'farm' || d.kind === 'support' ? '' : d.air ? `${ic('check')} Trifft Flieger · ` : `${ic('x')} Keine Flieger · `}max. ${d.limit} pro Map</p>
+      <p>${own ? d.desc : `Noch nicht gefunden. Kommt aus Boostern (${PACK_CARDS[d.rarity][0]}${PACK_CARDS[d.rarity][1] > PACK_CARDS[d.rarity][0] ? '–' + PACK_CARDS[d.rarity][1] : ''} Karten pro Pull).`}</p>
+      ${own ? `<div class="kw-tdet-cards">${cardBar(d.id)}<small>${need == null ? 'Alle Level erreicht' : game.cardsReady(d.id) ? `Bereit! Aufwerten kostet ${fmt(cost)} Gems` : `Noch ${need - game.towerCards(d.id)} Karten bis Level ${L + 1}`}</small></div>
+      ${upBtn}
+      <h4>Level &amp; Belohnungen</h4>${path}
+      <p class="kw-tdet-meta">${d.kind === 'farm' || d.kind === 'support' ? '' : d.air ? `${ic('check')} Trifft Flieger · ` : `${ic('x')} Keine Flieger · `}${fmtNum(game.dps(d.id, 0), 1)} ${d.kind === 'farm' ? '' : 'Schaden/s'} · max. ${d.limit} pro Map</p>
       <button type="button" class="kw-btn${inLo ? '' : ' kw-btn-primary'}" data-act="tload" data-id="${d.id}">${ic(inLo ? 'x' : 'plus')}<span>${inLo ? 'Aus dem Loadout nehmen' : 'Ins Loadout'}</span></button>` : ''}
     </div>`;
-    return `<p class="kw-hint">Dein Loadout sind die Türme, die du auf der Map bauen kannst. Doppelte aus Boostern geben Sterne: jeder Stern macht den Turm 10 % stärker.</p>
+    return `<p class="kw-hint">Booster geben Karten. Mit genug Karten und Gems wertest du einen Turm auf – bis Level 10, mit Belohnungen auf Level 3, 5, 7 und 10. Dein Loadout sind die Türme, die du auf der Map bauen kannst.</p>
       <div class="kw-box kw-lorow"><h4>Loadout</h4>${lo}</div>
       <div class="kw-tw"><div class="kw-tgrid">${coll}</div>${detail}</div>`;
   }
@@ -661,6 +678,10 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
       case 'next': { const li = v === 'endless' ? 'endless' : +v; lvlSel = li; startLevel(li, game.meta.lastDiff || 'leicht'); break; }
       case 'toBase': E.sum.hidden = true; game.leaveRun(); sfx('click'); last.menu = ''; break;
       case 'tsel': towSel = id; sfx('nav'); break;
+      case 'lvlUp':
+        if (!game.levelUp(id)) { sfx('deny'); toast(!game.cardsReady(id) ? 'Dafür fehlen noch Karten.' : `Dir fehlen ${fmt(game.lvlCost(id) - game.meta.gems)} Gems.`); }
+        else { const L = game.towerLevel(id), pk = perksOf(id)[L]; sfx('reveal', L >= 10 ? 'mythic' : L >= 5 ? 'legendary' : 'epic'); banner(`${T[id].name} · Level ${L}`, pk ? `${pk.name}: ${perkText(pk)}` : `+${Math.round(LVL_BONUS * 100)} % Stärke`, 'realm'); }
+        break;
       case 'tload':
         if (!game.toggleLoadout(id)) { sfx('deny'); toast(game.meta.loadout.includes(id) ? 'Mindestens ein Turm muss im Loadout bleiben.' : 'Loadout ist voll. Nimm erst einen Turm heraus oder schalte in der Werkstatt Plätze frei.'); }
         else sfx('click');
@@ -797,9 +818,9 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
           : `${fmtNum(game.dps(d.id, 0))} Schaden/s · Reichweite ${rngTxt(st.range)} · ${d.role}`;
       },
       tag: r => {
-        let t = r.isNew ? (r.placed ? 'Neu · direkt im Loadout' : 'Neu · in der Sammlung') : r.refund ? `Max. Sterne · +${r.refund} Gems` : r.starTo > r.starFrom ? `Doppelt · ★${r.starFrom} → ★${r.starTo}` : `Doppelt · ${r.copies}/${game.nextStarAt(r.id)} Kopien bis ★${r.starTo + 1}`;
-        if (r.becameFoil) t += ' · jetzt mit Glanz';
-        return t;
+        if (r.isNew) return `Neu! · ${r.n} Karte${r.n === 1 ? '' : 'n'}${r.placed ? ' · direkt im Loadout' : ''}`;
+        if (r.refund) return `Level 10 · +${r.refund} Gems`;
+        return `+${r.n} Karte${r.n === 1 ? '' : 'n'} · ${r.cards}/${r.need} bis Level ${r.lvl + 1}${r.cards >= r.need ? ' · bereit!' : ''}`;
       },
       again: kind => {
         const b = BOOSTERS[kind];
@@ -840,6 +861,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
       ${s.li !== 'endless' && win ? `<div class="kw-sum-medal m-${MEDAL[s.medal]}">${ic('medal')}<b>${DIFFS[s.medal].medal}-Abzeichen</b>${s.newMedal ? '<em>Neu!</em>' : ''}</div>`
         : `<p class="kw-sum-wave">Welle <b>${s.wave}</b>${s.waves !== Infinity ? ` von ${s.waves}` : ''}${s.record ? ' <span class="kw-rec">Neuer Rekord</span>' : ''}</p>`}
       ${win && s.firstClear ? `<p class="kw-sum-first">${ic('trophy')} Map zum ersten Mal geschafft!${nextI != null ? ' Die nächste Map ist frei.' : ''}</p>` : ''}
+      ${s.cards ? `<p class="kw-sum-cards">${skin.towerArt(s.cards.id)}<span><b>+${s.cards.n} Karten</b><small>${T[s.cards.id].name} · ${game.towerCards(s.cards.id)}/${game.cardsNeed(s.cards.id) ?? 'max'}</small></span></p>` : ''}
       <dl class="kw-sum-list">
         <div><dt>Gems verdient</dt><dd>${ic('gem')}${fmt(s.gems)}</dd></div>
         <div><dt>Gegner besiegt</dt><dd>${fmt(s.kills)}</dd></div>
@@ -954,6 +976,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     later(() => {
       setPhase('menu'); E.open.hidden = true; last.menu = '';
       later(checkMail, 900);
+      later(migrationNotes, 700);
       if (!game.meta.flags.intro) later(() => showIntro(true), 250);
       else later(() => E.menu.querySelector('.kw-mi')?.focus({ preventScroll: true }), 80);
     }, 450);
@@ -976,6 +999,16 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     if (cloud?.configured() && cloud.st.restoring) await Promise.race([cloud.restored, new Promise(r => setTimeout(r, 2500))]);
     if (!cloud?.configured() || cloud.st.status === 'online' || guest) toMenu(); else showAuth();
   });
+
+  function migrationNotes() {
+    const m = game.meta;
+    if (m.refundKern) { pushInbox('Werkstatt umgebaut', `Der Kern hat jetzt immer 100 Leben. Deine ${fmt(m.refundKern)} Gems für den Kernpanzer wurden dir vollständig erstattet. Neu in der Werkstatt: Mechanik (+Feuerrate).`); delete m.refundKern; game.save(); }
+    const mig = Object.entries(m.towers).filter(([, t]) => t.from);
+    if (mig.length && !m.flags.lvlInfo) {
+      pushInbox('Neues Level-System', `Deine Türme wurden fair umgerechnet: ${mig.map(([id, t]) => `${T[id].name} Level ${t.lvl}`).join(', ')}. Übrige Karten bleiben erhalten.`);
+      m.flags.lvlInfo = true; game.save();
+    }
+  }
 
   // ---------- Admin ----------
   const adminUI = createAdmin(el, { cloud, sfx, toast, ic, esc, fmt, logo: null, onExit: () => showAuth() });
