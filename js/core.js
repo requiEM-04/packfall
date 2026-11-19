@@ -9,6 +9,7 @@ export const RARITIES = {
   rare:      { name: 'Selten',     color: '#6a8aa6', rank: 1 },
   epic:      { name: 'Episch',     color: '#8f76a0', rank: 2 },
   legendary: { name: 'Legendär',   color: '#b39a5e', rank: 3 },
+  mythic:    { name: 'Mythisch',   color: '#d23a40', rank: 4 },
 };
 
 // ---------- Türme ----------
@@ -63,6 +64,14 @@ export const TOWERS = [
     role: 'Riesige Fläche · betäubt', desc: 'Langsam, laut, gewaltig. Jeder Einschlag betäubt alles drumherum.',
     lv: [{ cost: 2000, dmg: 180, splash: 1.8, rate: 0.22, range: 8, stun: 0.5, minRange: 1.5 }, { cost: 1200, dmg: 260, name: 'Verstärktes Rohr' }, { cost: 2400, dmg: 400, rate: 0.25, name: 'Ladeautomatik' },
       { cost: 4800, dmg: 650, splash: 2.1, name: 'Bunkerbrecher' }, { cost: 9000, dmg: 1200, stun: 1.0, rate: 0.28, name: 'Weltenspalter' }] },
+  { id: 'plasmareaktor', name: 'Blutmond-Reaktor', rarity: 'mythic', kind: 'plasma', air: true, accent: '#ff3b3b', limit: 2,
+    role: 'Durchschlag · Explosion', desc: 'Ein instabiler Reaktor feuert rote Plasmakugeln, die durch mehrere Gegner schlagen und am Ende explodieren.',
+    lv: [{ cost: 3000, dmg: 60, rate: 1.3, range: 5, splash: 1.0, pierce: 2 }, { cost: 2000, dmg: 90, pierce: 3, name: 'Überdruck' }, { cost: 4000, dmg: 140, rate: 1.5, name: 'Zwillingskern' },
+      { cost: 8000, dmg: 240, pierce: 4, splash: 1.3, name: 'Kernschmelze' }, { cost: 15000, dmg: 480, rate: 1.9, pierce: 5, name: 'Blutmond' }] },
+  { id: 'himmelsspeer', name: 'Himmelsspeer', rarity: 'mythic', kind: 'orbital', air: true, accent: '#ff4a3a', limit: 1,
+    role: 'Orbitalschlag · ganze Map', desc: 'Ruft einen roten Strahl aus dem Himmel auf den stärksten Gegner der ganzen Map. Alles drumherum verglüht.',
+    lv: [{ cost: 4000, dmg: 450, rate: 0.25, range: 99, splash: 2.0, stun: 0.6 }, { cost: 2500, dmg: 650, name: 'Zielsatellit' }, { cost: 5000, dmg: 1000, rate: 0.3, name: 'Zweites Auge' },
+      { cost: 10000, dmg: 1700, splash: 2.4, name: 'Sonnenbrand' }, { cost: 20000, dmg: 3400, rate: 0.36, stun: 1.2, name: 'Götterspeer' }] },
 ];
 for (const t of TOWERS) for (let i = 1; i < t.lv.length; i++) t.lv[i] = { ...t.lv[i - 1], name: undefined, ...t.lv[i] };
 for (const t of TOWERS) t.lv[0].name = 'Gebaut';
@@ -82,29 +91,50 @@ export const ENEMIES = {
   fuerst: { name: 'Schattenfürst', hp: 2600, speed: 0.45, reward: 600, dmg: 100, size: 0.9, armor: 0.3, boss: true, summon: true, desc: 'Endboss von Welt 1. Ruft unterwegs Läufer herbei.' },
 };
 
-// ---------- Level (Welt 1: Aschewald) ----------
-// Pfade als Wegpunkte in Feldern; der letzte Punkt ist der Kern.
+// ---------- Maps (Welt 1) & Schwierigkeitsgrade wie bei Bloons ----------
+// Jede Map: eigener Aufbau, eigenes Thema, eigene Gegner. Hindernisse (blocks) sind die einzige Deko auf dem Brett.
+export const THEMES = {
+  wald:     { name: 'Wald',    tile: [44, 52, 46], path: ['#2a2723', '#6d665a', '#7a7264'], bg: '#0b0d10', side: '#25272a', deco: ['#2a3a2e', '#3a332c'] },
+  fels:     { name: 'Fels',    tile: [52, 54, 58], path: ['#26262a', '#6a6660', '#78746c'], bg: '#0c0d10', side: '#2a2b2f', deco: ['#4a4c50', '#3a3c40'] },
+  sumpf:    { name: 'Sumpf',   tile: [34, 48, 48], path: ['#24221c', '#6a6150', '#786e5a'], bg: '#0a0e10', side: '#222a2a', deco: ['#284038', '#33302a'] },
+  schlacke: { name: 'Schlacke', tile: [42, 40, 40], path: ['#1e1a18', '#5e564e', '#6a6158'], bg: '#0e0b0a', side: '#28221f', deco: ['#3a3430', '#2a2420'], glow: '#e06a2a' },
+  bruecke:  { name: 'Brücke',  tile: [54, 46, 38], path: ['#2a2018', '#7a6248', '#8a7054'], bg: '#0d0b0a', side: '#2c241e', deco: ['#4a3a2c', '#3a3a3a'] },
+  glut:     { name: 'Glut',    tile: [54, 36, 32], path: ['#1e1414', '#5c4c46', '#6a5850'], bg: '#100909', side: '#2c1c1a', deco: ['#3a2622', '#2a1a18'], glow: '#ff6a2a' },
+  asche:    { name: 'Asche',   tile: [68, 66, 62], path: ['#2a2826', '#8a857c', '#98928a'], bg: '#101012', side: '#2e2d2c', deco: ['#5a5650', '#4a4640'] },
+  schatten: { name: 'Schatten', tile: [40, 34, 54], path: ['#1c1824', '#5e5670', '#6c6480'], bg: '#0b0910', side: '#221d2c', deco: ['#3a2f50', '#2a2438'], glow: '#9a6ad8' },
+};
 export const LEVELS = [
-  { name: 'Waldrand', waves: 10, hp: 1.0, foes: ['laeufer', 'flitzer'], tip: 'Bau nah an die Kurven – dort sind Gegner am längsten in Reichweite.',
-    paths: [[[-1, 3], [6, 3], [6, 9], [13, 9], [13, 4], [18, 4]]] },
-  { name: 'Krähenpass', waves: 12, hp: 1.3, foes: ['laeufer', 'flitzer', 'schwarm'], tip: 'Schwärmer kommen in Massen: Fläche und Kette lohnen sich.',
-    paths: [[[-1, 9], [4, 9], [4, 2], [10, 2], [10, 9], [15, 9], [15, 5], [18, 5]]] },
-  { name: 'Nebelfurt', waves: 14, hp: 1.7, foes: ['laeufer', 'flitzer', 'schwarm', 'flieger'], tip: 'Ab hier fliegen Aschekrähen. Mörser und Flammer treffen sie nicht!',
-    paths: [[[20, 1], [15, 1], [15, 5], [3, 5], [3, 10], [17, 10]]] },
-  { name: 'Schlackengrube', waves: 16, hp: 2.0, foes: ['laeufer', 'flitzer', 'schwarm', 'flieger', 'panzer'], tip: 'Panzerkäfer halbieren Schaden. Railgun und Laser ignorieren Panzer.',
-    paths: [[[-1, 1], [17, 1], [17, 10], [2, 10], [2, 4], [13, 4], [13, 7], [7, 7]]] },
-  { name: 'Zwillingsbrücke', waves: 18, hp: 2.5, foes: ['laeufer', 'flitzer', 'schwarm', 'flieger', 'panzer', 'heiler'], tip: 'Zwei Eingänge! Schamanen heilen – Fokus auf sie.',
-    paths: [[[-1, 2], [8, 2], [8, 6], [18, 6]], [[-1, 10], [8, 10], [8, 6], [18, 6]]] },
-  { name: 'Glutkessel', waves: 20, hp: 3.1, foes: ['laeufer', 'flitzer', 'schwarm', 'flieger', 'panzer', 'heiler', 'brut'], tip: 'Brutmütter platzen in Schwärmer. Fläche hinter die Haupt-Türme.',
-    paths: [[[3, -1], [3, 9], [7, 9], [7, 2], [11, 2], [11, 9], [15, 9], [15, 2], [18, 2]]] },
-  { name: 'Aschekreuz', waves: 22, hp: 3.8, foes: ['laeufer', 'flitzer', 'schwarm', 'flieger', 'panzer', 'heiler', 'brut'], tip: 'Die Pfade kreuzen sich – dort stehen Türme doppelt gut.',
-    paths: [[[-1, 3], [6, 3], [6, 8], [12, 8], [12, 3], [18, 3]], [[10, 12], [10, 10], [16, 10], [16, 3], [18, 3]]] },
-  { name: 'Schattentor', waves: 25, hp: 4.6, foes: ['laeufer', 'flitzer', 'schwarm', 'flieger', 'panzer', 'heiler', 'brut'], final: 'fuerst', tip: 'Der Schattenfürst wartet in Welle 25. Spar dir Geld für Legendäre.',
-    paths: [[[-1, 1], [16, 1], [16, 4], [3, 4], [3, 7], [16, 7], [16, 10], [2, 10]]] },
+  { name: 'Waldrand', theme: 'wald', hp: 1.0, foes: ['laeufer', 'flitzer'], extra: ['schwarm', 'panzer'], tip: 'Bau nah an die Kurven – dort sind Gegner am längsten in Reichweite.',
+    paths: [[[-1, 3], [6, 3], [6, 9], [13, 9], [13, 4], [18, 4]]], blocks: [[2, 7, 'tree'], [10, 1, 'tree'], [16, 10, 'rock'], [9, 6, 'tree']] },
+  { name: 'Krähenpass', theme: 'fels', hp: 1.15, foes: ['laeufer', 'flieger', 'schwarm'], extra: ['flitzer', 'panzer'], focus: 'flieger', tip: 'Hier fliegen ständig Aschekrähen. Mörser und Flammer treffen sie nicht!',
+    paths: [[[-1, 9], [4, 9], [4, 2], [10, 2], [10, 9], [15, 9], [15, 5], [18, 5]]], blocks: [[7, 5, 'rock'], [12, 5, 'rock'], [1, 4, 'rock'], [17, 10, 'ruin']] },
+  { name: 'Nebelfurt', theme: 'sumpf', hp: 1.3, foes: ['laeufer', 'schwarm', 'flitzer', 'heiler'], extra: ['flieger', 'brut'], tip: 'Schamanen heilen ihre Freunde – schalte sie zuerst aus.',
+    paths: [[[20, 1], [15, 1], [15, 5], [3, 5], [3, 10], [17, 10]]], blocks: [[7, 8, 'pool'], [8, 8, 'pool'], [11, 2, 'pool'], [12, 2, 'pool'], [1, 2, 'tree']] },
+  { name: 'Schlackengrube', theme: 'schlacke', hp: 1.5, foes: ['laeufer', 'panzer', 'brut'], extra: ['schwarm', 'heiler'], focus: 'panzer', tip: 'Panzerkäfer halbieren Schaden. Railgun und Laser ignorieren Panzer.',
+    paths: [[[-1, 1], [17, 1], [17, 10], [2, 10], [2, 4], [13, 4], [13, 7], [7, 7]]], blocks: [[9, 8, 'lava'], [10, 8, 'lava'], [5, 2, 'lava'], [19, 6, 'rock']] },
+  { name: 'Zwillingsbrücke', theme: 'bruecke', hp: 1.7, foes: ['laeufer', 'flitzer', 'panzer', 'flieger'], extra: ['heiler', 'brut'], tip: 'Zwei Eingänge, ein Ausgang: Die Mitte deckt beide Wege ab.',
+    paths: [[[-1, 2], [8, 2], [8, 6], [18, 6]], [[-1, 10], [8, 10], [8, 6], [18, 6]]], blocks: [[12, 2, 'rock'], [12, 10, 'rock'], [4, 6, 'ruin'], [15, 3, 'tree']] },
+  { name: 'Glutkessel', theme: 'glut', hp: 1.95, foes: ['schwarm', 'brut', 'heiler', 'panzer'], extra: ['flitzer', 'flieger'], focus: 'brut', tip: 'Brutmütter platzen in Schwärmer. Fläche hinter die Haupt-Türme.',
+    paths: [[[3, -1], [3, 9], [7, 9], [7, 2], [11, 2], [11, 9], [15, 9], [15, 2], [18, 2]]], blocks: [[9, 5, 'lava'], [13, 5, 'lava'], [5, 5, 'lava'], [17, 8, 'crystal']] },
+  { name: 'Aschekreuz', theme: 'asche', hp: 2.2, foes: ['laeufer', 'flitzer', 'flieger', 'panzer', 'heiler'], extra: ['schwarm', 'brut'], tip: 'Die Pfade kreuzen sich – dort stehen Türme doppelt gut.',
+    paths: [[[-1, 3], [6, 3], [6, 8], [12, 8], [12, 3], [18, 3]], [[10, 12], [10, 10], [16, 10], [16, 3], [18, 3]]], blocks: [[3, 9, 'ruin'], [14, 6, 'ruin'], [9, 5, 'crystal']] },
+  { name: 'Schattentor', theme: 'schatten', hp: 2.5, foes: ['laeufer', 'flitzer', 'schwarm', 'flieger', 'panzer', 'heiler', 'brut'], extra: [], final: 'fuerst', tip: 'Auf Schwer wartet am Ende der Schattenfürst. Spar dir Geld für Legendäre.',
+    paths: [[[-1, 1], [16, 1], [16, 4], [3, 4], [3, 7], [16, 7], [16, 10], [2, 10]]], blocks: [[18, 6, 'crystal'], [8, 2, 'crystal'], [10, 9, 'crystal'], [1, 6, 'crystal']] },
 ];
-export const ENDLESS = { name: 'Ewige Wacht', waves: Infinity, hp: 4.6, foes: ['laeufer', 'flitzer', 'schwarm', 'flieger', 'panzer', 'heiler', 'brut'], endless: true, tip: 'So weit du kommst. Zählt für die Bestenliste.',
-  paths: [[[-1, 5], [4, 5], [4, 1], [9, 1], [9, 10], [14, 10], [14, 5], [18, 5]]] };
-export const levelDef = i => (i === 'endless' ? ENDLESS : LEVELS[i]);
+export const ENDLESS = { name: 'Ewige Wacht', theme: 'schatten', waves: Infinity, hp: 2.6, foes: ['laeufer', 'flitzer', 'schwarm', 'flieger', 'panzer', 'heiler', 'brut'], endless: true, tip: 'So weit du kommst. Zählt für die Bestenliste.',
+  paths: [[[-1, 5], [4, 5], [4, 1], [9, 1], [9, 10], [14, 10], [14, 5], [18, 5]]], blocks: [[6, 7, 'crystal'], [11, 4, 'crystal'], [16, 9, 'crystal']] };
+export const DIFFS = {
+  leicht: { name: 'Leicht', waves: 12, hp: 1.0, cash: 1.1, medal: 'Bronze' },
+  mittel: { name: 'Mittel', waves: 18, hp: 1.3, cash: 1.0, medal: 'Silber' },
+  schwer: { name: 'Schwer', waves: 25, hp: 1.7, cash: 0.9, medal: 'Gold' },
+};
+export const DIFF_IDS = Object.keys(DIFFS);
+export function levelDef(i, diff = 'leicht') {
+  if (i === 'endless') return { ...ENDLESS, cashK: 1, diff: null };
+  const M = LEVELS[i], D = DIFFS[diff] || DIFFS.leicht;
+  const foes = [...M.foes, ...(diff !== 'leicht' && M.extra[0] ? [M.extra[0]] : []), ...(diff === 'schwer' && M.extra[1] ? [M.extra[1]] : [])];
+  return { ...M, foes, waves: D.waves, hp: M.hp * D.hp, cashK: D.cash, diff, final: diff === 'schwer' ? M.final : null, bossN: diff === 'schwer' ? 2 : 1 };
+}
 
 // ---------- Werkstatt (Gems, dauerhaft) ----------
 export const UPGRADES = [
@@ -125,9 +155,10 @@ export const U = Object.fromEntries(UPGRADES.map(u => [u.id, u]));
 
 export const BOOSTERS = {
   starter: { name: 'Start-Geschenk', cost: 0, odds: { rare: 100 }, hidden: true },
-  basic: { name: 'Turm-Booster', cost: 80, foil: 0.04, odds: { common: 62, rare: 28, epic: 8.5, legendary: 1.5 } },
-  elite: { name: 'Elite-Booster', cost: 250, foil: 0.08, odds: { rare: 55, epic: 36, legendary: 9 } },
+  basic: { name: 'Turm-Booster', cost: 80, foil: 0.04, odds: { common: 61, rare: 28, epic: 8.6, legendary: 2, mythic: 0.4 } },
+  elite: { name: 'Elite-Booster', cost: 250, foil: 0.08, odds: { rare: 52, epic: 35, legendary: 11, mythic: 2 } },
 };
+export const STARTER = ['flammer', 'tesla'];
 export const STAR_COPIES = [0, 1, 2, 4, 8, 15]; // Kopien für ★1 … ★5
 export const MAX_STAR = 5;
 export const MODES = { first: 'Erster', last: 'Letzter', strong: 'Stärkster', close: 'Nächster' };
@@ -185,8 +216,10 @@ export function waveGroups(L, w, li = 0) {
   if (has('heiler') && w >= 4) add('heiler', w / 6, 2.2);
   if (has('brut') && w >= 4) add('brut', (w - 2) / 5, 2.4);
   for (let i = G.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [G[i], G[j]] = [G[j], G[i]]; }
+  if (L.focus && w >= 2) add(L.focus, 2 + w * (L.focus === 'brut' ? 0.15 : L.focus === 'panzer' ? 0.3 : 0.4), L.focus === 'flieger' ? 0.6 : 1.1);
   if (final && L.final) G.push({ type: L.final, n: 1, gap: 1, boss: true });
-  else if (w % 10 === 0 || final) G.push({ type: 'koloss', n: w >= 30 ? 2 : 1, gap: 3, boss: true });
+  else if (final) G.push({ type: 'koloss', n: L.bossN || 1, gap: 3, boss: true });
+  else if (w % 10 === 0) G.push({ type: 'koloss', n: w >= 30 ? 2 : 1, gap: 3, boss: true });
   if (L.endless && w % 25 === 0) G.push({ type: 'fuerst', n: 1, gap: 1, boss: true });
   return G;
 }
@@ -196,13 +229,13 @@ function defaultMeta() {
     v: 2,
     gems: 0, totalGems: 0,
     ws: Object.fromEntries(UPGRADES.map(u => [u.id, 0])),
-    towers: { repetierer: { copies: 1, foil: false } },
-    loadout: ['repetierer', null, null, null, null],
+    towers: {},
+    loadout: [null, null, null, null, null],
     levels: {},          // i -> { stars, clears, best }
     best: 0,             // Endlos-Rekord (Bestenliste)
     runs: 0, wins: 0, kills: 0, bossKills: 0, packs: 0, built: 0, playTime: 0,
     speed: 1,
-    lastLevel: 0,
+    lastLevel: 0, lastDiff: 'leicht',
     flags: { intro: false, gift: false },
     settings: { sfxVol: 0.5, musicVol: 0.4, musicTrack: 'mix', gfx: 'auto', shake: 'on', numbers: 'on', boosterAnim: 'show', ranges: 'on' },
   };
@@ -210,8 +243,10 @@ function defaultMeta() {
 function mergeMeta(m) {
   const d = defaultMeta();
   if (!m || m.v !== 2) return d;
+  const levels = {};
+  for (const [k, l] of Object.entries(m.levels || {})) levels[k] = { clears: l.clears || 0, best: l.best || 0, medals: l.medals || (l.clears ? { leicht: true } : {}) };
   return { ...d, ...m, ws: { ...d.ws, ...(m.ws || {}) }, towers: m.towers || d.towers, loadout: [...(m.loadout || d.loadout), null, null, null, null, null].slice(0, 5),
-    levels: m.levels || {}, flags: { ...d.flags, ...(m.flags || {}) }, settings: { ...d.settings, ...(m.settings || {}) } };
+    levels, flags: { ...d.flags, ...(m.flags || {}) }, settings: { ...d.settings, ...(m.settings || {}) } };
 }
 
 // =====================================================================
@@ -272,7 +307,7 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
   const costMult = () => 1 - wsP('ingenieur');
   const sellRate = () => 0.6 + wsP('recycling');
   const startCash = () => 400 + wsP('kapital');
-  const lvlCash = () => Math.pow(game.run?.L.hp || 1, 0.75);
+  const lvlCash = () => Math.pow(game.run?.L.hp || 1, 0.75) * (game.run?.L.cashK || 1);
   const coreMax = () => 100 + wsP('kern');
   const gemMult = () => 1 + wsP('gemfund');
   game.loadoutSize = () => 3 + wsL('platz4') + wsL('platz5');
@@ -304,6 +339,8 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
       case 'missile': return s.dmg * s.n * s.rate;
       case 'tesla': return s.dmg * s.rate * (1 + 0.85 * (s.chain - 1) * 0.6);
       case 'flak': return s.dmg * s.rate * (s.shots || 1);
+      case 'plasma': return s.dmg * s.rate * (1 + 0.45 * (s.pierce - 1));
+      case 'orbital': return s.dmg * s.rate * 1.5;
       case 'farm': case 'support': return 0;
       default: return (s.dmg || 0) * (s.rate || 0);
     }
@@ -342,7 +379,7 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
     if (kind === 'starter') meta.flags.gift = true;
     const rar = pickRarity(b.odds);
     let pool = TOWERS.filter(t => t.rarity === rar);
-    if (kind === 'starter') pool = pool.filter(t => t.id !== 'flak');
+    if (kind === 'starter') pool = pool.filter(t => STARTER.includes(t.id));
     const def = pool[Math.floor(rng() * pool.length)];
     const foil = !!b.foil && rng() < b.foil;
     const owned = meta.towers[def.id];
@@ -395,31 +432,36 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
   game.resetSave = () => replaceMeta(defaultMeta(), true);
 
   // ----- Level-Fortschritt -----
-  game.levelInfo = i => meta.levels[i] || { stars: 0, clears: 0, best: 0 };
-  game.levelUnlocked = i => i === 'endless' ? (meta.levels[LEVELS.length - 1]?.clears || 0) > 0 : i === 0 || (meta.levels[i - 1]?.clears || 0) > 0;
-  game.totalStars = () => LEVELS.reduce((a, _, i) => a + (meta.levels[i]?.stars || 0), 0);
-  game.levelsCleared = () => LEVELS.filter((_, i) => meta.levels[i]?.clears).length;
+  const medalsOf = i => meta.levels[i]?.medals || {};
+  game.levelInfo = i => meta.levels[i] || { clears: 0, best: 0, medals: {} };
+  game.hasMedal = (i, d) => !!medalsOf(i)[d];
+  game.anyMedal = i => Object.values(medalsOf(i)).some(Boolean);
+  game.levelUnlocked = i => (i === 'endless' ? game.anyMedal(LEVELS.length - 1) : i === 0 || game.anyMedal(i - 1));
+  game.totalMedals = () => LEVELS.reduce((a, _, i) => a + Object.values(medalsOf(i)).filter(Boolean).length, 0);
+  game.levelsCleared = () => LEVELS.filter((_, i) => game.anyMedal(i)).length;
 
   // =====================================================================
   // RUN
   // =====================================================================
   function clearRun() { game.run = null; game.towers = []; game.enemies = []; game.projectiles = []; game.fx = []; }
 
-  game.startLevel = li => {
+  game.startLevel = (li, diff = 'leicht') => {
     if (game.run || !game.levelUnlocked(li)) return false;
-    const L = levelDef(li);
+    if (li !== 'endless' && !DIFFS[diff]) diff = 'leicht';
+    const L = levelDef(li, diff);
     const paths = L.paths.map(buildPath);
     const grid = new Uint8Array(COLS * ROWS);
     for (const p of paths) for (const c of p.cells) grid[c] = 1;
+    for (const [c, r] of L.blocks || []) if (!grid[r * COLS + c]) grid[r * COLS + c] = 4;
     const [cc, cr] = paths[0].core;
     for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) { const c = cc + dc, r = cr + dr; if (c >= 0 && r >= 0 && c < COLS && r < ROWS && !grid[r * COLS + c]) grid[r * COLS + c] = 2; }
     clearRun();
     game.run = {
-      li, L, paths, grid, wave: 0, waves: L.waves, phase: 'prep',
+      li, diff: L.diff, L, paths, grid, strikes: [], wave: 0, waves: L.waves, phase: 'prep',
       cash: startCash() + (li === 'endless' ? 1000 : li * 120), coreHp: coreMax(), coreMax: coreMax(), core: { x: cc + 0.5, z: cr + 0.5 },
       queue: [], spawnT: 0, nextT: 0, gems: 0, kills: 0, time: 0, built: {}, shield: wsL('notschild') > 0, earned: 0, leaked: 0, pathTurn: 0, bossAlive: 0,
     };
-    meta.lastLevel = li;
+    meta.lastLevel = li; if (L.diff) meta.lastDiff = L.diff;
     emit('runStart', game.run);
     return true;
   };
@@ -443,7 +485,7 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
     R.cash -= cost;
     R.grid[cellOf(c, r)] = 3;
     R.built[id] = (R.built[id] || 0) + 1;
-    const t = { uid: uid++, id, def: T[id], lv: 0, c, r, x: c + 0.5, z: r + 0.5, cd: 0.2, aim: Math.atan2(R.core.x - (c + 0.5), R.core.z - (r + 0.5)), mode: 'first', target: null, heat: 0, spent: cost, dmgDone: 0, kills: 0, buff: null, fireT: 0, flaming: 0, recoil: 0, shot: 0, built: game.t };
+    const t = { uid: uid++, id, def: T[id], lv: 0, c, r, x: c + 0.5, z: r + 0.5, cd: 0.2, aim: Math.atan2(R.core.x - (c + 0.5), R.core.z - (r + 0.5)), mode: T[id].kind === 'orbital' ? 'strong' : 'first', target: null, heat: 0, spent: cost, dmgDone: 0, kills: 0, buff: null, fireT: 0, flaming: 0, recoil: 0, shot: 0, built: game.t };
     game.towers.push(t);
     meta.built++;
     recalcBuffs();
@@ -640,7 +682,7 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
     const tg = pickTarget(t, s.range, d.air, s.minRange || 0);
     t.target = tg;
     if (!tg) return;
-    const aligned = aimAt(t, tg, dt, k === 'howitzer' || k === 'shell' ? 5 : 12);
+    const aligned = k === 'orbital' ? true : aimAt(t, tg, dt, k === 'howitzer' || k === 'shell' ? 5 : 12);
     if (t.cd > 0 || !aligned) return;
     t.cd = 1 / s.rate;
     t.recoil = 1; t.shot++;
@@ -671,6 +713,15 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
         }
         emit('shot', { t, kind: 'missile' }); break;
       }
+      case 'plasma': {
+        const lead = tg.stunT > 0 || tg.frozenT > 0 ? 0 : tg.speed * (1 - tg.slow) * Math.hypot(tg.x - t.x, tg.z - t.z) / 13;
+        const p = tg.path.at(tg.d + lead), ang = Math.atan2(p.x - muzzle.x, p.z - muzzle.z);
+        game.projectiles.push({ kind: 'plasma', x: muzzle.x, z: muzzle.z, y: 0.85, vx: Math.sin(ang) * 13, vz: Math.cos(ang) * 13, dist: 0, max: s.range + 0.8, dmg: s.dmg, splash: s.splash, pierce: s.pierce, hit: new Set(), src: t });
+        emit('shot', { t, kind: 'plasma' }); break;
+      }
+      case 'orbital':
+        game.run.strikes.push({ x: tg.x, z: tg.z, tg, t: 1.0, T: 1.0, dmg: s.dmg, splash: s.splash, stun: s.stun, src: t });
+        emit('shot', { t, kind: 'orbital' }); break;
       case 'tesla': {
         const pts = [{ x: t.x, z: t.z, y: 1.35 }];
         const hit = new Set();
@@ -706,6 +757,21 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
     for (let i = P.length - 1; i >= 0; i--) {
       const p = P[i];
       if (p.delay > 0) { p.delay -= dt; continue; }
+      if (p.kind === 'plasma') {
+        p.x += p.vx * dt; p.z += p.vz * dt; p.dist += 13 * dt;
+        for (const e of game.enemies) {
+          if (e.dead || p.hit.has(e) || Math.hypot(e.x - p.x, e.z - p.z) > 0.45) continue;
+          p.hit.add(e); damage(e, p.dmg, 0.3, p.src);
+          if (p.hit.size >= p.pierce) { p.dist = p.max; break; }
+        }
+        if (p.dist >= p.max) {
+          splash(p.x, p.z, p.splash, p.dmg * 0.8, p.src, { air: true });
+          game.fx.push({ kind: 'plasmaBoom', x: p.x, z: p.z, r: p.splash, life: 0.5, max: 0.5 });
+          emit('boom', { x: p.x, z: p.z, r: p.splash });
+          P.splice(i, 1);
+        }
+        continue;
+      }
       if (p.kind === 'shell' || p.kind === 'howitzer') {
         p.t += dt; const k = Math.min(1, p.t / p.T);
         p.x = p.x0 + (p.tx - p.x0) * k; p.z = p.z0 + (p.tz - p.z0) * k; p.y = 0.9 + p.h * 4 * k * (1 - k) - 0.9 * k;
@@ -816,6 +882,17 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
       fire(t, game.towerStats(t.id, t.lv, t.buff), dt);
     }
     stepProjectiles(dt);
+    for (let i = R.strikes.length - 1; i >= 0; i--) {
+      const st = R.strikes[i];
+      st.t -= dt;
+      if (st.tg && !st.tg.dead && st.t > 0.25) { st.x = st.tg.x; st.z = st.tg.z; }
+      if (st.t <= 0) {
+        splash(st.x, st.z, st.splash, st.dmg, st.src, { air: true, stun: st.stun });
+        game.fx.push({ kind: 'orbital', x: st.x, z: st.z, r: st.splash, life: 0.9, max: 0.9 });
+        emit('boom', { x: st.x, z: st.z, r: st.splash, big: true });
+        R.strikes.splice(i, 1);
+      }
+    }
     for (const f of game.fx) f.life -= dt;
     game.fx = game.fx.filter(f => f.life > 0);
     if (game.enemies.some(e => e.dead)) game.enemies = game.enemies.filter(e => !e.dead);
@@ -826,26 +903,25 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
     if (!R || R.phase === 'done') return;
     R.phase = 'done';
     const L = R.L;
-    let stars = 0, newStars = 0, firstClear = false, record = false;
-    if (result === 'win') {
-      const hpK = R.coreHp / R.coreMax;
-      stars = hpK >= 0.999 && R.leaked === 0 ? 3 : hpK >= 0.5 ? 2 : 1;
-      const info = meta.levels[R.li] || (meta.levels[R.li] = { stars: 0, clears: 0, best: 0 });
-      firstClear = !info.clears;
-      newStars = Math.max(0, stars - info.stars);
-      info.stars = Math.max(info.stars, stars); info.clears++; info.best = R.waves;
-      const bonus = firstClear ? 25 + 15 * R.li : 8 + 2 * R.li;
-      R.gems += Math.round((bonus + newStars * 10 + (1 + Math.floor(R.wave / 4))) * gemMult());
+    let medal = null, newMedal = false, firstClear = false, record = false;
+    if (result === 'win' && R.li !== 'endless') {
+      const info = meta.levels[R.li] || (meta.levels[R.li] = { clears: 0, best: 0, medals: {} });
+      firstClear = !Object.values(info.medals).some(Boolean);
+      medal = R.diff; newMedal = !info.medals[R.diff];
+      info.medals[R.diff] = true; info.clears++; info.best = Math.max(info.best, R.waves);
+      const base = { leicht: [25, 5], mittel: [45, 8], schwer: [80, 12] }[R.diff];
+      const bonus = newMedal ? base[0] + base[1] * R.li : 6 + R.li;
+      R.gems += Math.round((bonus + 1 + Math.floor(R.wave / 4)) * gemMult());
       meta.wins++;
     } else if (R.li !== 'endless') {
-      const info = meta.levels[R.li] || (meta.levels[R.li] = { stars: 0, clears: 0, best: 0 });
+      const info = meta.levels[R.li] || (meta.levels[R.li] = { clears: 0, best: 0, medals: {} });
       info.best = Math.max(info.best, R.wave - 1);
     }
     if (L.endless) { const w = Math.max(0, R.wave - (result === 'win' ? 0 : 1)); if (w > meta.best) { meta.best = w; record = true; } }
     meta.gems += R.gems; meta.totalGems += R.gems;
     meta.runs++; meta.playTime += R.time;
     save();
-    const summary = { result, li: R.li, name: L.name, wave: R.wave, waves: R.waves, stars, newStars, firstClear, record, gems: R.gems, kills: R.kills, time: R.time, coreHp: R.coreHp, coreMax: R.coreMax, earned: R.earned };
+    const summary = { result, li: R.li, diff: R.diff, name: L.name, wave: R.wave, waves: R.waves, medal, newMedal, firstClear, record, gems: R.gems, kills: R.kills, time: R.time, coreHp: R.coreHp, coreMax: R.coreMax, earned: R.earned };
     emit('runEnd', summary);
     emit('gems');
   }
