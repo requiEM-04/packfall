@@ -54,7 +54,7 @@ export function createOpening(ov, { skin, sfx, settings, info, onClose, onAgain 
     ov.className = `kw-ov kw-bo k-${kind}`;
     ov.dataset.stage = 'drop';
     ov.style.setProperty('--tc', rgb(TIER_COL[0]));
-    title.innerHTML = kind === 'starter' ? '<b>Dein Geschenk!</b><span>Start-Booster</span>' : `<b>${info.packName(kind)}</b><span>Ein Turm wartet darin</span>`;
+    title.innerHTML = kind === 'starter' ? '<b>Dein Geschenk!</b><span>Zwei Lichtwesen zum Start</span>' : `<b>${info.packName(kind)}</b><span>Ein Lichtwesen wartet darin</span>`;
     const art = skin.packArt(kind);
     packA.innerHTML = art; packB.innerHTML = art;
     pack.hidden = false; pack.style.transform = ''; pack.disabled = false;
