@@ -1,7 +1,7 @@
 // Packfall – Oberfläche: Hauptmenü (wie Pokélings), Unterseiten, Run-HUD, Booster öffnen, Willkommen
-import { UPGRADES, U, TOWERS, T, ENEMIES, RARITIES, BOOSTERS, LEVELS, ENDLESS, levelDef, DIFFS, DIFF_IDS, THEMES, MODES, MAX_LV, TLV_MAX, LVL_BONUS, PACK_CARDS, perksOf, perkText, cardsNeed, fmt, fmtNum } from './core.js?v=0.10-199c7e81';
-import { createOpening } from './opening.js?v=0.10-199c7e81';
-import { createAdmin } from './admin.js?v=0.10-199c7e81';
+import { UPGRADES, U, TOWERS, T, ENEMIES, RARITIES, BOOSTERS, LEVELS, ENDLESS, levelDef, DIFFS, DIFF_IDS, THEMES, MODES, MAX_LV, TLV_MAX, LVL_BONUS, PACK_CARDS, perksOf, perkText, cardsNeed, fmt, fmtNum } from './core.js?v=0.10.1-1cbc35a3';
+import { createOpening } from './opening.js?v=0.10.1-1cbc35a3';
+import { createAdmin } from './admin.js?v=0.10.1-1cbc35a3';
 
 const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -19,6 +19,7 @@ const starsHTML = (n, max = 5) => Array.from({ length: max }, (_, i) => `<i clas
 const WHY = { cell: 'Hier kann nicht gebaut werden.', cash: 'Nicht genug Münzen.', loadout: 'Dieser Turm ist nicht im Loadout.' };
 
 const PATCH = [
+  ['v0.10.1', 'Booster-Opening wie in Plants vs. Zombies 2: grüner Kartenbalken, der sich hochzählt – ist er voll, zucken grüne Blitze und „Level-Up bereit!“ erscheint. Auf der Türme-Seite leuchten aufwertbare Türme grün'],
   ['v0.10', 'Türme wie in Plants vs. Zombies 2: Booster geben Karten, mit Karten und Gems wertest du Türme bis Level 10 auf (+8 % pro Level); Level 3, 5, 7 und 10 bringen Belohnungen, ab Level 5 Veteranen-Ring, auf Level 10 Meister-Aura; Karten auch als Map-Belohnung. Alte Sterne wurden fair in Level und Karten umgerechnet. Der Kern hat jetzt immer 100 Leben, durchgelassene Gegner ziehen je nach Modus unterschiedlich viel ab (Leicht ×0,75 · Mittel ×1 · Schwer ×1,5 · Endlos ×1,25); Kernpanzer-Gems wurden erstattet, neu ist Mechanik (+Feuerrate). Kampfleiste oben springt nicht mehr'],
   ['v0.9.5', 'Kampfleiste oben behält immer dieselbe Größe – sie springt nicht mehr, wenn sich Geld, Leben oder Welle ändern'],
   ['v0.9.4', 'Menü: Fortschritt und Bestenliste rechts bündig unter der Leiste oben rechts; Kern im Hintergrund ohne die kleinen Türme'],
@@ -106,7 +107,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
           <p class="kw-ribbon">Booster öffnen · Türme bauen · Kern halten</p>
           <button type="button" class="kw-press" data-k="press">Drücke Start</button>
         </div>
-        <p class="kw-legal">Prototyp v0.10 · Spielstand wird automatisch gespeichert</p>
+        <p class="kw-legal">Prototyp v0.10.1 · Spielstand wird automatisch gespeichert</p>
       </div>
       <div class="kw-auth" data-k="auth">
         <div class="kw-auth-in">
@@ -818,9 +819,62 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
           : `${fmtNum(game.dps(d.id, 0))} Schaden/s · Reichweite ${rngTxt(st.range)} · ${d.role}`;
       },
       tag: r => {
-        if (r.isNew) return `Neu! · ${r.n} Karte${r.n === 1 ? '' : 'n'}${r.placed ? ' · direkt im Loadout' : ''}`;
-        if (r.refund) return `Level 10 · +${r.refund} Gems`;
-        return `+${r.n} Karte${r.n === 1 ? '' : 'n'} · ${r.cards}/${r.need} bis Level ${r.lvl + 1}${r.cards >= r.need ? ' · bereit!' : ''}`;
+        if (r.isNew) return `Neu!${r.placed ? ' · direkt im Loadout' : ''}`;
+        if (r.refund) return `Level 10 erreicht · +${r.refund} Gems`;
+        return `Level ${r.lvl}`;
+      },
+      // Kartenbalken wie in PvZ2: füllt sich grün, bei vollem Balken grüne Blitze
+      bar: r => {
+        if (r.refund || r.need == null) return '';
+        const from = r.isNew ? 0 : Math.max(0, r.cards - r.n);
+        return `<div class="kw-rvbar" data-from="${from}" data-to="${r.cards}" data-need="${r.need}" data-lvl="${r.lvl}">
+          <div class="kw-rvbar-row"><span class="kw-rvbar-ic">${ic('pack')}</span><div class="kw-rvbar-track"><i></i><span class="kw-rvbar-bolts"></span><b>${from}/${r.need}</b></div><em>+${r.isNew ? r.n - 1 : r.n}</em></div>
+          <span class="kw-rvbar-up">${ic('up')} Level ${r.lvl + 1} bereit!</span></div>`;
+      },
+      afterReveal: rv => {
+        const bar = rv.querySelector('.kw-rvbar'); if (!bar) return;
+        const from = +bar.dataset.from, to = +bar.dataset.to, need = +bar.dataset.need;
+        const fill = bar.querySelector('.kw-rvbar-track i'), num = bar.querySelector('.kw-rvbar-track b'), bolts = bar.querySelector('.kw-rvbar-bolts');
+        fill.style.transform = `scaleX(${Math.min(1, from / need)})`;
+        const t0 = performance.now() + 520, D = 950;
+        let ready = false;
+        // zuckende Zickzack-Blitze: jedes Bild neu gewürfelt, erst ein heftiger Schlag, dann knistert es in Schüben
+        const arc = (x0, y0, x1, y1, n, j) => {
+          let d = `M${x0.toFixed(1)} ${y0.toFixed(1)}`;
+          for (let k = 1; k < n; k++) { const f = k / n; d += ` L${(x0 + (x1 - x0) * f + (Math.random() - 0.5) * j).toFixed(1)} ${(y0 + (y1 - y0) * f + (Math.random() - 0.5) * j).toFixed(1)}`; }
+          return d + ` L${x1.toFixed(1)} ${y1.toFixed(1)}`;
+        };
+        const zap = () => {
+          ready = true; bar.classList.add('is-ready'); sfx('zap'); later(() => sfx('sparkle'), 120);
+          const t1 = performance.now(); let last = 0;
+          const crackle = now => {
+            if (!bar.isConnected) return;
+            requestAnimationFrame(crackle);
+            if (now - last < 65) return; last = now;
+            const w = bolts.clientWidth, h = bolts.clientHeight, mid = h / 2, age = now - t1;
+            const burst = age < 900 || (age % 1300) < 460;
+            if (!burst) { bolts.innerHTML = ''; return; }
+            const paths = [];
+            const many = age < 900 ? 8 : 4;
+            for (let k = 0; k < many; k++) {
+              const x = 6 + Math.random() * (w - 12), up = Math.random() < 0.5 ? -1 : 1;
+              paths.push(arc(x, mid + up * 4, x + (Math.random() - 0.5) * 46, mid + up * (h / 2 - 2) * (0.7 + Math.random() * 0.3), 6, 12));
+            }
+            for (let k = age < 900 ? 2 : 1; k > 0; k--) if (Math.random() < 0.8) { const x = Math.random() * w * 0.45; paths.push(arc(x, mid + (Math.random() - 0.5) * 8, x + w * (0.3 + Math.random() * 0.4), mid + (Math.random() - 0.5) * 8, 11, 14)); }
+            const all = paths.map(d => `<path d="${d}"/>`).join('');
+            bolts.innerHTML = `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}"><g class="g">${all}</g><g class="c">${all}</g></svg>`;
+          };
+          requestAnimationFrame(crackle);
+        };
+        const step = now => {
+          if (!bar.isConnected) return;
+          const k = Math.min(1, Math.max(0, (now - t0) / D)), e = 1 - Math.pow(1 - k, 3), v = from + (to - from) * e;
+          fill.style.transform = `scaleX(${Math.min(1, v / need)})`;
+          num.textContent = `${Math.round(v)}/${need}`;
+          if (!ready && v >= need) zap();
+          if (k < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
       },
       again: kind => {
         const b = BOOSTERS[kind];
