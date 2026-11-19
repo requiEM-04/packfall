@@ -114,10 +114,12 @@ export function createOpening(ov, { skin, sfx, settings, info, onClose, onAgain 
       <p class="kw-rv-desc">${d.desc}</p>
       <div class="kw-rv-art">${skin.cardArt(d, { big: true })}</div>
       <p class="kw-rv-stats">${info.stats(r)}</p>
+      ${info.bar ? info.bar(r) : ''}
       <p class="kw-rv-tag${r.isNew ? ' is-new' : ''}">${info.tag(r)}</p>`;
+    info.afterReveal?.(rv, r);
     requestAnimationFrame(centre);
     sfx('reveal', r.rarity);
-    st.spark = [0.6, 1.2, 2.2, 3.4][st.rank];
+    st.spark = [0.6, 1.2, 2.2, 3.4, 4.6][st.rank] || 1;
     setTimeout(() => {
       if (!st || st.stage !== 'reveal') return;
       act.hidden = false;
