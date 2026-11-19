@@ -1023,3 +1023,9 @@ button.kw-wb { cursor: pointer; }
 .kw input::selection, .kw textarea::selection { background: rgba(201, 176, 122, .35); }
 /* Booster: kein Auswahl-Rahmen um das Pack */
 .kw-bo .kw-pack, .kw-bo .kw-pack:focus, .kw-bo .kw-pack:focus-visible, .kw-bo .kw-pack:active { outline: none !important; border: 0; background: none; box-shadow: none; }
+/* Desktop: Fortschritt & Bestenliste rechts unter der Leiste oben rechts – gleich breit, bündig */
+@media (min-width: 1001px) and (orientation: landscape) and (min-height: 521px) {
+  .kw-mhead .kw-pbar { width: clamp(300px, 21vw, 360px); justify-content: center; box-sizing: border-box; }
+  .kw-sides { justify-self: end; width: clamp(300px, 21vw, 360px); }
+  .kw-sides .kw-side { width: 100%; box-sizing: border-box; }
+}
