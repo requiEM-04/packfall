@@ -1029,3 +1029,50 @@ button.kw-wb { cursor: pointer; }
   .kw-sides { justify-self: end; width: clamp(300px, 21vw, 360px); }
   .kw-sides .kw-side { width: 100%; box-sizing: border-box; }
 }
+/* Kampfleiste oben: feste Breite – springt nicht, wenn sich Geld/Leben/Welle ändern */
+.kw-thud b { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; white-space: nowrap; }
+.kw-th-lv { width: 176px; box-sizing: border-box; }
+.kw-th-lv small, .kw-th-lv b { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.kw-th-hp b { min-width: 3.2ch; text-align: right; }
+.kw-th-cash b { min-width: 6.2ch; text-align: right; }
+.kw-th-gem b { min-width: 3.6ch; text-align: right; }
+@media (max-width: 760px) { .kw-th-lv { width: 108px; } .kw-th-cash b { min-width: 5.4ch; } }
+@media (max-height: 520px) and (min-width: 600px) { .kw-th-lv { width: 120px; } }
+
+/* =====================================================================
+   v0.10 – Karten & Level wie in PvZ2 (im düsteren Stil)
+   ===================================================================== */
+.kw-lvb { position: absolute; left: 6px; top: 6px; z-index: 1; min-width: 24px; height: 24px; padding: 0 5px; display: grid; place-items: center; border-radius: 12px;
+  background: linear-gradient(180deg, #3a3528, #1d1a14); box-shadow: 0 0 0 1px rgba(216, 190, 120, .55), 0 2px 6px rgba(0, 0, 0, .5); color: #f0dca0; font: 700 13px/1 var(--head); }
+.kw-lvb.is-max { background: linear-gradient(180deg, #c9a456, #8a6a2a); color: #17130b; box-shadow: 0 0 0 1px #f0d080, 0 0 12px rgba(240, 208, 128, .5); }
+.kw-tc, .kw-lo { overflow: hidden; }
+.kw-cbar { position: relative; width: 100%; height: 18px; margin-top: 2px; border-radius: 9px; overflow: hidden; display: flex; align-items: center; justify-content: center; gap: 3px;
+  background: rgba(0, 0, 0, .45); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08); }
+.kw-cbar i { position: absolute; inset: 0; transform-origin: left; transform: scaleX(var(--k)); background: linear-gradient(90deg, #4a6a8a, #6a92b8); border-radius: 9px; }
+.kw-cbar b { position: relative; font: 700 12px/1 var(--head); letter-spacing: .04em; color: #eef2f6; text-shadow: 0 1px 2px rgba(0, 0, 0, .8); }
+.kw-cbar .kw-ic { position: relative; width: 12px; height: 12px; color: #fff; }
+.kw-cbar.is-ready i { background: linear-gradient(90deg, #5a8a3a, #8ac25a); }
+.kw-cbar.is-ready { animation: pfReady 1.4s ease-in-out infinite; }
+.kw-cbar.is-max i { background: linear-gradient(90deg, #8a6a2a, #c9a456); }
+@keyframes pfReady { 50% { box-shadow: inset 0 0 0 1px rgba(160, 220, 110, .7), 0 0 12px rgba(140, 200, 90, .5); } }
+.kw-tc.is-ready { box-shadow: inset 0 0 0 1px rgba(140, 200, 90, .55), inset 0 -3px 0 var(--rc), 0 0 16px rgba(140, 200, 90, .18); }
+.kw-tc em { top: 8px; right: 8px; }
+.kw-tdet-art .kw-tdet-lv { position: absolute; left: 10px; top: 8px; padding: 3px 9px; border-radius: 10px; background: rgba(0, 0, 0, .55); box-shadow: 0 0 0 1px rgba(216, 190, 120, .5); color: #f0dca0; font: 700 13px/1.2 var(--head); letter-spacing: .06em; text-transform: uppercase; }
+.kw-tdet-cards { display: flex; flex-direction: column; gap: 4px; } .kw-tdet-cards .kw-cbar { height: 22px; } .kw-tdet-cards small { color: var(--muted); font-size: 12.5px; }
+.kw-tdet-up { width: 100%; justify-content: space-between; } .kw-tdet-up em { font-style: normal; display: flex; align-items: center; gap: 4px; }
+.kw-tdet-max { margin: 0; padding: 9px; border-radius: 8px; text-align: center; background: rgba(201, 176, 122, .12); color: #f0d890; font: 700 14px/1 var(--head); letter-spacing: .12em; text-transform: uppercase; }
+.kw-tdet h4 { margin: 4px 0 0; font: 700 12px/1 var(--head); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+.kw-lvpath { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; max-height: 260px; overflow: auto; }
+.kw-lvpath li { display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 8px; padding: 4px 8px 4px 4px; border-radius: 7px; background: rgba(255, 255, 255, .025); color: var(--muted); }
+.kw-lvpath li.has-perk { background: rgba(255, 255, 255, .045); }
+.kw-lvpath li.on { color: var(--ink); } .kw-lvpath li.next { box-shadow: inset 0 0 0 1px rgba(140, 200, 90, .45); }
+.kw-lvpath-n { width: 22px; height: 22px; border-radius: 11px; display: grid; place-items: center; background: rgba(255, 255, 255, .06); font: 700 12px/1 var(--head); }
+.kw-lvpath li.on .kw-lvpath-n { background: linear-gradient(180deg, #c9a456, #8a6a2a); color: #17130b; }
+.kw-lvpath-t { display: flex; flex-direction: column; gap: 1px; min-width: 0; } .kw-lvpath-t b { font: 700 13px/1.1 var(--head); letter-spacing: .04em; color: #e8d9b0; } .kw-lvpath-t small { font-size: 12px; }
+.kw-lvpath-c { display: flex; align-items: center; gap: 3px; font: 600 12px/1 var(--head); color: var(--muted); } .kw-lvpath-c .kw-ic { width: 12px; height: 12px; }
+.kw-ls-lv { position: absolute; left: 50%; top: 5px; transform: translateX(-50%); font: 700 10px/1 var(--head); letter-spacing: .06em; color: #e8d9a8; }
+.kw-tp-lv { font-style: normal; margin-left: 6px; padding: 1px 6px; border-radius: 8px; background: rgba(216, 190, 120, .16); color: #f0dca0; font: 700 12px/1.3 var(--head); vertical-align: 2px; }
+.kw-sum-cards { margin: 0; display: flex; align-items: center; gap: 10px; padding: 6px 12px 6px 6px; border-radius: 10px; background: rgba(106, 146, 184, .12); box-shadow: inset 0 0 0 1px rgba(106, 146, 184, .35); }
+.kw-sum-cards img { width: 42px; height: 42px; object-fit: contain; } .kw-sum-cards span { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; } .kw-sum-cards b { font: 700 16px/1 var(--head); color: #cfe0f0; } .kw-sum-cards small { color: var(--muted); }
+.kw-diff small { text-align: center; line-height: 1.25; }
+.kw-lo { position: relative; } .kw-lo .kw-lvb { left: 5px; top: 5px; min-width: 20px; height: 20px; font-size: 11px; }
