@@ -1,7 +1,7 @@
 // Packfall – Oberfläche: Hauptmenü (wie Pokélings), Unterseiten, Run-HUD, Booster öffnen, Willkommen
-import { UPGRADES, U, TOWERS, T, ENEMIES, RARITIES, BOOSTERS, LEVELS, ENDLESS, levelDef, DIFFS, DIFF_IDS, THEMES, MODES, MAX_LV, TLV_MAX, LVL_BONUS, PACK_CARDS, perksOf, perkText, cardsNeed, fmt, fmtNum } from './core.js?v=0.10.1-1cbc35a3';
-import { createOpening } from './opening.js?v=0.10.1-1cbc35a3';
-import { createAdmin } from './admin.js?v=0.10.1-1cbc35a3';
+import { UPGRADES, U, TOWERS, T, ENEMIES, RARITIES, BOOSTERS, LEVELS, ENDLESS, levelDef, DIFFS, DIFF_IDS, THEMES, TLV_MAX, LVL_BONUS, PACK_CARDS, perksOf, perkText, cardsNeed, isBig, fmt, fmtNum } from './core.js?v=0.11-ca2fa47a';
+import { createOpening } from './opening.js?v=0.11-ca2fa47a';
+import { createAdmin } from './admin.js?v=0.11-ca2fa47a';
 
 const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -13,12 +13,14 @@ const TREE = {
 };
 const ROOT = [7, 50];
 const firstLevel = type => (type === 'koloss' ? 1 : type === 'fuerst' ? 8 : LEVELS.findIndex(L => L.foes.includes(type) || L.extra.includes(type)) + 1);
+const AMB = L => `${Math.round(L.ambient * 100)} %`;
 const MEDAL = { leicht: 'bronze', mittel: 'silber', schwer: 'gold' };
 const rngTxt = v => (v >= 50 ? 'ganze Map' : fmtNum(v, 1));
 const starsHTML = (n, max = 5) => Array.from({ length: max }, (_, i) => `<i class="${i < n ? 'on' : ''}">★</i>`).join('');
-const WHY = { cell: 'Hier kann nicht gebaut werden.', cash: 'Nicht genug Münzen.', loadout: 'Dieser Turm ist nicht im Loadout.' };
+const WHY = { cell: 'Hier kann nichts stehen.', taken: 'Dieses Feld ist schon besetzt.', cash: 'Nicht genug Licht.', cd: 'Die Karte lädt noch auf.', loadout: 'Dieser Wächter ist nicht im Loadout.' };
 
 const PATCH = [
+  ['v0.11', 'Packfall wird zur Laternenwacht: Licht gegen Schatten auf 6 Bahnen. 16 neue Lichtwesen als Wächter, 9 Schatten als Gegner, neue Kampf-Oberfläche. Licht ist Ressource und Waffe – Schatten im Dunkeln nehmen kaum Schaden, große Wellen bringen die Nacht. Deine Türme wurden fair in Lichtwesen umgewandelt (gleiches Level, gleiche Karten), jeder bekommt Funkling und Lichtschütze dazu. Abzeichen, Gems und Werkstatt bleiben erhalten'],
   ['v0.10.1', 'Booster-Opening wie in Plants vs. Zombies 2: grüner Kartenbalken, der sich hochzählt – ist er voll, zucken grüne Blitze und „Level-Up bereit!“ erscheint. Auf der Türme-Seite leuchten aufwertbare Türme grün'],
   ['v0.10', 'Türme wie in Plants vs. Zombies 2: Booster geben Karten, mit Karten und Gems wertest du Türme bis Level 10 auf (+8 % pro Level); Level 3, 5, 7 und 10 bringen Belohnungen, ab Level 5 Veteranen-Ring, auf Level 10 Meister-Aura; Karten auch als Map-Belohnung. Alte Sterne wurden fair in Level und Karten umgerechnet. Der Kern hat jetzt immer 100 Leben, durchgelassene Gegner ziehen je nach Modus unterschiedlich viel ab (Leicht ×0,75 · Mittel ×1 · Schwer ×1,5 · Endlos ×1,25); Kernpanzer-Gems wurden erstattet, neu ist Mechanik (+Feuerrate). Kampfleiste oben springt nicht mehr'],
   ['v0.9.5', 'Kampfleiste oben behält immer dieselbe Größe – sie springt nicht mehr, wenn sich Geld, Leben oder Welle ändern'],
@@ -44,17 +46,29 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
   el.className = `kw s-${skin.name}`;
   el.innerHTML = `
     <section class="kw-stage" aria-label="Schlachtfeld">
-      <div class="kw-thud run-only">
-        <div class="kw-th-lv"><small data-k="lvname"></small><b data-k="wave"></b></div>
-        <div class="kw-th-hp" title="Leben des Kerns">${ic('heart')}<span class="kw-bar"><i data-k="hpbar"></i></span><b data-k="hp"></b></div>
-        <div class="kw-th-cash" title="Münzen – nur auf dieser Map">${ic('coin')}<b data-k="cash"></b></div>
-        <div class="kw-th-gem" title="Gems von dieser Map – bleiben für immer">${ic('gem')}<b data-k="rgems"></b></div>
+      <div class="kw-lwtray run-only">
+        <div class="kw-lwlicht" data-k="lichtbox" title="Licht – zum Setzen von Wächtern">
+          <svg viewBox="0 0 40 52" aria-hidden="true"><defs><radialGradient id="lwg" cx="50%" cy="60%" r="60%"><stop offset="0" stop-color="#fffbe8"/><stop offset=".5" stop-color="#ffd27a"/><stop offset="1" stop-color="#e0882e"/></radialGradient></defs>
+            <circle cx="20" cy="30" r="17" fill="rgba(255,200,110,.18)"/><path d="M20 6c6 9 13 15 13 24a13 13 0 0 1-26 0c0-9 7-15 13-24z" fill="url(#lwg)" stroke="#fff6dc" stroke-width="1.6"/><ellipse cx="15" cy="27" rx="3" ry="6" fill="rgba(255,255,255,.7)"/></svg>
+          <b data-k="licht">0</b>
+        </div>
+        <div class="kw-lwcards" data-k="cards"></div>
+        <button type="button" class="kw-lwshovel" data-act="shovel" data-k="shovel" title="Wächter entfernen (Taste Q)" aria-label="Wächter entfernen">
+          <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M8 26c-2-9 3-18 13-21-6 5-9 11-8 17z" fill="#e8e2d4" stroke="#0c0b09" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 21l9 8" stroke="#0c0b09" stroke-width="5" stroke-linecap="round"/><path d="M12 21l9 8" stroke="#8a6a46" stroke-width="2.6" stroke-linecap="round"/></svg>
+        </button>
       </div>
-      <div class="kw-tr run-only" data-k="tr"></div>
+      <div class="kw-lwtop run-only">
+        <div class="kw-lwheart" title="Lichtherz – erlischt es, ist das Level verloren"><span class="kw-lwheart-ic">${ic('heart')}</span><span class="kw-bar"><i data-k="hpbar"></i></span><b data-k="hp"></b></div>
+        <div class="kw-tr" data-k="tr"></div>
+      </div>
       <div class="kw-bossbar run-only" data-k="boss" hidden><small data-k="bossname"></small><span><i data-k="bossfill"></i></span></div>
       <p class="kw-phint run-only" data-k="phint" hidden></p>
-      <div class="kw-tp run-only" data-k="tp" hidden></div>
-      <div class="kw-dock run-only" data-k="dock"></div>
+      <button type="button" class="kw-lwgo run-only" data-act="callWave" data-k="go" hidden>${ic('play')}<span>Los!</span><small data-k="gotime"></small></button>
+      <div class="kw-lwprog run-only">
+        <div class="kw-lwprog-l"><span data-k="lvname"></span><b data-k="wave"></b></div>
+        <div class="kw-lwvine"><i data-k="prog"></i><span data-k="flags"></span><span class="kw-lwhead" data-k="proghead"></span></div>
+        <small class="kw-lwgems" title="Gems aus diesem Level">${ic('gem')}<b data-k="rgems"></b></small>
+      </div>
       <div class="kw-banner" data-k="banner" aria-live="polite"><b></b><small></small></div>
       <div class="kw-hitflash" data-k="hitflash"></div>
     </section>
@@ -93,7 +107,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
         <div class="kw-embers" aria-hidden="true">${Array.from({ length: 18 }, (_, i) => `<i style="--x:${(i * 53) % 100}%;--d:${(i * 0.37) % 6}s;--s:${6 + (i % 5)}s"></i>`).join('')}</div>
         <div class="kw-sigil" aria-hidden="true"></div>
         <div class="kw-load-in">
-          <div class="kw-wordmark"><b>Packfall</b><small>Die letzte Wacht</small></div>
+          <div class="kw-wordmark"><b>Packfall</b><small>Laternenwacht</small></div>
           <div class="kw-loadrow"><b data-k="loadlbl">Baue die Welt auf …</b><span data-k="loadpct">0 %</span></div>
           <div class="kw-loadbar"><i data-k="loadbar"></i></div>
           <p class="kw-loadtip" data-k="loadtip"></p>
@@ -102,17 +116,17 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
       <div class="kw-title">
         <span class="kw-title-bg" data-k="titlebg"></span>
         <div class="kw-title-main">
-          <h1 class="kw-title-logo"><div class="kw-wordmark"><b>Packfall</b><small>Die letzte Wacht</small></div></h1>
+          <h1 class="kw-title-logo"><div class="kw-wordmark"><b>Packfall</b><small>Laternenwacht</small></div></h1>
           <div class="kw-fan" data-k="fan" aria-hidden="true"></div>
-          <p class="kw-ribbon">Booster öffnen · Türme bauen · Kern halten</p>
+          <p class="kw-ribbon">Booster öffnen · Lichtwesen setzen · Schatten aufhalten</p>
           <button type="button" class="kw-press" data-k="press">Drücke Start</button>
         </div>
-        <p class="kw-legal">Prototyp v0.10.1 · Spielstand wird automatisch gespeichert</p>
+        <p class="kw-legal">Prototyp v0.11 · Spielstand wird automatisch gespeichert</p>
       </div>
       <div class="kw-auth" data-k="auth">
         <div class="kw-auth-in">
-          <div class="kw-auth-logo"><div class="kw-wordmark"><b>Packfall</b><small>Die letzte Wacht</small></div></div>
-          <p class="kw-ribbon">Booster öffnen · Türme bauen · Kern halten</p>
+          <div class="kw-auth-logo"><div class="kw-wordmark"><b>Packfall</b><small>Laternenwacht</small></div></div>
+          <p class="kw-ribbon">Booster öffnen · Lichtwesen setzen · Schatten aufhalten</p>
           <div class="kw-auth-wrap">
             <form class="kw-box kw-auth-box" data-k="authform" novalidate>
               <div class="kw-atabs" role="tablist">
@@ -140,7 +154,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
 
   const k = name => el.querySelector(`[data-k="${name}"]`);
   const E = {};
-  ['lvname', 'wave', 'hp', 'hpbar', 'cash', 'rgems', 'tr', 'boss', 'bossname', 'bossfill', 'phint', 'tp', 'dock', 'banner', 'hitflash', 'menu', 'screen', 'bo', 'sum', 'intro', 'toast', 'open', 'loadlbl', 'loadpct', 'loadbar', 'loadtip', 'press', 'titlebg', 'fan', 'auth', 'authform', 'authpw2', 'autherr', 'authgo', 'authlb', 'news', 'newsh', 'newstxt', 'newsok'].forEach(n => { E[n] = k(n); });
+  ['lvname', 'wave', 'hp', 'hpbar', 'licht', 'lichtbox', 'cards', 'shovel', 'go', 'gotime', 'prog', 'flags', 'proghead', 'rgems', 'tr', 'boss', 'bossname', 'bossfill', 'phint', 'banner', 'hitflash', 'menu', 'screen', 'bo', 'sum', 'intro', 'toast', 'open', 'loadlbl', 'loadpct', 'loadbar', 'loadtip', 'press', 'titlebg', 'fan', 'auth', 'authform', 'authpw2', 'autherr', 'authgo', 'authlb', 'news', 'newsh', 'newstxt', 'newsok'].forEach(n => { E[n] = k(n); });
   const stage = el.querySelector('.kw-stage');
 
   let screen = null;          // offene Unterseite
@@ -178,7 +192,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
   // =====================================================================
   // KAMPF-HUD
   // =====================================================================
-  const sel = { place: null, tower: null, hover: null };
+  const sel = { place: null, tower: null, hover: null, shovel: false };
   let battleCheck = () => '';
   const sfxLast = {};
   const sfxT = (n, gap, a) => { const now = performance.now(); if ((sfxLast[n] || 0) + gap * 1000 > now) return; sfxLast[n] = now; sfx(n, a); };
@@ -189,104 +203,58 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     return `<div class="kw-seg" role="group" aria-label="Tempo">${[1, 2, 3].map(v => `<button type="button" data-act="speed" data-v="${v}" aria-pressed="${s === v && !p}">${v}×</button>`).join('')}<button type="button" data-act="pause" aria-pressed="${p}" title="Pause (P)" aria-label="Pause">${ic(p ? 'play' : 'pause')}</button></div>
       <button type="button" class="kw-btn kw-btn-sm${abandonArm > Date.now() ? ' is-warn' : ''}" data-act="abandon">${ic('flag')}<span>${abandonArm > Date.now() ? 'Wirklich?' : 'Aufgeben'}</span></button>`;
   }
-  function dockHTML() {
+  // Kartenleiste: Porträt, Kosten, Abklingen (das Abklingen wird pro Frame direkt gesetzt)
+  function cardsHTML() {
     const R = game.run;
-    if (!R || R.phase === 'done') return '';
-    const slots = game.meta.loadout.map((id, i) => {
-      if (i >= game.loadoutSize()) return `<div class="kw-ls is-locked" title="Platz ${i + 1} in der Werkstatt freischalten">${ic('lock')}</div>`;
-      if (!id) return `<div class="kw-ls is-empty"><kbd>${i + 1}</kbd></div>`;
-      const d = T[id], cost = game.towerCost(id), n = R.built[id] || 0, poor = R.cash < cost, full = n >= d.limit;
-      return `<button type="button" class="kw-ls r-${d.rarity}${sel.place === id ? ' is-sel' : ''}${poor || full ? ' is-poor' : ''}" style="--ac:${d.accent};--rc:${RARITIES[d.rarity].color}" data-act="pick" data-id="${id}" title="${d.name} · ${d.role}">
-        <kbd>${i + 1}</kbd><span class="kw-ls-lv">Lv ${game.towerLevel(id)}</span><span class="kw-ls-art">${skin.towerArt(id)}</span><b>${d.name}</b><span class="kw-ls-cost">${ic('coin')}${fmt(cost)}</span><small>${full ? 'Limit' : `${n}/${d.limit}`}</small></button>`;
+    if (!R) return '';
+    return loadoutIds().map((id, i) => {
+      if (!id) return '';
+      const d = T[id];
+      return `<button type="button" class="kw-lwcard r-${d.rarity}${sel.place === id ? ' is-sel' : ''}" style="--rc:${RARITIES[d.rarity].color};--ac:${d.accent}" data-act="pick" data-id="${id}" title="${d.name} · ${d.role} (Taste ${i + 1})">
+        <span class="kw-lwcard-art">${skin.towerArt(id)}</span><span class="kw-lwcard-lv">${game.towerLevel(id)}</span>
+        <span class="kw-lwcard-cost"><i></i>${fmt(game.towerCost(id))}</span><span class="kw-lwcard-cd"></span></button>`;
     }).join('');
-    let wb;
-    if (R.phase === 'prep') wb = `<button type="button" class="kw-wb is-go" data-act="callWave">${ic('play')}<span><b>Welle 1 starten</b><small>Leertaste</small></span></button>`;
-    else if (game.canCall()) { const b = game.callBonus(); wb = `<button type="button" class="kw-wb is-next" data-act="callWave">${ic('speed')}<span><b>Nächste Welle${R.timerOn ? ` · ${Math.ceil(Math.max(0, R.nextT))} s` : ''}</b><small>${b > 0 ? `Früh rufen: +${fmt(b)}` : 'Leertaste'}</small></span></button>`; }
-    else wb = `<div class="kw-wb is-run">${ic('wave')}<span><b>${R.waves !== Infinity && R.wave >= R.waves ? 'Letzte Welle!' : 'Welle läuft'}</b><small>${R.queue.length ? `${R.queue.length} Gegner kommen noch` : `${game.enemies.length} Gegner übrig`}</small></span></div>`;
-    return `<div class="kw-lsrow">${slots}</div>${wb}`;
-  }
-  function tpHTML() {
-    const tw = sel.tower, R = game.run;
-    if (!tw || !R || R.phase === 'done' || !game.towers.includes(tw)) return '';
-    const d = tw.def, s = game.stats(tw), next = tw.lv + 1 < MAX_LV ? game.towerStats(tw.id, tw.lv + 1, tw.buff) : null, cost = game.upgradeCost(tw);
-    const pc = v => `${Math.round(v * 100)} %`;
-    const row = (lbl, a, b, f = v => fmtNum(v, 1)) => (a == null ? '' : `<div><dt>${lbl}</dt><dd>${f(a)}${b != null && f(b) !== f(a) ? `<i>→ ${f(b)}</i>` : ''}</dd></div>`);
-    const rows = [];
-    if (d.kind === 'farm') rows.push(row('Ertrag pro Welle', s.income, next?.income, v => fmt(v)));
-    else if (d.kind === 'support') { rows.push(row('Schaden-Bonus', s.bDmg, next?.bDmg, pc)); rows.push(row('Tempo-Bonus', s.bRate, next?.bRate, pc)); if (s.bRange || next?.bRange) rows.push(row('Reichweite-Bonus', s.bRange, next?.bRange, pc)); }
-    else {
-      if (s.dps != null) rows.push(row('Schaden/s', s.dps, next?.dps));
-      else rows.push(row(d.kind === 'missile' ? 'Schaden je Rakete' : 'Schaden', s.dmg, next?.dmg));
-      if (d.kind === 'missile') rows.push(row('Raketen', s.n, next?.n, v => v));
-      if (s.rate) rows.push(row('Schüsse/s', s.rate, next?.rate, v => fmtNum(v, 2)));
-      if (d.kind === 'tesla') rows.push(row('Sprünge', s.chain, next?.chain, v => v));
-      if (d.kind === 'plasma') rows.push(row('Durchschlag', s.pierce, next?.pierce, v => v));
-      if (s.slow) rows.push(row('Verlangsamt', s.slow, next?.slow, pc));
-      if (s.splash) rows.push(row('Fläche', s.splash, next?.splash));
-      if (s.burn) rows.push(row('Brand/s', s.burn, next?.burn));
-    }
-    if (s.range && d.kind !== 'farm') rows.push(row('Reichweite', s.range, next?.range, rngTxt));
-    const pips = Array.from({ length: MAX_LV }, (_, i) => `<i class="${i <= tw.lv ? 'on' : ''}"></i>`).join('');
-    const canUp = cost != null && R.cash >= cost;
-    const modes = d.kind === 'farm' || d.kind === 'support' ? '' : `<div class="kw-tp-mode"><small>Ziel</small><div class="kw-seg">${Object.entries(MODES).map(([k2, n]) => `<button type="button" data-act="mode" data-v="${k2}" aria-pressed="${tw.mode === k2}">${n}</button>`).join('')}</div></div>`;
-    const buff = tw.buff ? `<p class="kw-tp-buff">${ic('up')} Verstärkt: +${Math.round(tw.buff.dmg * 100)} % Schaden, +${Math.round(tw.buff.rate * 100)} % Tempo</p>` : '';
-    return `<div class="kw-box kw-tp-in" style="--ac:${d.accent};--rc:${RARITIES[d.rarity].color}">
-      <header><span class="kw-tp-art">${skin.towerArt(tw.id, { max: tw.lv >= 4 })}</span><div><b>${d.name} <i class="kw-tp-lv">Lv ${game.towerLevel(tw.id)}</i></b><small>${tw.lv ? d.lv[tw.lv].name : d.role}</small><span class="kw-pips">${pips}</span></div><button type="button" class="kw-x" data-act="deselect" aria-label="Schließen">${ic('x')}</button></header>
-      <dl class="kw-tp-st">${rows.join('')}</dl>${buff}
-      ${d.kind !== 'farm' && d.kind !== 'support' ? '<p class="kw-tp-kills"></p>' : ''}
-      ${cost != null ? `<button type="button" class="kw-btn kw-tp-up${canUp ? ' kw-btn-primary' : ''}" data-act="upT"${canUp ? '' : ' aria-disabled="true"'}><span><b>${d.lv[tw.lv + 1].name}</b><small>Ausbau auf Stufe ${tw.lv + 2} · Taste E</small></span><em>${ic('coin')}${fmt(cost)}</em></button>` : '<p class="kw-tp-max">Voll ausgebaut</p>'}
-      ${modes}
-      <button type="button" class="kw-btn kw-btn-sm kw-tp-sell" data-act="sellT">${ic('sell')}<span>Verkaufen · +${fmt(game.sellValue(tw))}</span></button>
-    </div>`;
   }
   function pickTower(id) {
     const R = game.run; if (!R || R.phase === 'done' || !id) return;
-    if (sel.place === id) { sel.place = null; sfx('click'); return; }
-    sel.place = id; sel.tower = null; sfx('nav');
-    if (R.cash < game.towerCost(id)) toast(`${T[id].name} kostet ${fmt(game.towerCost(id))} Münzen.`);
-    else if ((R.built[id] || 0) >= T[id].limit) toast(`Maximal ${T[id].limit}× ${T[id].name} pro Map.`);
-    last.dock = null;
+    sel.shovel = false;
+    if (sel.place === id) { sel.place = null; sfx('click'); last.cards = null; return; }
+    if ((R.cd[id] || 0) > 0) { sfx('deny'); toast(`${T[id].name} lädt noch auf.`); return; }
+    if (R.licht < game.towerCost(id)) { sfx('deny'); toast(`${T[id].name} kostet ${fmt(game.towerCost(id))} Licht.`); return; }
+    sel.place = id; sfx('nav'); last.cards = null;
   }
-  function callWave() { if (game.callWave()) { sfx('wave'); last.dock = null; } else sfx('deny'); }
-  function upgradeSel() {
-    const tw = sel.tower; if (!tw) return;
-    const c = game.upgradeCost(tw);
-    if (c == null) { sfx('deny'); toast('Schon voll ausgebaut.'); return; }
-    if (!game.upgrade(tw)) { sfx('deny'); toast(`Dir fehlen ${fmt(c - game.run.cash)} Münzen.`); return; }
-    sfx('reveal', tw.lv >= 4 ? 'legendary' : tw.lv >= 2 ? 'epic' : 'rare'); last.tp = null;
-  }
-  function sellSel() { const tw = sel.tower; if (!tw) return; game.sell(tw); sel.tower = null; last.tp = null; }
+  function callWave() { if (game.callWave()) { sfx('wave'); } }
+  function toggleShovel() { if (!game.run) return; sel.shovel = !sel.shovel; sel.place = null; sfx('click'); last.cards = null; }
   function boardHover(h) { sel.hover = h; }
   function boardClick(h) {
     const R = game.run; if (!R || R.phase === 'done' || !h) return;
     audio?.unlock();
-    if (!h.inside) { sel.tower = null; sel.place = null; return; }
-    const tw = game.towerAt(h.c, h.r);
-    if (sel.place) {
-      if (tw) { sel.place = null; sel.tower = tw; sfx('nav'); return; }
-      const why = game.placeCheck(sel.place, h.c, h.r);
-      if (why) { sfx('deny'); toast(why === 'limit' ? `Maximal ${T[sel.place].limit}× ${T[sel.place].name} pro Map.` : why === 'cash' ? `Dir fehlen ${fmt(game.towerCost(sel.place) - R.cash)} Münzen.` : WHY[why] || 'Geht hier nicht.'); return; }
-      const id = sel.place;
-      game.place(id, h.c, h.r);
-      if (!shiftDown || R.cash < game.towerCost(id)) sel.place = null;
-      last.dock = null;
-      return;
+    if (h.drop != null) { if (game.collect(h.drop)) sfxT('coin', 0.05); return; }
+    if (!h.inside) { sel.place = null; sel.shovel = false; last.cards = null; return; }
+    if (sel.shovel) {
+      const u = game.unitAt(h.c, h.r);
+      if (u) { game.remove(u); sfx('click'); } else sfx('deny');
+      sel.shovel = false; return;
     }
-    if (tw) { sel.tower = sel.tower === tw ? null : tw; sfx('nav'); } else sel.tower = null;
-    last.tp = null;
+    if (sel.place) {
+      const id = sel.place, why = game.placeCheck(id, h.c, h.r);
+      if (why) { sfx('deny'); toast(why === 'cash' ? `Dir fehlen ${fmt(game.towerCost(id) - R.licht)} Licht.` : WHY[why] || 'Geht hier nicht.'); return; }
+      game.place(id, h.c, h.r);
+      if (!shiftDown || R.licht < game.towerCost(id)) sel.place = null;
+      last.cards = null;
+    }
   }
-  function boardCancel() { if (sel.place || sel.tower) sfx('click'); sel.place = null; sel.tower = null; last.dock = null; }
+  function boardCancel() { if (sel.place || sel.shovel) sfx('click'); sel.place = null; sel.shovel = false; last.cards = null; }
   let shiftDown = false;
   const onKey = e => {
     shiftDown = e.shiftKey;
     const R = game.run;
     if (!R || R.phase === 'done' || e.type !== 'keydown' || e.target?.closest?.('input,textarea') || !E.sum.hidden) return;
     const key = e.key;
-    if (key >= '1' && key <= '5') { const i = +key - 1; if (i < game.loadoutSize()) pickTower(game.meta.loadout[i]); }
+    if (key >= '1' && key <= '7') { const i = +key - 1; if (i < game.loadoutSize()) pickTower(game.meta.loadout[i]); }
     else if (key === 'Escape') boardCancel();
     else if (key === ' ') { e.preventDefault(); callWave(); }
-    else if (key === 'e' || key === 'E' || key === 'u') upgradeSel();
-    else if (key === 'x' || key === 'Delete') sellSel();
+    else if (key === 'q' || key === 'Q' || key === 'x' || key === 'Delete') toggleShovel();
     else if (key === 'p' || key === 'P') { game.setPaused(!game.paused); last.tr = null; }
   };
   window.addEventListener('keydown', onKey);
@@ -294,8 +262,8 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
   function insets() {
     if (!game.run) return { top: 0, bottom: 0, left: 0, right: 0 };
     const sr = stage.getBoundingClientRect();
-    const th = el.querySelector('.kw-thud')?.getBoundingClientRect(), dk = E.dock.getBoundingClientRect();
-    return { top: th && th.height ? Math.round(th.bottom - sr.top + 8) : 64, bottom: dk.height ? Math.round(sr.bottom - dk.top + 6) : 110, left: 0, right: 0 };
+    const tr = el.querySelector('.kw-lwtray')?.getBoundingClientRect(), pr = el.querySelector('.kw-lwprog')?.getBoundingClientRect();
+    return { top: tr && tr.height ? Math.round(tr.bottom - sr.top + 4) : 90, bottom: pr && pr.height ? Math.round(sr.bottom - pr.top + 2) : 50, left: 0, right: 0 };
   }
   function startLevel(li, diff = diffSel) {
     const err = battleCheck();
@@ -304,7 +272,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     if (!game.levelUnlocked(li)) { sfx('deny'); toast('Diese Map ist noch gesperrt.'); return; }
     if (!loadoutIds().some(Boolean)) { sfx('deny'); toast('Stell zuerst ein Loadout zusammen.'); openScreen('tuerme'); return; }
     sfx('wave'); closeScreen(); E.sum.hidden = true;
-    sel.place = sel.tower = null; game.setPaused(false);
+    sel.place = null; sel.tower = null; sel.shovel = false; game.setPaused(false);
     if (game.run) game.leaveRun();
     game.startLevel(li, diff);
   }
@@ -329,12 +297,12 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
       <span class="kw-mi-ic">${ic(icon)}</span><span class="kw-mi-tx"><b>${title}</b><small>${sub}</small></span>${extra}</button>`;
     const badge = t => `<span class="kw-mi-badge">${t}</span>`;
     const lb = lbRows
-      ? (lbRows.length ? lbRows.map((r, i) => `<li class="${r.me ? 'is-me' : ''}"><span class="kw-lb-n">${i + 1}</span><span class="kw-lb-name">${esc(r.name)}</span><span class="kw-lb-v">Welle ${r.best_wave}</span><small>${fmt(r.total_gems)} Gems · ${r.heroes || 0} Türme</small></li>`).join('') : '<li class="kw-lb-empty">Noch niemand eingetragen. Sei der Erste!</li>')
-      : `<li class="is-me"><span class="kw-lb-n">1</span><span class="kw-lb-name">${esc(playerName())}</span><span class="kw-lb-v">Welle ${m.best}</span><small>${fmt(m.totalGems)} Gems · ${owned} Türme</small></li>`;
+      ? (lbRows.length ? lbRows.map((r, i) => `<li class="${r.me ? 'is-me' : ''}"><span class="kw-lb-n">${i + 1}</span><span class="kw-lb-name">${esc(r.name)}</span><span class="kw-lb-v">Welle ${r.best_wave}</span><small>${fmt(r.total_gems)} Gems · ${r.heroes || 0} Wächter</small></li>`).join('') : '<li class="kw-lb-empty">Noch niemand eingetragen. Sei der Erste!</li>')
+      : `<li class="is-me"><span class="kw-lb-n">1</span><span class="kw-lb-name">${esc(playerName())}</span><span class="kw-lb-v">Welle ${m.best}</span><small>${fmt(m.totalGems)} Gems · ${owned} Wächter</small></li>`;
     const stars = game.totalMedals(), cleared = game.levelsCleared();
     return `<div class="kw-menu-in">
       <header class="kw-mhead">
-        <h1 class="kw-menu-logo"><div class="kw-wordmark"><b>Packfall</b><small>Die letzte Wacht</small></div></h1>
+        <h1 class="kw-menu-logo"><div class="kw-wordmark"><b>Packfall</b><small>Laternenwacht</small></div></h1>
         <div class="kw-pbar">
           <span>${ic('user')}<b>${esc(playerName())}</b></span>
           <span>${ic('gem')}<b>${fmt(m.gems)}</b></span>
@@ -346,14 +314,14 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
       <main class="kw-center">
         <nav class="kw-box kw-mm" aria-label="Hauptmenü">
           ${mb('open', 'welt', 'sword', 'Kämpfen', nxName, '', true)}
-          ${mb('open', 'booster', 'pack', 'Booster-Laden', giftOpen ? 'Ein Geschenk wartet auf dich!' : 'Turm-Booster · Elite-Booster', giftOpen ? badge('Geschenk') : affordable ? badge('!') : '')}
+          ${mb('open', 'booster', 'pack', 'Booster-Laden', giftOpen ? 'Ein Geschenk wartet auf dich!' : 'Licht-Booster · Elite-Booster', giftOpen ? badge('Geschenk') : affordable ? badge('!') : '')}
           ${mb('open', 'werkstatt', 'anvil', 'Werkstatt', avail ? `${avail} Ausbau${avail === 1 ? '' : 'ten'} möglich` : 'Dauerhafte Verbesserungen', avail ? badge(avail) : '')}
-          ${mb('open', 'tuerme', 'turret', 'Türme', game.readyCount() ? `${game.readyCount()} Aufwertung${game.readyCount() === 1 ? '' : 'en'} bereit` : `Sammlung ${owned}/${TOWERS.length} · Loadout ${loadoutIds().filter(Boolean).length}/${game.loadoutSize()}`, game.readyCount() ? badge(game.readyCount()) : '')}
-          ${mb('open', 'bestiarium', 'skull', 'Bestiarium', `${Object.keys(ENEMIES).length} Gegnerarten`)}
-          ${mb('open', 'statistik', 'chart', 'Statistik', `${fmt(m.runs)} Spiele · ${fmt(m.kills)} Gegner besiegt`)}
+          ${mb('open', 'tuerme', 'turret', 'Wächter', game.readyCount() ? `${game.readyCount()} Aufwertung${game.readyCount() === 1 ? '' : 'en'} bereit` : `Sammlung ${owned}/${TOWERS.length} · Loadout ${loadoutIds().filter(Boolean).length}/${game.loadoutSize()}`, game.readyCount() ? badge(game.readyCount()) : '')}
+          ${mb('open', 'bestiarium', 'skull', 'Schattenbuch', `${Object.keys(ENEMIES).length} Schattenarten`)}
+          ${mb('open', 'statistik', 'chart', 'Statistik', `${fmt(m.runs)} Spiele · ${fmt(m.kills)} Schatten besiegt`)}
           ${mb('open', 'einstellungen', 'gear', 'Einstellungen', `Anleitung · Sound · Grafik · ${cloud?.st?.status === 'online' ? 'Abmelden' : 'Login'}`)}
         </nav>
-        <p class="kw-loc">${ic('map')} Welt 1 · Aschewald</p>
+        <p class="kw-loc">${ic('map')} Welt 1 · Die lange Nacht</p>
       </main>
       <div class="kw-sides">
       <aside class="kw-box kw-side kw-side-l">
@@ -362,7 +330,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
           <div><dt>Maps geschafft</dt><dd>${cleared}/${LEVELS.length}</dd></div>
           <div><dt>Abzeichen</dt><dd>${stars}/${LEVELS.length * 3}</dd></div>
           <div><dt>Endlos-Rekord</dt><dd>${game.levelUnlocked('endless') ? `Welle ${m.best}` : 'gesperrt'}</dd></div>
-          <div><dt>Türme</dt><dd>${owned}/${TOWERS.length}</dd></div>
+          <div><dt>Wächter</dt><dd>${owned}/${TOWERS.length}</dd></div>
         </dl>
         <h3>${ic('trophy')} Herausforderungen</h3>
         <div class="kw-chal"><div><b>Tägliche Map</b><small>Gleiche Map & Wellen für alle</small></div><span class="kw-soon">Bald</span></div>
@@ -398,7 +366,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
   // =====================================================================
   // UNTERSEITEN
   // =====================================================================
-  const TITLES = { welt: ['map', 'Welt 1 · Aschewald'], booster: ['pack', 'Booster-Laden'], werkstatt: ['anvil', 'Werkstatt'], tuerme: ['turret', 'Türme'], bestiarium: ['skull', 'Bestiarium'], statistik: ['chart', 'Statistik'], einstellungen: ['gear', 'Einstellungen'], konto: ['user', 'Konto'] };
+  const TITLES = { welt: ['map', 'Welt 1 · Die lange Nacht'], booster: ['pack', 'Booster-Laden'], werkstatt: ['anvil', 'Werkstatt'], tuerme: ['turret', 'Wächter'], bestiarium: ['skull', 'Schattenbuch'], statistik: ['chart', 'Statistik'], einstellungen: ['gear', 'Einstellungen'], konto: ['user', 'Konto'] };
   const STATIC = new Set(['konto', 'einstellungen']); // nicht ständig neu zeichnen (Eingabefelder)
 
   function shopHTML() {
@@ -408,7 +376,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
       cells.push(`<div class="kw-shopcell is-gift">
         <div class="kw-price is-free">Gratis</div>
         <div class="kw-shopimg">${skin.packArt('starter')}</div>
-        <b>Start-Geschenk</b><small>Ein Turm · garantiert Selten</small>
+        <b>Start-Geschenk</b><small>Funkling + Lichtschütze</small>
         <button type="button" class="kw-btn kw-btn-primary" data-act="booster" data-v="starter">Öffnen</button></div>`);
     }
     Object.entries(BOOSTERS).filter(([, b]) => !b.hidden).forEach(([kind, b]) => {
@@ -416,12 +384,12 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
       cells.push(`<div class="kw-shopcell k-${kind}">
         <div class="kw-price">${costHTML('gem', b.cost)}</div>
         <div class="kw-shopimg">${skin.packArt(kind)}</div>
-        <b>${b.name}</b><small>Karten für 1 Turm${kind === 'elite' ? ' · mind. Selten' : ''}</small>
+        <b>${b.name}</b><small>Karten für 1 Lichtwesen${kind === 'elite' ? ' · mind. Selten' : ''}</small>
         <ul class="kw-odds">${Object.entries(b.odds).map(([r, v]) => `<li style="--rc:${RARITIES[r].color}"><span>${RARITIES[r].name}</span><span>${v} %</span></li>`).join('')}</ul>
         <button type="button" class="kw-btn${can ? ' kw-btn-primary' : ''}" data-act="booster" data-v="${kind}"${can ? '' : ' aria-disabled="true"'}>${can ? 'Öffnen' : `Fehlen ${fmt(b.cost - m.gems)}`}</button></div>`);
     });
     return `<div class="kw-shop">${cells.join('')}</div>
-      <p class="kw-hint">Jeder Booster enthält Karten für einen Turm: Gewöhnlich 6–10, Selten 3–6, Episch 2–4, Legendär 1–2, Mythisch 1. Mit Karten und Gems wertest du Türme auf (bis Level 10).</p>
+      <p class="kw-hint">Jeder Booster enthält Karten für ein Lichtwesen: Gewöhnlich 6–10, Selten 3–6, Episch 2–4, Legendär 1–2, Mythisch 1. Mit Karten und Gems wertest du Wächter auf (bis Level 10).</p>
       <button type="button" class="kw-link" data-act="testgems">+300 Gems zum Testen (nur im Prototyp)</button>`;
   }
 
@@ -478,9 +446,9 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     const L = levelDef(i, diffSel);
     const foes = i === 'endless' ? [...L.foes, 'koloss', 'fuerst'] : [...L.foes, L.final || 'koloss'];
     const lo = loadoutIds();
-    const diffs = i === 'endless' ? '' : `<h4>Schwierigkeit</h4><div class="kw-diffs">${DIFF_IDS.map(d => `<button type="button" class="kw-diff m-${MEDAL[d]}${diffSel === d ? ' is-sel' : ''}${game.hasMedal(i, d) ? ' has' : ''}" data-act="diff" data-v="${d}"><span class="kw-diff-m">${ic('medal')}</span><b>${DIFFS[d].name}</b><small>${DIFFS[d].waves} Wellen · Abzug ×${String(DIFFS[d].leak).replace('.', ',')}</small></button>`).join('')}</div>`;
-    const desc = i === 'endless' ? 'Unendlich viele Wellen. Jede 10. Welle ein Koloss, jede 25. der Schattenfürst. Zählt für die Bestenliste.'
-      : `${L.paths.length > 1 ? '2 Eingänge · ' : ''}${info.clears ? `${info.clears}× geschafft` : 'noch nicht geschafft'} · Abzeichen ${DIFFS[diffSel].medal}${game.hasMedal(i, diffSel) ? ' ✓' : ''}`;
+    const diffs = i === 'endless' ? '' : `<h4>Schwierigkeit</h4><div class="kw-diffs">${DIFF_IDS.map(d => `<button type="button" class="kw-diff m-${MEDAL[d]}${diffSel === d ? ' is-sel' : ''}${game.hasMedal(i, d) ? ' has' : ''}" data-act="diff" data-v="${d}"><span class="kw-diff-m">${ic('medal')}</span><b>${DIFFS[d].name}</b><small>${DIFFS[d].waves} Wellen · Herzschaden ×${String(DIFFS[d].leak).replace('.', ',')}</small></button>`).join('')}</div>`;
+    const desc = i === 'endless' ? `Unendlich viele Wellen bei ${AMB(L)} Licht. Jede 10. Welle ein Koloss, jede 20. der Schattenfürst. Zählt für die Bestenliste.`
+      : `Licht ${AMB(L)}${(L.blocks || []).length ? ` · ${L.blocks.length} Hindernisse` : ''} · ${info.clears ? `${info.clears}× geschafft` : 'noch nicht geschafft'} · Abzeichen ${DIFFS[diffSel].medal}${game.hasMedal(i, diffSel) ? ' ✓' : ''}`;
     return `<div class="kw-welt">
       <div class="kw-lvgrid">${cards}</div>
       <div class="kw-box kw-lvd">
@@ -493,7 +461,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
         <h4>Gegner${i === 'endless' ? '' : ` · ${DIFFS[diffSel].name}`}</h4>
         <div class="kw-foes">${foes.map(f => `<span class="kw-foe${ENEMIES[f].boss ? ' is-boss' : ''}" title="${ENEMIES[f].name}">${skin.enemyArt(f)}</span>`).join('')}</div>
         <h4>Loadout <button type="button" class="kw-link" data-act="open" data-v="tuerme">ändern</button></h4>
-        <div class="kw-lvd-lo">${Array.from({ length: 5 }, (_, k2) => (k2 >= game.loadoutSize() ? `<span class="is-locked">${ic('lock')}</span>` : lo[k2] ? `<span class="r-${T[lo[k2]].rarity}" style="--rc:${RARITIES[T[lo[k2]].rarity].color}" title="${T[lo[k2]].name}">${skin.towerArt(lo[k2])}</span>` : '<span class="is-empty"></span>')).join('')}</div>
+        <div class="kw-lvd-lo">${Array.from({ length: 7 }, (_, k2) => (k2 >= game.loadoutSize() ? `<span class="is-locked">${ic('lock')}</span>` : lo[k2] ? `<span class="r-${T[lo[k2]].rarity}" style="--rc:${RARITIES[T[lo[k2]].rarity].color}" title="${T[lo[k2]].name}">${skin.towerArt(lo[k2])}</span>` : '<span class="is-empty"></span>')).join('')}</div>
         <button type="button" class="kw-btn kw-btn-primary kw-btn-lg kw-lvd-go" data-act="play" data-v="${i}"${open ? '' : ' aria-disabled="true"'}>${ic(open ? 'play' : 'lock')}<span>${open ? (i === 'endless' ? 'Starten' : `Starten · ${DIFFS[diffSel].name}`) : i === 'endless' ? 'Schließe Map 8 ab' : `Schließe Map ${i} ab`}</span></button>
       </div>
     </div>`;
@@ -501,6 +469,9 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
 
   // ---------- Türme: Sammlung & Loadout ----------
   let towSel = null;
+  const unitMeta = id => { const d = T[id], s = game.towerStats(id), parts = [`${ic('licht')} ${fmt(game.towerCost(id))} Licht`, `${fmtNum(d.cd, 1)} s Aufladen`, d.kind === 'bomb' ? 'einmalig' : `${fmt(s.hp)} Leben`];
+    if (d.kind === 'farm') parts.push(`+${s.income} Licht alle ${fmtNum(s.every, 1)} s`); else if (d.kind === 'beacon') parts.push(`+${Math.round(s.bDmg * 100)} % Schaden im Licht`); else if (d.kind !== 'wall') parts.push(`${fmtNum(game.dps(id), 1)} ${d.kind === 'bomb' ? 'Schaden' : 'Schaden/s'}`);
+    parts.push(`Lichtradius ${fmtNum(s.light, 1)}`); if (d.air) parts.push('trifft Flieger'); return parts.join(' · '); };
   const lvBadge = id => `<span class="kw-lvb${game.towerLevel(id) >= TLV_MAX ? ' is-max' : ''}">${game.towerLevel(id)}</span>`;
   function cardBar(id) {
     const need = game.cardsNeed(id), have = game.towerCards(id);
@@ -512,7 +483,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     const m = game.meta, size = game.loadoutSize();
     if (!towSel || !T[towSel]) towSel = Object.keys(m.towers)[0] || TOWERS[0].id;
     const lo = m.loadout.map((id, i) => (i >= size ? `<div class="kw-lo is-locked">${ic('lock')}<small>Werkstatt</small></div>`
-      : id ? `<button type="button" class="kw-lo r-${T[id].rarity}" style="--rc:${RARITIES[T[id].rarity].color}" data-act="tsel" data-id="${id}">${lvBadge(id)}<span class="kw-lo-art">${skin.towerArt(id)}</span><b>${T[id].name}</b><small>${ic('coin')}${fmt(game.towerCost(id))}</small></button>`
+      : id ? `<button type="button" class="kw-lo r-${T[id].rarity}" style="--rc:${RARITIES[T[id].rarity].color}" data-act="tsel" data-id="${id}">${lvBadge(id)}<span class="kw-lo-art">${skin.towerArt(id)}</span><b>${T[id].name}</b><small>${ic('licht')}${fmt(game.towerCost(id))}</small></button>`
         : `<div class="kw-lo is-empty">${ic('plus')}<small>Platz ${i + 1}</small></div>`)).join('');
     const coll = TOWERS.map(d => {
       const own = m.towers[d.id];
@@ -537,10 +508,10 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
       ${own ? `<div class="kw-tdet-cards">${cardBar(d.id)}<small>${need == null ? 'Alle Level erreicht' : game.cardsReady(d.id) ? `Bereit! Aufwerten kostet ${fmt(cost)} Gems` : `Noch ${need - game.towerCards(d.id)} Karten bis Level ${L + 1}`}</small></div>
       ${upBtn}
       <h4>Level &amp; Belohnungen</h4>${path}
-      <p class="kw-tdet-meta">${d.kind === 'farm' || d.kind === 'support' ? '' : d.air ? `${ic('check')} Trifft Flieger · ` : `${ic('x')} Keine Flieger · `}${fmtNum(game.dps(d.id, 0), 1)} ${d.kind === 'farm' ? '' : 'Schaden/s'} · max. ${d.limit} pro Map</p>
+      <p class="kw-tdet-meta">${unitMeta(d.id)}</p>
       <button type="button" class="kw-btn${inLo ? '' : ' kw-btn-primary'}" data-act="tload" data-id="${d.id}">${ic(inLo ? 'x' : 'plus')}<span>${inLo ? 'Aus dem Loadout nehmen' : 'Ins Loadout'}</span></button>` : ''}
     </div>`;
-    return `<p class="kw-hint">Booster geben Karten. Mit genug Karten und Gems wertest du einen Turm auf – bis Level 10, mit Belohnungen auf Level 3, 5, 7 und 10. Dein Loadout sind die Türme, die du auf der Map bauen kannst.</p>
+    return `<p class="kw-hint">Booster geben Karten. Mit genug Karten und Gems wertest du ein Lichtwesen auf – bis Level 10, mit Belohnungen auf Level 3, 5, 7 und 10. Dein Loadout sind die Karten, die du im Kampf setzen kannst.</p>
       <div class="kw-box kw-lorow"><h4>Loadout</h4>${lo}</div>
       <div class="kw-tw"><div class="kw-tgrid">${coll}</div>${detail}</div>`;
   }
@@ -549,7 +520,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     return `<div class="kw-bgrid">${Object.entries(ENEMIES).map(([id, E2]) => `<div class="kw-box kw-bcell${E2.boss ? ' is-boss' : ''}">
       <span class="kw-bart">${skin.enemyArt(id)}</span>
       <div><b>${E2.name}</b><small>${E2.desc}</small>
-      <ul class="kw-bstats"><li><span>Leben</span><span>${fmt(E2.hp)}</span></li><li><span>Tempo</span><span>${fmtNum(E2.speed)}</span></li><li><span>Kernschaden</span><span>${E2.dmg}</span></li><li><span>Ab Level</span><span>${firstLevel(id)}</span></li>${E2.armor ? `<li><span>Panzer</span><span>${Math.round(E2.armor * 100)} %</span></li>` : ''}${E2.air ? '<li><span>Fliegt</span><span>ja</span></li>' : ''}</ul></div></div>`).join('')}</div>`;
+      <ul class="kw-bstats"><li><span>Leben</span><span>${fmt(E2.hp)}</span></li>${E2.armor ? `<li><span>Rüstung</span><span>${fmt(E2.armor)}</span></li>` : ''}${E2.shield ? `<li><span>Schild</span><span>${fmt(E2.shield)}</span></li>` : ''}<li><span>Tempo</span><span>${fmtNum(E2.speed * 10, 1)}</span></li><li><span>Herzschaden</span><span>${E2.core}</span></li><li><span>Ab Map</span><span>${firstLevel(id)}</span></li>${E2.air ? '<li><span>Fliegt</span><span>ja</span></li>' : ''}</ul></div></div>`).join('')}</div>`;
   }
 
   function statsHTML() {
@@ -557,8 +528,8 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     const h = Math.floor((m.playTime || 0) / 3600), mi = Math.floor(((m.playTime || 0) % 3600) / 60);
     const cells = [
       ['Maps geschafft', `${game.levelsCleared()}/${LEVELS.length}`], ['Abzeichen', `${game.totalMedals()}/${LEVELS.length * 3}`], ['Endlos-Rekord', `Welle ${m.best}`], ['Spiele', fmt(m.runs)],
-      ['Siege', fmt(m.wins || 0)], ['Gegner besiegt', fmt(m.kills)], ['Bosse besiegt', fmt(m.bossKills || 0)], ['Türme gebaut', fmt(m.built || 0)],
-      ['Gems gesammelt', fmt(m.totalGems)], ['Booster geöffnet', fmt(m.packs)], ['Türme gesammelt', `${Object.keys(m.towers).length}/${TOWERS.length}`], ['Spielzeit', `${h} h ${mi} min`],
+      ['Siege', fmt(m.wins || 0)], ['Schatten besiegt', fmt(m.kills)], ['Bosse besiegt', fmt(m.bossKills || 0)], ['Wächter gesetzt', fmt(m.built || 0)],
+      ['Gems gesammelt', fmt(m.totalGems)], ['Booster geöffnet', fmt(m.packs)], ['Wächter gesammelt', `${Object.keys(m.towers).length}/${TOWERS.length}`], ['Spielzeit', `${h} h ${mi} min`],
     ];
     return `<div class="kw-sgrid">${cells.map(([a, b]) => `<div class="kw-box kw-scell"><small>${a}</small><b>${b}</b></div>`).join('')}</div>`;
   }
@@ -576,7 +547,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
       <div class="kw-sgrp kw-box"><h4>${ic('eye')} Anzeige</h4>
         ${line('eye', 'Grafik', 'Auto passt sich deinem Gerät an', seg('gfx', [['hoch', 'Hoch'], ['mittel', 'Mittel'], ['niedrig', 'Niedrig'], ['auto', 'Auto']]))}
         ${line('crit', 'Bildschirmwackeln', 'Bei Treffern und Bossen', seg('shake', [['on', 'An'], ['off', 'Aus']]))}
-        ${line('sword', 'Schadenszahlen', 'Zahlen über den Gegnern', seg('numbers', [['on', 'An'], ['off', 'Aus']]))}</div>
+        ${line('sword', 'Licht-Zahlen', 'Zahlen beim Einsammeln', seg('numbers', [['on', 'An'], ['off', 'Aus']]))}</div>
       <div class="kw-sgrp kw-box"><h4>${ic('play')} Animationen</h4>
         ${line('pack', 'Booster öffnen', 'Schütteln & Aufreißen', seg('boosterAnim', [['show', 'Zeigen'], ['fast', 'Schnell']]))}</div>
       <div class="kw-sgrp kw-box"><h4>${ic('help')} Spiel</h4><div class="kw-chips">
@@ -663,10 +634,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
       case 'pause': game.setPaused(!game.paused); sfx('click'); last.tr = null; break;
       case 'pick': pickTower(id); break;
       case 'callWave': callWave(); break;
-      case 'upT': upgradeSel(); break;
-      case 'sellT': sellSel(); break;
-      case 'mode': if (sel.tower) { game.setMode(sel.tower, v); sfx('click'); last.tp = null; } break;
-      case 'deselect': sel.tower = null; sfx('click'); last.tp = null; break;
+      case 'shovel': toggleShovel(); break;
       case 'abandon':
         if (abandonArm > Date.now()) { abandonArm = 0; game.endRun('abandon'); }
         else { abandonArm = Date.now() + 3000; sfx('click'); later(() => { last.tr = null; }, 3100); }
@@ -684,7 +652,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
         else { const L = game.towerLevel(id), pk = perksOf(id)[L]; sfx('reveal', L >= 10 ? 'mythic' : L >= 5 ? 'legendary' : 'epic'); banner(`${T[id].name} · Level ${L}`, pk ? `${pk.name}: ${perkText(pk)}` : `+${Math.round(LVL_BONUS * 100)} % Stärke`, 'realm'); }
         break;
       case 'tload':
-        if (!game.toggleLoadout(id)) { sfx('deny'); toast(game.meta.loadout.includes(id) ? 'Mindestens ein Turm muss im Loadout bleiben.' : 'Loadout ist voll. Nimm erst einen Turm heraus oder schalte in der Werkstatt Plätze frei.'); }
+        if (!game.toggleLoadout(id)) { sfx('deny'); toast(game.meta.loadout.includes(id) ? 'Mindestens ein Wächter muss im Loadout bleiben.' : 'Loadout ist voll. Nimm erst einen Wächter heraus oder schalte in der Werkstatt Plätze frei.'); }
         else sfx('click');
         break;
       case 'open': sfx('click'); openScreen(v); if (v !== 'konto' && v !== 'einstellungen') break; break;
@@ -722,7 +690,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     last.menu = ''; last.strip = '';
   }
   // Kampf-Knöpfe reagieren schon beim Drücken (sie werden laufend neu gezeichnet)
-  const FAST = '.kw-dock [data-act], .kw-tp [data-act], .kw-tr [data-act]';
+  const FAST = '.kw-lwtray [data-act], .kw-tr [data-act], .kw-lwgo';
   el.addEventListener('pointerdown', e => {
     if (e.button !== 0) return;
     const b = e.target.closest(FAST);
@@ -793,12 +761,12 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     E.intro.innerHTML = `<div class="kw-box kw-intro-in" role="dialog" aria-labelledby="kwIntroT">
       <h2 id="kwIntroT">${gift ? 'Willkommen bei Packfall!' : 'So funktioniert Packfall'}</h2>
       <ol class="kw-steps">
-        <li>${ic('pack')}<span><b>Booster</b> bringen neue Türme in deine Sammlung. Doppelte geben Sterne.</span></li>
-        <li>${ic('turret')}<span>Vor jeder Map stellst du dein <b>Loadout</b> zusammen – bis zu 5 Türme.</span></li>
-        <li>${ic('target')}<span>Auf der Map <b>setzt du Türme aufs Raster</b> neben den Pfad und baust sie bis Stufe 5 aus.</span></li>
+        <li>${ic('pack')}<span><b>Booster</b> bringen neue Lichtwesen in deine Sammlung. Doppelte geben Karten zum Aufwerten.</span></li>
+        <li>${ic('turret')}<span>Setz <b>Funklinge</b> nach hinten – sie sammeln Licht. Mit Licht setzt du Wächter auf die 6 Bahnen.</span></li>
+        <li>${ic('target')}<span><b>Schatten</b> kommen von rechts. Im Dunkeln nehmen sie kaum Schaden – Licht ist deine Waffe.</span></li>
         <li>${ic('medal')}<span>Jede Map auf <b>Leicht, Mittel und Schwer</b> – für jede gibt es ein Abzeichen. <b>Gems</b> bleiben für immer.</span></li>
       </ol>
-      ${gift ? `<div class="kw-gift"><span class="kw-gift-img">${skin.packArt('starter')}</span><p><b>Ein Geschenk zum Start</b><br>Dein erster Booster – mit einem garantiert seltenen Turm.</p></div>
+      ${gift ? `<div class="kw-gift"><span class="kw-gift-img">${skin.packArt('starter')}</span><p><b>Ein Geschenk zum Start</b><br>Deine ersten zwei Lichtwesen: Funkling und Lichtschütze.</p></div>
         <button type="button" class="kw-btn kw-btn-primary kw-btn-lg" data-act="gift">${ic('pack')}<span>Geschenk öffnen</span></button>`
         : `<button type="button" class="kw-btn kw-btn-primary kw-btn-lg" data-act="introClose">${ic('check')}<span>Alles klar</span></button>`}
     </div>`;
@@ -814,9 +782,9 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
       packName: kind => BOOSTERS[kind].name,
       rarName: r => RARITIES[r].name,
       stats: r => {
-        const d = r.def, st = game.towerStats(d.id, 0);
-        return d.kind === 'farm' ? `${fmt(st.income)} Münzen pro Welle · ${d.role}` : d.kind === 'support' ? `+${Math.round(st.bDmg * 100)} % Schaden für Türme in Reichweite`
-          : `${fmtNum(game.dps(d.id, 0))} Schaden/s · Reichweite ${rngTxt(st.range)} · ${d.role}`;
+        const d = r.def, st = game.towerStats(d.id);
+        return d.kind === 'farm' ? `+${st.income} Licht alle ${fmtNum(st.every, 1)} s · ${d.role}` : d.kind === 'beacon' ? `Lichtradius ${fmtNum(st.light, 1)} · +${Math.round(st.bDmg * 100)} % Schaden im Licht` : d.kind === 'wall' ? `${fmt(st.hp)} Leben · ${d.role}`
+          : `${fmtNum(game.dps(d.id))} ${d.kind === 'bomb' ? 'Schaden' : 'Schaden/s'} · ${d.role}`;
       },
       tag: r => {
         if (r.isNew) return `Neu!${r.placed ? ' · direkt im Loadout' : ''}`;
@@ -885,27 +853,28 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     onClose: () => closeBooster(),
     onAgain: kind => openBooster(kind),
   });
-  let boKind = null;
+  let boKind = null, boQueue = [];
   function openBooster(kind) {
     const b = BOOSTERS[kind];
     if (game.run) return;
     if (game.meta.gems < b.cost) { sfx('deny'); toast(`Dir fehlen ${fmt(b.cost - game.meta.gems)} Gems.`); return; }
     const res = game.openBooster(kind);
     if (!res) return;
-    boKind = kind;
+    boKind = kind; boQueue = res.slice(1);
     opening.open(kind, res[0]);
   }
   function closeBooster() {
+    if (boQueue.length) { const r = boQueue.shift(); later(() => opening.open(boKind, r), 120); return; }
     const wasStarter = boKind === 'starter';
     boKind = null;
     last.menu = ''; renderScreen(true);
-    if (wasStarter) { closeScreen(); toast('Dein neuer Turm ist im Loadout. Auf „Kämpfen“ geht\'s los!'); later(() => E.menu.querySelector('[data-act="start"]')?.focus({ preventScroll: true }), 60); }
+    if (wasStarter) { closeScreen(); toast('Funkling und Lichtschütze sind im Loadout. Auf „Kämpfen“ geht\'s los!'); later(() => E.menu.querySelector('.kw-mi')?.focus({ preventScroll: true }), 60); }
   }
 
   // ---------- Level-Ende ----------
   function showSummary(s) {
     const win = s.result === 'win';
-    const title = win ? 'Sieg!' : s.result === 'abandon' ? 'Level abgebrochen' : 'Der Kern ist gefallen';
+    const title = win ? 'Sieg!' : s.result === 'abandon' ? 'Level abgebrochen' : 'Das Lichtherz ist erloschen';
     const nextI = s.li === 'endless' ? null : s.li + 1 < LEVELS.length ? s.li + 1 : (game.levelUnlocked('endless') ? 'endless' : null);
     const min = Math.floor(s.time / 60), sec = Math.floor(s.time % 60);
     E.sum.hidden = false;
@@ -918,8 +887,8 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
       ${s.cards ? `<p class="kw-sum-cards">${skin.towerArt(s.cards.id)}<span><b>+${s.cards.n} Karten</b><small>${T[s.cards.id].name} · ${game.towerCards(s.cards.id)}/${game.cardsNeed(s.cards.id) ?? 'max'}</small></span></p>` : ''}
       <dl class="kw-sum-list">
         <div><dt>Gems verdient</dt><dd>${ic('gem')}${fmt(s.gems)}</dd></div>
-        <div><dt>Gegner besiegt</dt><dd>${fmt(s.kills)}</dd></div>
-        <div><dt>Kern</dt><dd>${ic('heart')}${Math.ceil(s.coreHp)}/${Math.round(s.coreMax)}</dd></div>
+        <div><dt>Schatten besiegt</dt><dd>${fmt(s.kills)}</dd></div>
+        <div><dt>Lichtherz</dt><dd>${ic('heart')}${Math.ceil(s.coreHp)}/${Math.round(s.coreMax)}</dd></div>
         <div><dt>Dauer</dt><dd>${min}:${String(sec).padStart(2, '0')}</dd></div>
       </dl>
       <div class="kw-sum-btns">
@@ -935,27 +904,31 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
   // ---------- Spiel-Ereignisse ----------
   const offs = [
     game.on('runStart', R => {
-      E.sum.hidden = true; closeScreen(); sel.place = sel.tower = sel.hover = null; last.dock = last.tp = last.tr = null;
-      banner(R.L.name, R.li === 'endless' ? 'Endlos-Modus · baue deine Verteidigung' : `${DIFFS[R.diff].name} · baue deine Verteidigung`, 'realm');
+      E.sum.hidden = true; closeScreen(); sel.place = sel.tower = sel.hover = null; sel.shovel = false; last.cards = last.tr = last.flags = null;
+      banner(R.L.name, R.li === 'endless' ? 'Endlos · setz deine Lichtwesen' : `${DIFFS[R.diff].name} · ${Math.round(R.L.ambient * 100)} % Licht`, 'realm');
     }),
-    game.on('runEnd', s => { E.banner.classList.remove('show'); sel.place = sel.tower = null; sfx(s.result === 'win' ? 'fanfare' : 'over'); later(() => showSummary(s), s.result === 'win' ? 900 : 500); }),
+    game.on('runEnd', s => { E.banner.classList.remove('show'); sel.place = null; sel.shovel = false; sfx(s.result === 'win' ? 'fanfare' : 'over'); later(() => showSummary(s), s.result === 'win' ? 900 : 500); }),
     game.on('waveStart', w => {
-      if (w.boss) { banner(`Welle ${w.wave}`, 'Ein Boss naht!', 'boss'); sfx('boss'); }
-      else { banner(`Welle ${w.wave}${w.waves !== Infinity ? ` / ${w.waves}` : ''}`, w.income ? `Prägewerke: +${fmt(w.income)} Münzen` : '', ''); sfx('wave'); }
-      last.dock = null;
+      if (w.boss) { banner(`Welle ${w.wave}`, 'Ein Koloss naht!', 'boss'); sfx('boss'); }
+      else if (w.big) { banner('Eine große Welle naht!', w.night ? 'Die Nacht bricht herein – das Licht wird schwächer' : `Welle ${w.wave}`, 'boss'); sfx('boss'); }
+      else if (w.wave === 1) { banner('Die Schatten kommen', '', ''); sfx('wave'); }
+      else sfx('wave');
+      last.flags = null;
     }),
-    game.on('gems', d => { if (d?.n) { restartAnim(el.querySelector('.kw-th-gem'), 'bump'); sfx('coin'); } }),
+    game.on('dawn', () => toast('Die Nacht weicht – das Licht kehrt zurück.')),
+    game.on('gems', d => { if (d?.n) { sfx('coin'); } }),
     game.on('coreHit', () => { restartAnim(E.hitflash, 'go'); sfxT('core', 0.15); }),
-    game.on('shield', () => { banner('Notschild!', 'Der Kern wurde gerettet', 'boss'); sfx('reveal', 'legendary'); }),
-    game.on('shot', ({ kind }) => sfxT(kind === 'shell' || kind === 'howitzer' ? 'boom' : 'shot', kind === 'bullet' ? 0.07 : 0.11)),
+    game.on('shield', () => { banner('Notlicht!', 'Das Lichtherz wurde gerettet', 'boss'); sfx('reveal', 'legendary'); }),
+    game.on('shot', ({ kind }) => sfxT(kind === 'lob' || kind === 'pulse' || kind === 'star' ? 'boom' : kind === 'lance' || kind === 'moon' ? 'strike' : 'shot', kind === 'bolt' ? 0.08 : 0.12)),
     game.on('kill', () => sfxT('kill', 0.06)),
     game.on('boom', () => sfxT('boom', 0.12)),
-    game.on('zap', () => sfxT('zap', 0.1)),
-    game.on('rail', () => sfxT('strike', 0.1)),
-    game.on('place', () => { sfx('buy'); last.dock = null; }),
-    game.on('sell', () => { sfx('coin'); last.dock = null; }),
-    game.on('income', () => sfxT('coin', 0.2)),
-    game.on('bonus', b => toast(`Früh gerufen: +${fmt(b)} Münzen`)),
+    game.on('break', () => sfxT('zap', 0.1)),
+    game.on('place', () => { sfx('buy'); last.cards = null; }),
+    game.on('remove', () => { sfx('coin'); }),
+    game.on('collect', () => sfxT('coin', 0.05)),
+    game.on('eaten', () => sfxT('deny', 0.2)),
+    game.on('smash', () => sfxT('boom', 0.1)),
+    game.on('cart', () => sfxT('strike', 0.2)),
     game.on('reset', () => { last.menu = ''; }),
     cloud?.on(() => { last.menu = ''; if (screen === 'konto' || screen === 'einstellungen') renderScreen(true); }),
   ].filter(Boolean);
@@ -968,32 +941,49 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     if (el.classList.contains('has-screen') !== !!screen) el.classList.toggle('has-screen', !!screen);
     if (r) {
       txt(E.lvname, r.li === 'endless' ? `Endlos · ${r.L.name}` : `${r.L.name} · ${DIFFS[r.diff].name}`);
-      txt(E.wave, r.wave === 0 ? 'Vorbereitung' : r.waves === Infinity ? `Welle ${r.wave}` : `Welle ${r.wave} / ${r.waves}`);
+      txt(E.wave, r.wave === 0 ? 'Vorbereitung' : r.waves === Infinity ? `Welle ${r.wave}` : `Welle ${r.wave}/${r.waves}`);
       txt(E.hp, `${Math.ceil(r.coreHp)}`);
+      txt(E.licht, fmt(r.licht));
       const hk = Math.max(0, r.coreHp / r.coreMax).toFixed(3);
       if (E.hpbar._k !== hk) { E.hpbar._k = hk; E.hpbar.style.transform = `scaleX(${hk})`; }
-      txt(E.cash, fmt(r.cash)); txt(E.rgems, `+${fmt(r.gems)}`);
+      txt(E.rgems, `+${fmt(r.gems)}`);
       const low = r.coreHp / r.coreMax < 0.3;
       if (el.classList.contains('is-low') !== low) el.classList.toggle('is-low', low);
+      el.classList.toggle('is-night', !!r.night);
       const boss = game.enemies.find(e => e.boss && !e.dead);
       if (E.boss.hidden !== !boss) E.boss.hidden = !boss;
       if (boss) { txt(E.bossname, boss.E.name); E.bossfill.style.transform = `scaleX(${Math.max(0, boss.hp / boss.maxHp).toFixed(3)})`; }
-      if (sel.tower && (!game.towers.includes(sel.tower) || r.phase === 'done')) sel.tower = null;
-      const hint = r.phase === 'done' ? '' : sel.place ? `${T[sel.place].name}: auf ein freies Feld tippen · Esc oder Rechtsklick bricht ab · Shift hält die Auswahl`
-        : r.phase === 'prep' ? 'Wähle unten einen Turm (Taste 1–5) und setz ihn neben den Pfad. Dann starte die erste Welle.' : '';
+      // Wellenbalken: füllt sich von rechts nach links, Kopf wandert mit
+      const prog = r.phase === 'prep' ? 0 : r.waves === Infinity ? ((r.wave - 1) % 10 + 1 - r.queue.length / Math.max(1, r.qTotal || 1)) / 10 : Math.min(1, ((r.wave - 1) + (1 - r.queue.length / Math.max(1, r.qTotal || 1))) / r.waves);
+      const pk = prog.toFixed(3);
+      if (E.prog._k !== pk) { E.prog._k = pk; E.prog.style.width = `${prog * 100}%`; E.proghead.style.right = `${prog * 100}%`; }
+      if (last.flags == null && r.waves !== Infinity) { last.flags = 1; E.flags.innerHTML = Array.from({ length: r.waves }, (_, i) => i + 1).filter(w => isBig(r.L, w)).map(w => `<i style="right:${(w - 0.5) / r.waves * 100}%" class="${w === r.waves ? 'is-final' : ''}"></i>`).join(''); }
+      // Los-Knopf in der Vorbereitung
+      const prep = r.phase === 'prep';
+      if (E.go.hidden !== !prep) E.go.hidden = !prep;
+      if (prep) txt(E.gotime, `${Math.ceil(r.prepT)} s`);
+      // Karten: Abklingen und Leistbarkeit
+      for (const b of E.cards.children) {
+        const id = b.dataset.id, cd = r.cd[id] || 0, poor = r.licht < game.towerCost(id);
+        const k = (cd > 0 ? cd / T[id].cd : 0).toFixed(3);
+        if (b._k !== k) { b._k = k; b.querySelector('.kw-lwcard-cd').style.height = `${k * 100}%`; }
+        if (b.classList.contains('is-poor') !== poor) b.classList.toggle('is-poor', poor);
+        if (b.classList.contains('is-cd') !== cd > 0) b.classList.toggle('is-cd', cd > 0);
+      }
+      if (E.shovel.classList.contains('is-sel') !== sel.shovel) E.shovel.classList.toggle('is-sel', sel.shovel);
+      if (sel.place && (r.licht < game.towerCost(sel.place) || (r.cd[sel.place] || 0) > 0) && !shiftDown) { sel.place = null; last.cards = null; }
+      const hint = r.phase === 'done' ? '' : sel.shovel ? 'Tippe auf einen Wächter, um ihn zu entfernen · Esc bricht ab'
+        : sel.place ? `${T[sel.place].name}: auf ein freies Feld tippen · Esc bricht ab · Shift hält die Auswahl`
+        : prep && r.wave === 0 && game.towers.length === 0 ? 'Setz zuerst einen Funkling nach hinten links – er sammelt Licht. Leuchtende Tropfen antippen!' : '';
       if (E.phint.hidden !== !hint) E.phint.hidden = !hint;
       txt(E.phint, hint);
-      const kEl = E.tp.querySelector('.kw-tp-kills');
-      if (kEl && sel.tower) txt(kEl, `${fmt(sel.tower.kills)} besiegt · ${fmt(sel.tower.dmgDone)} Schaden`);
     } else if (el.classList.contains('is-low')) el.classList.remove('is-low');
     renderT -= dt;
     if (renderT > 0) return;
     renderT = r ? 0.1 : 0.2;
     if (r) {
-      set('dock', E.dock, dockHTML());
-      const tp = tpHTML();
-      if (E.tp.hidden !== !tp) E.tp.hidden = !tp;
-      set('tp', E.tp, tp);
+      const key = `${loadoutIds().join(',')}|${sel.place}|${loadoutIds().map(id => id && game.towerLevel(id)).join(',')}`;
+      if (last.cards !== key) { last.cards = key; E.cards.innerHTML = cardsHTML(); }
       set('tr', E.tr, trHTML());
     } else {
       set('menu', E.menu, menuHTML());
@@ -1007,12 +997,12 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
   // OPENING: Ladescreen → kurzes Intro → Titelbildschirm → Menü
   // =====================================================================
   const TIPS = [
-    'Tipp: Kurven sind die besten Bauplätze – dort bleiben Gegner lange in Reichweite.',
-    'Tipp: Prägewerke früh bauen. Sie zahlen zu jeder Welle Münzen.',
-    'Tipp: Mörser und Flammer treffen keine Flieger.',
-    'Tipp: Railgun und Laserlanze ignorieren Panzerung.',
-    'Tipp: Mit der Leertaste rufst du die nächste Welle früher – das gibt Bonus-Münzen.',
-    'Tipp: Doppelte Türme aus Boostern geben Sterne: +10 % Stärke pro Stern.',
+    'Tipp: Funklinge ganz nach hinten – sie sammeln das Licht, mit dem du Wächter setzt.',
+    'Tipp: Schatten im Dunkeln nehmen kaum Schaden. Licht ist deine stärkste Waffe.',
+    'Tipp: Sargträger blocken Schüsse von vorn – Glutgeister werfen einfach drüber.',
+    'Tipp: Nebelreiter springen über den ersten Wächter. Stell etwas Billiges davor.',
+    'Tipp: Schattenmotten fliegen zum hellsten Wächter der Bahn. Lichtfalken holen sie schnell runter.',
+    'Tipp: Ein Sonnenhüter macht alles drumherum hell und stärkt seine Nachbarn.',
   ];
   E.loadtip.textContent = TIPS[Math.floor(Math.random() * TIPS.length)];
   let phase = 'load';
@@ -1056,11 +1046,13 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
 
   function migrationNotes() {
     const m = game.meta;
-    if (m.refundKern) { pushInbox('Werkstatt umgebaut', `Der Kern hat jetzt immer 100 Leben. Deine ${fmt(m.refundKern)} Gems für den Kernpanzer wurden dir vollständig erstattet. Neu in der Werkstatt: Mechanik (+Feuerrate).`); delete m.refundKern; game.save(); }
-    const mig = Object.entries(m.towers).filter(([, t]) => t.from);
-    if (mig.length && !m.flags.lvlInfo) {
-      pushInbox('Neues Level-System', `Deine Türme wurden fair umgerechnet: ${mig.map(([id, t]) => `${T[id].name} Level ${t.lvl}`).join(', ')}. Übrige Karten bleiben erhalten.`);
-      m.flags.lvlInfo = true; game.save();
+    if (m.refundKern) { pushInbox('Werkstatt umgebaut', `Deine ${fmt(m.refundKern)} Gems für den Kernpanzer wurden dir vollständig erstattet.`); delete m.refundKern; game.save(); }
+    if (m.lwNote) {
+      const OLD = { praegewerk: 'Prägewerk', repetierer: 'Repetierer', moerser: 'Mörser', tesla: 'Tesla-Spule', frostwerfer: 'Frostwerfer', flammer: 'Flammer', flak: 'Flak', railgun: 'Railgun', raketenwerk: 'Raketenwerk', verstaerker: 'Verstärker', laserlanze: 'Laserlanze', haubitze: 'Titan-Haubitze', plasmareaktor: 'Blutmond-Reaktor', himmelsspeer: 'Himmelsspeer' };
+      const mv = (m.lwNote.moved || []).map(([o, n]) => `${OLD[o] || o} → ${T[n]?.name || n} (Level ${m.towers[n]?.lvl || 1})`).join(', ');
+      const ad = (m.lwNote.added || []).map(n => T[n].name).join(' und ');
+      pushInbox('Willkommen in der Laternenwacht', `Packfall ist jetzt ein Spiel um Licht und Schatten auf 6 Bahnen. ${mv ? `Deine Türme sind jetzt Lichtwesen – gleiches Level, gleiche Karten: ${mv}.` : ''} ${ad ? `Dazu bekommst du ${ad} geschenkt.` : ''} Gems, Werkstatt und Abzeichen bleiben erhalten.`.replace(/\s+/g, ' '));
+      delete m.lwNote; game.save();
     }
   }
 
@@ -1129,7 +1121,7 @@ export function createUI(root, game, skin, { audio, cloud } = {}) {
     later(() => E.authform.elements.name.focus({ preventScroll: true }), 80);
     await refreshBoard();
     E.authlb.innerHTML = lbRows
-      ? (lbRows.length ? lbRows.slice(0, 10).map((r, i) => `<li><span class="kw-lb-n">${i + 1}</span><span class="kw-lb-name">${esc(r.name)}</span><span class="kw-lb-v">Welle ${r.best_wave}</span><small>${fmt(r.total_gems)} Gems · ${r.heroes || 0} Türme</small></li>`).join('') : '<li class="kw-lb-empty">Noch niemand eingetragen. Sei der Erste!</li>')
+      ? (lbRows.length ? lbRows.slice(0, 10).map((r, i) => `<li><span class="kw-lb-n">${i + 1}</span><span class="kw-lb-name">${esc(r.name)}</span><span class="kw-lb-v">Welle ${r.best_wave}</span><small>${fmt(r.total_gems)} Gems · ${r.heroes || 0} Wächter</small></li>`).join('') : '<li class="kw-lb-empty">Noch niemand eingetragen. Sei der Erste!</li>')
       : `<li class="kw-lb-empty">${esc(lbMsg || 'Bestenliste gerade nicht erreichbar.')}</li>`;
   }
   E.auth.addEventListener('click', e => {
