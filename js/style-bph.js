@@ -1,8 +1,8 @@
 // Packfall – Bühne: Menüszene (2D-Vektor), Schlachtfeld (3D, Three.js), Overlay, Laden der Icons
-import { TOWERS, ENEMIES, LEVELS, ENDLESS } from './core.js?v=0.9-84fac17a';
-import { createUI } from './ui.js?v=0.9-84fac17a';
-import { iconSVG, packURL, mapPreview } from './art.js?v=0.9-84fac17a';
-import { createMenuScene } from './menuscene.js?v=0.9-84fac17a';
+import { TOWERS, ENEMIES, LEVELS, ENDLESS } from './core.js?v=0.9.1-86e62b3e';
+import { createUI } from './ui.js?v=0.9.1-86e62b3e';
+import { iconSVG, packURL, mapPreview } from './art.js?v=0.9.1-86e62b3e';
+import { createMenuScene } from './menuscene.js?v=0.9.1-86e62b3e';
 
 const tick = () => new Promise(r => setTimeout(r, 16));
 
@@ -24,7 +24,7 @@ export async function mount(root, game, { audio, cloud } = {}) {
   stage.prepend(canvas); stage.prepend(gl);
   const ctx = canvas.getContext('2d');
   const menuScene = createMenuScene();
-  let battle = null, battleErr = '';
+  let battle = null, battleErr = '', land = null, cleared2d = false;
   let sceneT = 0, introT = 0, W = 1, H = 1, cssW = 1, cssH = 1, dpr = 1;
   const quality = () => {
     const g = game.meta.settings.gfx;
@@ -36,7 +36,7 @@ export async function mount(root, game, { audio, cloud } = {}) {
   // ---------- Laden: Icons aus den 3D-Modellen, Karten, Schlachtfeld ----------
   const loadSteps = [
     ['Schmiede die Türme …', async () => {
-      const { createIconRenderer } = await import('./td3d.js?v=0.9-84fac17a');
+      const { createIconRenderer } = await import('./td3d.js?v=0.9.1-86e62b3e');
       const ir = createIconRenderer(256);
       for (const d of TOWERS) { img.tower[d.id] = ir.tower(d.id, 0); img.towerMax[d.id] = ir.tower(d.id, 4); img.sil[d.id] = ir.tower(d.id, 0, { silhouette: true }); await tick(); }
       for (const type of Object.keys(ENEMIES)) img.enemy[type] = ir.enemy(type);
@@ -44,8 +44,10 @@ export async function mount(root, game, { audio, cloud } = {}) {
     }],
     ['Zeichne die Karten …', () => { LEVELS.forEach((L, i) => { img.map[i] = mapPreview(L); }); img.map.endless = mapPreview(ENDLESS); }],
     ['Baue das Schlachtfeld …', async () => {
-      try { const { createBattle } = await import('./td3d.js?v=0.9-84fac17a'); battle = createBattle(gl, game, { quality }); window.packfallBattle = battle; resize(); }
+      try { const { createBattle } = await import('./td3d.js?v=0.9.1-86e62b3e'); battle = createBattle(gl, game, { quality }); window.packfallBattle = battle; resize(); }
       catch (e) { console.error(e); battleErr = 'Dein Browser kann die 3D-Grafik gerade nicht darstellen (WebGL).'; }
+      try { if (battle) { const { createLandscape } = await import('./landscape.js?v=0.9.1-86e62b3e'); land = createLandscape(battle.renderer, { quality }); resize(); } }
+      catch (e) { console.error('Landschaft', e); land = null; }
     }],
     ['Lade Schriften …', async () => { try { await Promise.race([document.fonts?.ready, new Promise(r => setTimeout(r, 1500))]); } catch (e) { /* egal */ } }],
   ];
@@ -59,6 +61,7 @@ export async function mount(root, game, { audio, cloud } = {}) {
     W = Math.round(cssW * dpr); H = Math.round(cssH * dpr);
     canvas.width = W; canvas.height = H;
     battle?.resize(cssW, cssH, window.devicePixelRatio || 1, ui.insets());
+    land?.resize(cssW, cssH);
   }
   const ro = new ResizeObserver(resize);
   ro.observe(stage);
@@ -98,8 +101,14 @@ export async function mount(root, game, { audio, cloud } = {}) {
   function frame(dt) {
     ui.frame(dt);
     if (ui.busy) return; // Booster-Opening läuft: Bühne ruht
-    const inRun = !!(game.run && battle);
-    if (stage.classList.contains('is-3d') !== inRun) stage.classList.toggle('is-3d', inRun);
+    const inRun = !!(game.run && battle), menu3d = !inRun && !!land;
+    if (stage.classList.contains('is-3d') !== (inRun || menu3d)) stage.classList.toggle('is-3d', inRun || menu3d);
+    if (menu3d) {
+      if (!cleared2d) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, H); cleared2d = true; }
+      land.draw(dt, ui.phase);
+      return;
+    }
+    cleared2d = false;
     if (inRun) {
       insT -= dt; if (insT <= 0) { insT = 0.4; checkInsets(); }
       battle.frame(dt, ui.sel);
@@ -142,7 +151,7 @@ export async function mount(root, game, { audio, cloud } = {}) {
   return {
     frame,
     destroy() {
-      ro.disconnect(); battle?.destroy();
+      ro.disconnect(); land?.destroy(); battle?.destroy();
       canvas.removeEventListener('pointermove', onMove); canvas.removeEventListener('pointerdown', onDown); canvas.removeEventListener('pointerup', onUp);
       canvas.removeEventListener('pointerleave', onLeave); canvas.removeEventListener('contextmenu', noMenu);
       ui.destroy();
