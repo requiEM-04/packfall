@@ -1,8 +1,8 @@
 // Packfall – Bühne: Menüszene (2D-Vektor), Schlachtfeld (3D, Three.js), Overlay, Laden der Icons
-import { TOWERS, ENEMIES, LEVELS, ENDLESS } from './core.js?v=0.9.2-e9185933';
-import { createUI } from './ui.js?v=0.9.2-e9185933';
-import { iconSVG, packURL, mapPreview } from './art.js?v=0.9.2-e9185933';
-import { createMenuScene } from './menuscene.js?v=0.9.2-e9185933';
+import { TOWERS, ENEMIES, LEVELS, ENDLESS } from './core.js?v=0.9.4-d1cb9d7c';
+import { createUI } from './ui.js?v=0.9.4-d1cb9d7c';
+import { iconSVG, packURL, mapPreview } from './art.js?v=0.9.4-d1cb9d7c';
+import { createMenuScene } from './menuscene.js?v=0.9.4-d1cb9d7c';
 
 const tick = () => new Promise(r => setTimeout(r, 16));
 
@@ -36,7 +36,7 @@ export async function mount(root, game, { audio, cloud } = {}) {
   // ---------- Laden: Icons aus den 3D-Modellen, Karten, Schlachtfeld ----------
   const loadSteps = [
     ['Schmiede die Türme …', async () => {
-      const { createIconRenderer } = await import('./td3d.js?v=0.9.2-e9185933');
+      const { createIconRenderer } = await import('./td3d.js?v=0.9.4-d1cb9d7c');
       const ir = createIconRenderer(256);
       for (const d of TOWERS) { img.tower[d.id] = ir.tower(d.id, 0); img.towerMax[d.id] = ir.tower(d.id, 4); img.sil[d.id] = ir.tower(d.id, 0, { silhouette: true }); await tick(); }
       for (const type of Object.keys(ENEMIES)) img.enemy[type] = ir.enemy(type);
@@ -44,9 +44,9 @@ export async function mount(root, game, { audio, cloud } = {}) {
     }],
     ['Zeichne die Karten …', () => { LEVELS.forEach((L, i) => { img.map[i] = mapPreview(L); }); img.map.endless = mapPreview(ENDLESS); }],
     ['Baue das Schlachtfeld …', async () => {
-      try { const { createBattle } = await import('./td3d.js?v=0.9.2-e9185933'); battle = createBattle(gl, game, { quality }); window.packfallBattle = battle; resize(); }
+      try { const { createBattle } = await import('./td3d.js?v=0.9.4-d1cb9d7c'); battle = createBattle(gl, game, { quality }); window.packfallBattle = battle; resize(); }
       catch (e) { console.error(e); battleErr = 'Dein Browser kann die 3D-Grafik gerade nicht darstellen (WebGL).'; }
-      try { if (battle) { const { createLandscape } = await import('./landscape.js?v=0.9.2-e9185933'); land = createLandscape(battle.renderer, { quality }); resize(); } }
+      try { if (battle) { const { createLandscape } = await import('./landscape.js?v=0.9.4-d1cb9d7c'); land = createLandscape(battle.renderer, { quality }); resize(); } }
       catch (e) { console.error('Landschaft', e); land = null; }
     }],
     ['Lade Schriften …', async () => { try { await Promise.race([document.fonts?.ready, new Promise(r => setTimeout(r, 1500))]); } catch (e) { /* egal */ } }],
