@@ -1076,3 +1076,33 @@ button.kw-wb { cursor: pointer; }
 .kw-sum-cards img { width: 42px; height: 42px; object-fit: contain; } .kw-sum-cards span { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; } .kw-sum-cards b { font: 700 16px/1 var(--head); color: #cfe0f0; } .kw-sum-cards small { color: var(--muted); }
 .kw-diff small { text-align: center; line-height: 1.25; }
 .kw-lo { position: relative; } .kw-lo .kw-lvb { left: 5px; top: 5px; min-width: 20px; height: 20px; font-size: 11px; }
+
+/* Kartenbalken beim Öffnen (PvZ2-Stil): grüne Füllung, grüne Blitze bei vollem Balken */
+.kw-rvbar { display: flex; flex-direction: column; align-items: center; gap: 6px; width: min(380px, 84vw); margin: 8px auto 0; animation: rvIn .4s .3s both; }
+.kw-rvbar-row { display: flex; align-items: center; gap: 10px; width: 100%; }
+.kw-rvbar-ic { width: 30px; height: 30px; flex: none; display: grid; place-items: center; border-radius: 8px; background: rgba(0, 0, 0, .55); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .15); color: #d8e8c8; }
+.kw-rvbar-ic .kw-ic { width: 18px; height: 18px; }
+.kw-rvbar-track { position: relative; flex: 1; height: 26px; border-radius: 13px; background: rgba(0, 0, 0, .65); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .14), 0 4px 14px rgba(0, 0, 0, .5); }
+.kw-rvbar-track i { position: absolute; left: 3px; top: 3px; bottom: 3px; right: 3px; border-radius: 10px; transform-origin: left; transform: scaleX(0);
+  background: linear-gradient(180deg, #a8e878 0%, #6cbc3e 55%, #4a9426 100%); box-shadow: inset 0 2px 0 rgba(255, 255, 255, .35), 0 0 10px rgba(120, 220, 80, .45); }
+.kw-rvbar-track b { position: absolute; inset: 0; display: grid; place-items: center; font: 700 16px/1 var(--head); letter-spacing: .04em; color: #fff; text-shadow: 0 1px 2px #000, 0 0 6px rgba(0, 0, 0, .8); font-variant-numeric: tabular-nums; }
+.kw-rvbar em { font-style: normal; min-width: 3ch; font: 700 18px/1 var(--head); color: #b8f08a; text-shadow: 0 0 10px rgba(120, 220, 80, .7); }
+.kw-rvbar-up { display: flex; align-items: center; gap: 6px; padding: 5px 14px; border-radius: 99px; opacity: 0; transform: translateY(4px) scale(.9); transition: opacity .25s, transform .3s cubic-bezier(.2, 1.6, .4, 1);
+  background: linear-gradient(180deg, #8ad458, #4a9426); color: #0e1a08; font: 700 15px/1 var(--head); letter-spacing: .08em; text-transform: uppercase; box-shadow: 0 0 18px rgba(120, 220, 80, .55); }
+.kw-rvbar-up .kw-ic { width: 16px; height: 16px; }
+.kw-rvbar.is-ready .kw-rvbar-up { opacity: 1; transform: none; animation: pfUp 1.1s ease-in-out .3s infinite; }
+.kw-rvbar.is-ready .kw-rvbar-track { box-shadow: inset 0 0 0 2px rgba(170, 245, 120, .9), 0 0 22px rgba(120, 220, 80, .75); animation: pfZapGlow .22s steps(2) infinite; }
+.kw-rvbar.is-ready .kw-rvbar-track i { background: linear-gradient(180deg, #d8ffa8 0%, #8ae050 50%, #5cb032 100%); }
+.kw-rvbar-bolts { position: absolute; inset: -30px -12px; pointer-events: none; z-index: 2; }
+.kw-rvbar-bolts svg { display: block; overflow: visible; }
+.kw-rvbar-bolts path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.kw-rvbar-bolts .g path { stroke: #7cf04a; stroke-width: 7; opacity: .45; }
+.kw-rvbar-bolts .c path { stroke: #f4ffe4; stroke-width: 2.4; }
+.kw-rvbar-bolts svg { filter: drop-shadow(0 0 5px #6f4) drop-shadow(0 0 14px rgba(110, 240, 70, .75)); }
+@keyframes pfZapGlow { 50% { box-shadow: inset 0 0 0 2px #e8ffc8, 0 0 30px rgba(140, 240, 90, .95); } }
+@keyframes pfUp { 50% { transform: translateY(-2px) scale(1.04); box-shadow: 0 0 28px rgba(140, 240, 90, .85); } }
+/* Türme-Seite: bereite Karten pulsieren grün */
+.kw-cbar.is-ready i { background: linear-gradient(180deg, #b8f088, #6cbc3e 60%, #4a9426); }
+.kw-cbar.is-ready { box-shadow: 0 0 0 1px rgba(150, 235, 100, .7), 0 0 12px rgba(120, 220, 80, .55); animation: pfReadyPulse 1.2s ease-in-out infinite; }
+@keyframes pfReadyPulse { 50% { box-shadow: 0 0 0 1px rgba(190, 255, 140, .95), 0 0 20px rgba(130, 235, 85, .85); } }
+.kw-rvbar-track b { z-index: 3; }
