@@ -16,59 +16,59 @@ export const RARITIES = {
 // Werte je Ausbaustufe (L1–L5). Fehlende Werte werden von der Stufe davor übernommen.
 // range = Felder, rate = Schüsse pro Sekunde, cost = Preis dieser Stufe (L1 = Bauen).
 export const TOWERS = [
-  { id: 'repetierer', name: 'Repetierer', rarity: 'common', kind: 'bullet', air: true, accent: '#d9a45a', limit: 12,
+  { id: 'repetierer', perks: { 5: { ap: 0.25, name: 'Panzerbrechend' }, 10: { rate: 0.25, name: 'Dauerfeuer' } }, name: 'Repetierer', rarity: 'common', kind: 'bullet', air: true, accent: '#d9a45a', limit: 12,
     role: 'Einzelziel · schnell', desc: 'Kurbel-Gatling. Schnell, zuverlässig, holt auch Flieger runter.',
     lv: [{ cost: 150, dmg: 2, rate: 4, range: 3.2 }, { cost: 120, rate: 5.5, name: 'Schnelllader' }, { cost: 300, dmg: 3.5, rate: 6, range: 3.6, name: 'Lange Läufe' },
       { cost: 700, dmg: 6, rate: 7.5, range: 3.8, ap: 0.3, name: 'Zwillingslauf' }, { cost: 1800, dmg: 11, rate: 10, range: 4.2, ap: 0.5, name: 'Sturmkanone' }] },
-  { id: 'moerser', name: 'Mörser', rarity: 'common', kind: 'shell', air: false, accent: '#d0874e', limit: 12,
+  { id: 'moerser', perks: { 5: { splash: 0.2, name: 'Größere Ladung' }, 10: { dmg: 0.25, name: 'Schwere Granaten' } }, name: 'Mörser', rarity: 'common', kind: 'shell', air: false, accent: '#d0874e', limit: 12,
     role: 'Fläche · weit · nur Boden', desc: 'Schwere Granaten im hohen Bogen. Trifft Gruppen, aber keine Flieger.',
     lv: [{ cost: 250, dmg: 9, splash: 0.9, rate: 0.55, range: 5.5, minRange: 1.2 }, { cost: 200, dmg: 13, name: 'Größeres Kaliber' }, { cost: 450, dmg: 20, splash: 1.1, rate: 0.65, name: 'Doppelrohr' },
       { cost: 900, dmg: 34, rate: 0.7, burn: 4, name: 'Brandgranaten' }, { cost: 2200, dmg: 60, splash: 1.4, rate: 0.8, cluster: 3, name: 'Streubomben' }] },
-  { id: 'praegewerk', name: 'Prägewerk', rarity: 'common', kind: 'farm', air: false, accent: '#c9b26a', limit: 8,
+  { id: 'praegewerk', perks: { 5: { income: 0.2, name: 'Feinere Prägung' }, 10: { income: 0.35, name: 'Goldader' } }, name: 'Prägewerk', rarity: 'common', kind: 'farm', air: false, accent: '#c9b26a', limit: 8,
     role: 'Wirtschaft', desc: 'Prägt zu jeder Welle Münzen. Früh gebaut, zahlt es sich mehrfach aus.',
     lv: [{ cost: 250, income: 50 }, { cost: 200, income: 100, name: 'Zweite Presse' }, { cost: 500, income: 220, name: 'Dampfantrieb' },
       { cost: 1100, income: 480, name: 'Goldschmelze' }, { cost: 2600, income: 1100, name: 'Münzfabrik' }] },
-  { id: 'frostwerfer', name: 'Frostwerfer', rarity: 'rare', kind: 'frost', air: true, accent: '#9cc8d8', limit: 12,
+  { id: 'frostwerfer', perks: { 5: { slow: 0.08, name: 'Tiefkühlung' }, 10: { splash: 0.25, name: 'Eissturm' } }, name: 'Frostwerfer', rarity: 'rare', kind: 'frost', air: true, accent: '#9cc8d8', limit: 12,
     role: 'Verlangsamen · Fläche', desc: 'Schießt Kältekapseln, die Gegner in kleiner Fläche verlangsamen.',
     lv: [{ cost: 300, dmg: 1.5, rate: 1.2, range: 3.0, splash: 0.8, slow: 0.3, slowT: 2 }, { cost: 220, slow: 0.4, name: 'Kühlmittel' }, { cost: 450, dmg: 3, splash: 1.0, range: 3.4, name: 'Druckdüse' },
       { cost: 900, dmg: 6, slow: 0.5, freeze: 0.8, name: 'Schockfrost' }, { cost: 2000, dmg: 14, slow: 0.6, splash: 1.3, freeze: 1.2, name: 'Nullpunkt' }] },
-  { id: 'flammer', name: 'Flammer', rarity: 'rare', kind: 'flame', air: false, accent: '#e0703e', limit: 12,
+  { id: 'flammer', perks: { 5: { burn: 0.5, name: 'Napalm' }, 10: { range: 0.15, name: 'Langer Atem' } }, name: 'Flammer', rarity: 'rare', kind: 'flame', air: false, accent: '#e0703e', limit: 12,
     role: 'Kegel · Brand · nur Boden', desc: 'Kurze Reichweite, aber alles im Flammenkegel brennt weiter.',
     lv: [{ cost: 350, dps: 10, range: 2.4, burn: 3 }, { cost: 250, dps: 15, name: 'Mehr Druck' }, { cost: 550, dps: 26, range: 2.7, name: 'Lange Düse' },
       { cost: 1100, dps: 45, burn: 8, melt: 0.2, name: 'Thermit' }, { cost: 2400, dps: 90, range: 3.0, burn: 18, name: 'Höllenschlund' }] },
-  { id: 'tesla', name: 'Tesla-Spule', rarity: 'rare', kind: 'tesla', air: true, accent: '#8fb6e8', limit: 12,
+  { id: 'tesla', perks: { 5: { chain: 1, name: 'Weitere Spule' }, 10: { chain: 2, name: 'Kettenblitz' } }, name: 'Tesla-Spule', rarity: 'rare', kind: 'tesla', air: true, accent: '#8fb6e8', limit: 12,
     role: 'Kette · mehrere Ziele', desc: 'Blitze springen von Gegner zu Gegner. Stark gegen Schwärme.',
     lv: [{ cost: 400, dmg: 7, rate: 0.9, range: 3.2, chain: 3 }, { cost: 300, dmg: 9, chain: 4, name: 'Zweite Spule' }, { cost: 650, dmg: 15, rate: 1.0, name: 'Kondensator' },
       { cost: 1300, dmg: 26, rate: 1.15, chain: 5, name: 'Hochspannung' }, { cost: 2800, dmg: 50, chain: 7, stun: 0.25, name: 'Gewitterturm' }] },
-  { id: 'flak', name: 'Flak', rarity: 'rare', kind: 'flak', air: true, accent: '#b8b08a', limit: 12,
+  { id: 'flak', perks: { 5: { rate: 0.15, name: 'Schnellladung' }, 10: { splash: 0.25, name: 'Sperrfeuer' } }, name: 'Flak', rarity: 'rare', kind: 'flak', air: true, accent: '#b8b08a', limit: 12,
     role: 'Luftabwehr · Fläche', desc: 'Sprenggeschosse mit Splitterwolke. Dreifacher Schaden gegen Flieger.',
     lv: [{ cost: 350, dmg: 6, rate: 1.4, range: 4.5, splash: 0.6 }, { cost: 250, dmg: 9, name: 'Zeitzünder' }, { cost: 550, dmg: 14, rate: 1.6, range: 5, name: 'Radar' },
       { cost: 1100, dmg: 24, splash: 0.8, name: 'Splitterhülle' }, { cost: 2400, dmg: 45, rate: 2, shots: 2, name: 'Vierling' }] },
-  { id: 'railgun', name: 'Railgun', rarity: 'epic', kind: 'rail', air: true, accent: '#7fd0d0', limit: 6,
+  { id: 'railgun', perks: { 5: { rate: 0.15, name: 'Kühlsystem' }, 10: { dmg: 0.3, name: 'Überladung' } }, name: 'Railgun', rarity: 'epic', kind: 'rail', air: true, accent: '#7fd0d0', limit: 6,
     role: 'Durchschlag · ignoriert Panzer', desc: 'Magnetgeschoss durch alles in einer Linie. Panzer zählt nicht.',
     lv: [{ cost: 800, dmg: 70, rate: 0.33, range: 6.5 }, { cost: 500, dmg: 100, name: 'Stärkere Spulen' }, { cost: 1000, dmg: 160, rate: 0.38, range: 7, name: 'Langer Lauf' },
       { cost: 2000, dmg: 280, rate: 0.42, name: 'Überladung' }, { cost: 4200, dmg: 600, rate: 0.5, name: 'Sternenbrecher' }] },
-  { id: 'raketenwerk', name: 'Raketenwerk', rarity: 'epic', kind: 'missile', air: true, accent: '#d88a6a', limit: 8,
+  { id: 'raketenwerk', perks: { 5: { n: 1, name: 'Extra-Röhre' }, 10: { splash: 0.25, name: 'Brandsätze' } }, name: 'Raketenwerk', rarity: 'epic', kind: 'missile', air: true, accent: '#d88a6a', limit: 8,
     role: 'Zielsuchend · Fläche', desc: 'Salven zielsuchender Raketen. Trifft Boden und Luft.',
     lv: [{ cost: 900, dmg: 14, rate: 0.7, range: 5, splash: 0.8, n: 2 }, { cost: 600, n: 3, name: 'Dritte Röhre' }, { cost: 1200, dmg: 24, rate: 0.8, name: 'Hohlladung' },
       { cost: 2400, dmg: 40, n: 4, name: 'Schwarmsalve' }, { cost: 4800, dmg: 70, n: 6, splash: 1.1, name: 'Sternfeuer' }] },
-  { id: 'verstaerker', name: 'Verstärker', rarity: 'epic', kind: 'support', air: false, accent: '#a98fd8', limit: 4,
+  { id: 'verstaerker', perks: { 5: { bDmg: 0.05, name: 'Resonanz' }, 10: { range: 0.2, name: 'Weites Feld' } }, name: 'Verstärker', rarity: 'epic', kind: 'support', air: false, accent: '#a98fd8', limit: 4,
     role: 'Unterstützung', desc: 'Strahlt Energie ab: Türme in der Nähe schießen stärker und schneller.',
     lv: [{ cost: 700, range: 2.5, bDmg: 0.15, bRate: 0.1, bRange: 0 }, { cost: 500, bDmg: 0.2, bRate: 0.12, name: 'Resonator' }, { cost: 1000, range: 3, bDmg: 0.25, bRate: 0.15, bRange: 0.05, name: 'Fokuslinse' },
       { cost: 2000, bDmg: 0.35, bRate: 0.2, bRange: 0.08, name: 'Kraftfeld' }, { cost: 4000, bDmg: 0.5, bRate: 0.25, bRange: 0.12, name: 'Leitstern' }] },
-  { id: 'laserlanze', name: 'Laserlanze', rarity: 'legendary', kind: 'laser', air: true, accent: '#e05a6a', limit: 3,
+  { id: 'laserlanze', perks: { 5: { ramp: 0.5, name: 'Fokuslinse' }, 10: { dmg: 0.25, name: 'Sonnenkern' } }, name: 'Laserlanze', rarity: 'legendary', kind: 'laser', air: true, accent: '#e05a6a', limit: 3,
     role: 'Dauerstrahl · heizt auf', desc: 'Ein Strahl, der heißer wird, je länger er auf einem Ziel bleibt (bis ×3).',
     lv: [{ cost: 1500, dps: 45, range: 4.5, ramp: 3, rampT: 2.5, ap: 0.5 }, { cost: 1000, dps: 70, name: 'Fokussierung' }, { cost: 2000, dps: 110, range: 5, name: 'Prisma' },
       { cost: 4000, dps: 190, name: 'Plasmakern' }, { cost: 8000, dps: 380, ramp: 4, name: 'Sonnenlanze' }] },
-  { id: 'haubitze', name: 'Titan-Haubitze', rarity: 'legendary', kind: 'howitzer', air: false, accent: '#c8a070', limit: 3,
+  { id: 'haubitze', perks: { 5: { stun: 0.3, name: 'Schockwelle' }, 10: { splash: 0.25, name: 'Erdbeben' } }, name: 'Titan-Haubitze', rarity: 'legendary', kind: 'howitzer', air: false, accent: '#c8a070', limit: 3,
     role: 'Riesige Fläche · betäubt', desc: 'Langsam, laut, gewaltig. Jeder Einschlag betäubt alles drumherum.',
     lv: [{ cost: 2000, dmg: 180, splash: 1.8, rate: 0.22, range: 8, stun: 0.5, minRange: 1.5 }, { cost: 1200, dmg: 260, name: 'Verstärktes Rohr' }, { cost: 2400, dmg: 400, rate: 0.25, name: 'Ladeautomatik' },
       { cost: 4800, dmg: 650, splash: 2.1, name: 'Bunkerbrecher' }, { cost: 9000, dmg: 1200, stun: 1.0, rate: 0.28, name: 'Weltenspalter' }] },
-  { id: 'plasmareaktor', name: 'Blutmond-Reaktor', rarity: 'mythic', kind: 'plasma', air: true, accent: '#ff3b3b', limit: 2,
+  { id: 'plasmareaktor', perks: { 5: { pierce: 1, name: 'Durchschlagkern' }, 10: { rate: 0.2, name: 'Blutrausch' } }, name: 'Blutmond-Reaktor', rarity: 'mythic', kind: 'plasma', air: true, accent: '#ff3b3b', limit: 2,
     role: 'Durchschlag · Explosion', desc: 'Ein instabiler Reaktor feuert rote Plasmakugeln, die durch mehrere Gegner schlagen und am Ende explodieren.',
     lv: [{ cost: 3000, dmg: 60, rate: 1.3, range: 5, splash: 1.0, pierce: 2 }, { cost: 2000, dmg: 90, pierce: 3, name: 'Überdruck' }, { cost: 4000, dmg: 140, rate: 1.5, name: 'Zwillingskern' },
       { cost: 8000, dmg: 240, pierce: 4, splash: 1.3, name: 'Kernschmelze' }, { cost: 15000, dmg: 480, rate: 1.9, pierce: 5, name: 'Blutmond' }] },
-  { id: 'himmelsspeer', name: 'Himmelsspeer', rarity: 'mythic', kind: 'orbital', air: true, accent: '#ff4a3a', limit: 1,
+  { id: 'himmelsspeer', perks: { 5: { splash: 0.2, name: 'Breiter Strahl' }, 10: { rate: 0.25, name: 'Zweiter Satellit' } }, name: 'Himmelsspeer', rarity: 'mythic', kind: 'orbital', air: true, accent: '#ff4a3a', limit: 1,
     role: 'Orbitalschlag · ganze Map', desc: 'Ruft einen roten Strahl aus dem Himmel auf den stärksten Gegner der ganzen Map. Alles drumherum verglüht.',
     lv: [{ cost: 4000, dmg: 450, rate: 0.25, range: 99, splash: 2.0, stun: 0.6 }, { cost: 2500, dmg: 650, name: 'Zielsatellit' }, { cost: 5000, dmg: 1000, rate: 0.3, name: 'Zweites Auge' },
       { cost: 10000, dmg: 1700, splash: 2.4, name: 'Sonnenbrand' }, { cost: 20000, dmg: 3400, rate: 0.36, stun: 1.2, name: 'Götterspeer' }] },
@@ -124,22 +124,22 @@ export const LEVELS = [
 export const ENDLESS = { name: 'Ewige Wacht', theme: 'schatten', waves: Infinity, hp: 2.6, foes: ['laeufer', 'flitzer', 'schwarm', 'flieger', 'panzer', 'heiler', 'brut'], endless: true, tip: 'So weit du kommst. Zählt für die Bestenliste.',
   paths: [[[-1, 5], [4, 5], [4, 1], [9, 1], [9, 10], [14, 10], [14, 5], [18, 5]]], blocks: [[6, 7, 'crystal'], [11, 4, 'crystal'], [16, 9, 'crystal']] };
 export const DIFFS = {
-  leicht: { name: 'Leicht', waves: 12, hp: 0.92, cash: 1.1, medal: 'Bronze' },
-  mittel: { name: 'Mittel', waves: 18, hp: 1.3, cash: 1.0, medal: 'Silber' },
-  schwer: { name: 'Schwer', waves: 25, hp: 1.7, cash: 0.9, medal: 'Gold' },
+  leicht: { name: 'Leicht', waves: 12, hp: 0.92, cash: 1.1, leak: 0.75, medal: 'Bronze' },
+  mittel: { name: 'Mittel', waves: 18, hp: 1.3, cash: 1.0, leak: 1, medal: 'Silber' },
+  schwer: { name: 'Schwer', waves: 25, hp: 1.7, cash: 0.9, leak: 1.5, medal: 'Gold' },
 };
 export const DIFF_IDS = Object.keys(DIFFS);
 export function levelDef(i, diff = 'leicht') {
-  if (i === 'endless') return { ...ENDLESS, cashK: 1, diff: null };
+  if (i === 'endless') return { ...ENDLESS, cashK: 1, leakK: 1.25, diff: null };
   const M = LEVELS[i], D = DIFFS[diff] || DIFFS.leicht;
   const foes = [...M.foes, ...(diff !== 'leicht' && M.extra[0] ? [M.extra[0]] : []), ...(diff === 'schwer' && M.extra[1] ? [M.extra[1]] : [])];
-  return { ...M, foes, waves: D.waves, hp: M.hp * D.hp, cashK: D.cash, diff, final: diff === 'schwer' ? M.final : null, bossN: diff === 'schwer' ? 2 : 1 };
+  return { ...M, foes, waves: D.waves, hp: M.hp * D.hp, cashK: D.cash, leakK: D.leak, diff, final: diff === 'schwer' ? M.final : null, bossN: diff === 'schwer' ? 2 : 1 };
 }
 
 // ---------- Werkstatt (Gems, dauerhaft) ----------
 export const UPGRADES = [
   { id: 'kapital', name: 'Startkapital', icon: 'coin', per: 60, max: 10, wsBase: 30, wsGrowth: 1.35 },
-  { id: 'kern', name: 'Kernpanzer', icon: 'heart', per: 10, max: 10, wsBase: 30, wsGrowth: 1.35 },
+  { id: 'mechanik', name: 'Mechanik', icon: 'gear', per: 0.03, max: 10, wsBase: 35, wsGrowth: 1.38 },
   { id: 'kaliber', name: 'Kaliber', icon: 'sword', per: 0.04, max: 10, wsBase: 40, wsGrowth: 1.4 },
   { id: 'platz4', name: 'Loadout-Platz 4', icon: 'plus', per: 1, max: 1, unlock: 200 },
   { id: 'kopfgeld', name: 'Kopfgeld', icon: 'chest', per: 0.06, max: 10, wsBase: 45, wsGrowth: 1.4, req: ['kapital', 2] },
@@ -149,18 +149,47 @@ export const UPGRADES = [
   { id: 'kasse', name: 'Kriegskasse', icon: 'trophy', per: 0.15, max: 5, wsBase: 90, wsGrowth: 1.5, req: ['kopfgeld', 2] },
   { id: 'recycling', name: 'Recycling', icon: 'up', per: 0.05, max: 4, wsBase: 80, wsGrowth: 1.6, req: ['ingenieur', 1] },
   { id: 'gemfund', name: 'Gemfund', icon: 'gem', per: 0.1, max: 10, wsBase: 60, wsGrowth: 1.4, req: ['kopfgeld', 3] },
-  { id: 'notschild', name: 'Notschild', icon: 'shield', per: 1, max: 1, unlock: 500, req: ['kern', 4] },
+  { id: 'notschild', name: 'Notschild', icon: 'shield', per: 1, max: 1, unlock: 500, req: ['mechanik', 4] },
 ];
 export const U = Object.fromEntries(UPGRADES.map(u => [u.id, u]));
 
 export const BOOSTERS = {
   starter: { name: 'Start-Geschenk', cost: 0, odds: { rare: 100 }, hidden: true },
-  basic: { name: 'Turm-Booster', cost: 80, foil: 0.04, odds: { common: 61, rare: 28, epic: 8.6, legendary: 2, mythic: 0.4 } },
-  elite: { name: 'Elite-Booster', cost: 250, foil: 0.08, odds: { rare: 52, epic: 35, legendary: 11, mythic: 2 } },
+  basic: { name: 'Turm-Booster', cost: 80, odds: { common: 61, rare: 28, epic: 8.6, legendary: 2, mythic: 0.4 } },
+  elite: { name: 'Elite-Booster', cost: 250, odds: { rare: 52, epic: 35, legendary: 11, mythic: 2 } },
 };
 export const STARTER = ['flammer', 'tesla'];
-export const STAR_COPIES = [0, 1, 2, 4, 8, 15]; // Kopien für ★1 … ★5
-export const MAX_STAR = 5;
+// ---------- Turm-Level wie in PvZ2: Karten sammeln, mit Gems aufwerten ----------
+export const TLV_MAX = 10;
+const CARD_NEED = [0, 0, 4, 8, 15, 25, 40, 60, 90, 130, 180];      // Karten für Level i (gewöhnlich)
+const RAR_CARDS = { common: 1, rare: 0.6, epic: 0.4, legendary: 0.25, mythic: 0.15 };
+const GEM_COST = [0, 0, 10, 20, 35, 55, 80, 110, 150, 200, 260];
+const RAR_GEM = { common: 1, rare: 1.2, epic: 1.5, legendary: 2, mythic: 2.5 };
+export const PACK_CARDS = { common: [6, 10], rare: [3, 6], epic: [2, 4], legendary: [1, 2], mythic: [1, 1] };
+export const cardsNeed = (id, toLvl) => (toLvl > TLV_MAX ? null : Math.max(1, Math.round(CARD_NEED[toLvl] * RAR_CARDS[T[id].rarity])));
+export const lvlGems = (id, toLvl) => Math.round(GEM_COST[toLvl] * RAR_GEM[T[id].rarity] / 5) * 5;
+export const LVL_BONUS = 0.08; // +8 % Stärke pro Level
+const GENERIC = { 3: { range: 0.08, name: 'Zielfernrohr' }, 7: { cost: -0.1, name: 'Serienfertigung' } };
+export const perksOf = id => ({ 3: GENERIC[3], 5: T[id].perks[5], 7: GENERIC[7], 10: T[id].perks[10] });
+export function perkText(p) {
+  const pc = v => `${Math.round(v * 100)} %`;
+  const parts = [];
+  if (p.range) parts.push(`+${pc(p.range)} Reichweite`); if (p.rate) parts.push(`+${pc(p.rate)} Feuerrate`); if (p.dmg) parts.push(`+${pc(p.dmg)} Schaden`);
+  if (p.splash) parts.push(`+${pc(p.splash)} Fläche`); if (p.ap) parts.push(`ignoriert ${pc(p.ap)} Panzerung`); if (p.slow) parts.push(`+${pc(p.slow)} Verlangsamung`);
+  if (p.chain) parts.push(`+${p.chain} Sprung${p.chain > 1 ? 'e' : ''}`); if (p.pierce) parts.push(`+${p.pierce} Durchschlag`); if (p.n) parts.push(`+${p.n} Rakete`);
+  if (p.income) parts.push(`+${pc(p.income)} Ertrag`); if (p.burn) parts.push(`+${pc(p.burn)} Brandschaden`); if (p.cost) parts.push(`${pc(-p.cost)} günstiger`);
+  if (p.stun) parts.push(`+${pc(p.stun)} Betäubung`); if (p.ramp) parts.push(`heizt stärker auf`); if (p.bDmg) parts.push(`+${pc(p.bDmg)} Schaden-Bonus`);
+  return parts.join(', ');
+}
+// Alte Sterne-Spielstände ehrlich umrechnen: jede alte Kopie = ein Booster-Pull = durchschnittliche Kartenzahl dieser Seltenheit.
+// Mit den Karten wird gratis aufgelevelt (Duplikate waren vorher auch gratis), der Rest bleibt als Karten.
+function migrateTower(id, t) {
+  if (!T[id] || !t || t.lvl) return t;
+  const r = T[id].rarity, avg = (PACK_CARDS[r][0] + PACK_CARDS[r][1]) / 2;
+  let cards = Math.round(Math.max(0, (t.copies || 1) - 1) * avg), lvl = 1;
+  while (lvl < TLV_MAX && cards >= cardsNeed(id, lvl + 1)) { cards -= cardsNeed(id, lvl + 1); lvl++; }
+  return { lvl, cards, from: t.copies || 1 };
+}
 export const MODES = { first: 'Erster', last: 'Letzter', strong: 'Stärkster', close: 'Nächster' };
 
 // ---------- Hilfen ----------
@@ -250,8 +279,9 @@ function mergeMeta(m) {
   const d = defaultMeta();
   if (!m || m.v !== 2) return d;
   const levels = {};
+  if (m.ws && m.ws.kern) { let refund = 0; for (let L = 0; L < m.ws.kern; L++) refund += Math.round(30 * Math.pow(1.35, L)); m.gems = (m.gems || 0) + refund; m.ws = { ...m.ws }; delete m.ws.kern; m.refundKern = (m.refundKern || 0) + refund; }
   for (const [k, l] of Object.entries(m.levels || {})) levels[k] = { clears: l.clears || 0, best: l.best || 0, medals: l.medals || (l.clears ? { leicht: true } : {}) };
-  return { ...d, ...m, ws: { ...d.ws, ...(m.ws || {}) }, towers: m.towers || d.towers, loadout: [...(m.loadout || d.loadout), null, null, null, null, null].slice(0, 5),
+  return { ...d, ...m, ws: { ...d.ws, ...(m.ws || {}) }, towers: Object.fromEntries(Object.entries(m.towers || d.towers).filter(([id]) => T[id]).map(([id, t]) => [id, migrateTower(id, t)])), loadout: [...(m.loadout || d.loadout), null, null, null, null, null].slice(0, 5),
     levels, flags: { ...d.flags, ...(m.flags || {}) }, settings: { ...d.settings, ...(m.settings || {}) } };
 }
 
@@ -286,7 +316,7 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
     const u = U[id], v = L * u.per, pc = x => `${Math.round(x * 100)} %`;
     switch (id) {
       case 'kapital': return `Start mit ${fmt(400 + v)} Münzen`;
-      case 'kern': return `Kern hat ${100 + v} Leben`;
+      case 'mechanik': return L ? `+${pc(v)} Feuerrate aller Türme` : 'Alle Türme schießen schneller';
       case 'kaliber': return L ? `+${pc(v)} Schaden aller Türme` : 'Mehr Schaden für alle Türme';
       case 'optik': return L ? `+${pc(v)} Reichweite aller Türme` : 'Mehr Reichweite für alle Türme';
       case 'kopfgeld': return L ? `+${pc(v)} Münzen pro Gegner` : 'Mehr Münzen pro besiegtem Gegner';
@@ -314,30 +344,59 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
   const sellRate = () => 0.6 + wsP('recycling');
   const startCash = () => 400 + wsP('kapital');
   const lvlCash = () => Math.pow(game.run?.L.hp || 1, 0.75) * (game.run?.L.cashK || 1);
-  const coreMax = () => 100 + wsP('kern');
+  const coreMax = () => 100; // Kern hat immer 100 Leben
   const gemMult = () => 1 + wsP('gemfund');
   game.loadoutSize = () => 3 + wsL('platz4') + wsL('platz5');
 
   // ----- Sammlung / Sterne -----
-  const starOf = id => { const c = meta.towers[id]?.copies || 0; let s = 0; for (let i = 1; i <= MAX_STAR; i++) if (c >= STAR_COPIES[i]) s = i; return s; };
-  game.starOf = starOf;
-  game.nextStarAt = id => { const s = starOf(id); return s >= MAX_STAR ? null : STAR_COPIES[s + 1]; };
-  const starMult = id => 1 + 0.1 * (Math.max(1, starOf(id)) - 1) + (meta.towers[id]?.foil ? 0.1 : 0);
+  const tLvl = id => meta.towers[id]?.lvl || 0;
+  game.towerLevel = tLvl;
+  game.towerCards = id => meta.towers[id]?.cards || 0;
+  game.cardsNeed = id => (tLvl(id) >= TLV_MAX ? null : cardsNeed(id, tLvl(id) + 1));
+  game.lvlCost = id => (tLvl(id) >= TLV_MAX ? null : lvlGems(id, tLvl(id) + 1));
+  game.cardsReady = id => !!meta.towers[id] && tLvl(id) < TLV_MAX && game.towerCards(id) >= game.cardsNeed(id);
+  game.canLevel = id => game.cardsReady(id) && meta.gems >= game.lvlCost(id) && !game.run;
+  game.readyCount = () => Object.keys(meta.towers).filter(id => game.cardsReady(id)).length;
+  game.levelUp = id => {
+    if (!game.canLevel(id)) return false;
+    const t = meta.towers[id];
+    meta.gems -= game.lvlCost(id); t.cards -= game.cardsNeed(id); t.lvl++;
+    save(); emit('levelup', id); emit('gems');
+    return true;
+  };
+  // aktive Level-Belohnungen zusammenrechnen
+  const perkSum = id => {
+    const L = tLvl(id) || 1, P = {};
+    for (const [lv, p] of Object.entries(perksOf(id))) if (L >= +lv) for (const [k, v] of Object.entries(p)) if (k !== 'name') P[k] = (P[k] || 0) + v;
+    return P;
+  };
+  game.perkSum = perkSum;
+  const starMult = id => 1 + LVL_BONUS * (Math.max(1, tLvl(id)) - 1);
   game.owned = id => !!meta.towers[id];
 
   // Werte eines Turms auf Stufe lv (0-basiert) inkl. Sterne & Werkstatt
   game.towerStats = (id, lv = 0, buff = null) => {
-    const d = T[id], s = { ...d.lv[lv] }, m = dmgMult() * starMult(id) * (1 + (buff?.dmg || 0));
+    const d = T[id], s = { ...d.lv[lv] }, P = perkSum(id), m = dmgMult() * starMult(id) * (1 + (P.dmg || 0)) * (1 + (buff?.dmg || 0));
     if (s.dmg) s.dmg *= m;
     if (s.dps) s.dps *= m;
     if (s.burn) s.burn *= m;
-    if (s.income) s.income = Math.round(s.income * starMult(id));
-    if (s.bDmg) { const k = starMult(id); s.bDmg *= k; s.bRate *= k; }
-    if (s.rate) s.rate *= 1 + (buff?.rate || 0);
-    if (s.range) s.range *= rangeMult() * (1 + (buff?.range || 0));
+    if (s.burn && P.burn) s.burn *= 1 + P.burn;
+    if (s.income) s.income = Math.round(s.income * starMult(id) * (1 + (P.income || 0)));
+    if (s.bDmg) { const k = 1 + 0.05 * (Math.max(1, tLvl(id)) - 1); s.bDmg = s.bDmg * k + (P.bDmg || 0); s.bRate *= k; }
+    if (s.splash && P.splash) s.splash *= 1 + P.splash;
+    if (P.ap) s.ap = (s.ap || 0) + P.ap;
+    if (s.slow && P.slow) s.slow = Math.min(0.8, s.slow + P.slow);
+    if (s.chain && P.chain) s.chain += P.chain;
+    if (s.pierce && P.pierce) s.pierce += P.pierce;
+    if (s.n && P.n) s.n += P.n;
+    if (s.stun && P.stun) s.stun *= 1 + P.stun;
+    if (s.ramp && P.ramp) s.ramp += P.ramp;
+    if (P.rate && s.rate) s.rate *= 1 + P.rate;
+    if (s.rate) s.rate *= (1 + (buff?.rate || 0)) * (1 + wsP('mechanik'));
+    if (s.range) s.range *= rangeMult() * (1 + (buff?.range || 0)) * (s.range < 50 ? 1 + (P.range || 0) : 1);
     return s;
   };
-  game.towerCost = (id, lv = 0) => Math.round(T[id].lv[lv].cost * costMult() / 5) * 5;
+  game.towerCost = (id, lv = 0) => Math.round(T[id].lv[lv].cost * costMult() * (1 + (perkSum(id).cost || 0)) / 5) * 5;
   game.dps = (id, lv = 0) => {
     const s = game.towerStats(id, lv), d = T[id];
     switch (d.kind) {
@@ -387,20 +446,17 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
     let pool = TOWERS.filter(t => t.rarity === rar);
     if (kind === 'starter') pool = pool.filter(t => STARTER.includes(t.id));
     const def = pool[Math.floor(rng() * pool.length)];
-    const foil = !!b.foil && rng() < b.foil;
+    const [lo, hi] = PACK_CARDS[rar];
+    const n = lo + Math.floor(rng() * (hi - lo + 1));
     const owned = meta.towers[def.id];
-    const res = { id: def.id, def, rarity: rar, foil, isNew: !owned, starFrom: owned ? starOf(def.id) : 0, starTo: 1, refund: 0, becameFoil: false };
+    const res = { id: def.id, def, rarity: rar, isNew: !owned, n, refund: 0 };
     if (!owned) {
-      meta.towers[def.id] = { copies: 1, foil };
+      meta.towers[def.id] = { lvl: 1, cards: n - 1 };
       const free = meta.loadout.findIndex((x, k) => !x && k < game.loadoutSize());
       if (free >= 0) { meta.loadout[free] = def.id; res.placed = true; }
-    } else {
-      if (starOf(def.id) >= MAX_STAR) { res.refund = 20; meta.gems += 20; }
-      else owned.copies++;
-      if (foil && !owned.foil) { owned.foil = true; res.becameFoil = true; }
-    }
-    res.starTo = starOf(def.id);
-    res.copies = meta.towers[def.id].copies;
+    } else if (owned.lvl >= TLV_MAX) { res.refund = n * 3; meta.gems += res.refund; }
+    else owned.cards += n;
+    res.lvl = meta.towers[def.id].lvl; res.cards = meta.towers[def.id].cards; res.need = game.cardsNeed(def.id);
     save(); emit('booster', [res]); emit('gems');
     return [res];
   };
@@ -875,7 +931,8 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
         e.dead = true; e.leaked = true;
         if (e.boss) R.bossAlive--;
         // Bosse: Schaden je nach verbleibendem Leben (wie bei Bloons) – unverletzt voller Schaden
-        const cd = e.boss ? Math.round(e.E.dmg * (0.4 + 0.6 * Math.max(0, e.hp / e.maxHp))) : e.E.dmg;
+        const base = e.boss ? e.E.dmg * (0.4 + 0.6 * Math.max(0, e.hp / e.maxHp)) : e.E.dmg;
+        const cd = Math.max(1, Math.round(base * (R.L.leakK || 1)));
         R.coreHp -= cd; R.leaked++;
         emit('coreHit', { e, dmg: cd });
         if (R.coreHp <= 0) {
@@ -921,6 +978,8 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
       const bonus = newMedal ? base[0] + base[1] * R.li : 6 + R.li;
       R.gems += Math.round((bonus + 1 + Math.floor(R.wave / 4)) * gemMult());
       meta.wins++;
+      const pool = meta.loadout.filter(id => id && meta.towers[id] && meta.towers[id].lvl < TLV_MAX);
+      if (pool.length) { const id = pool[Math.floor(rng() * pool.length)]; const nC = { leicht: 3, mittel: 5, schwer: 8 }[R.diff] * (newMedal ? 2 : 1); meta.towers[id].cards += nC; R.cardReward = { id, n: nC }; }
     } else if (R.li !== 'endless') {
       const info = meta.levels[R.li] || (meta.levels[R.li] = { clears: 0, best: 0, medals: {} });
       info.best = Math.max(info.best, R.wave - 1);
@@ -929,7 +988,7 @@ export function createGame({ storage = (typeof localStorage !== 'undefined' ? lo
     meta.gems += R.gems; meta.totalGems += R.gems;
     meta.runs++; meta.playTime += R.time;
     save();
-    const summary = { result, li: R.li, diff: R.diff, name: L.name, wave: R.wave, waves: R.waves, medal, newMedal, firstClear, record, gems: R.gems, kills: R.kills, time: R.time, coreHp: R.coreHp, coreMax: R.coreMax, earned: R.earned };
+    const summary = { result, cards: R.cardReward || null, li: R.li, diff: R.diff, name: L.name, wave: R.wave, waves: R.waves, medal, newMedal, firstClear, record, gems: R.gems, kills: R.kills, time: R.time, coreHp: R.coreHp, coreMax: R.coreMax, earned: R.earned };
     emit('runEnd', summary);
     emit('gems');
   }
