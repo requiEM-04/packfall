@@ -985,3 +985,39 @@ button.kw-wb { cursor: pointer; }
   .kw-bossbar { top: 44px; }
 }
 .kw-title-main .kw-fan { margin-top: clamp(18px, 4vh, 40px); }
+
+/* =====================================================================
+   v0.9.1 – Maps mit Schwierigkeitsgraden, Abzeichen, Mythisch
+   ===================================================================== */
+.m-bronze { --mc: #c08a5a; } .m-silber { --mc: #c4ccd6; } .m-gold { --mc: #e8c86a; }
+.kw-medals { display: flex; gap: 3px; }
+.kw-medals i { color: rgba(255, 255, 255, .12); } .kw-medals i .kw-ic { width: 18px; height: 18px; }
+.kw-medals i.on { color: var(--mc); filter: drop-shadow(0 0 5px color-mix(in srgb, var(--mc) 60%, transparent)); }
+.kw-diffs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.kw-diff { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 4px; border: 0; border-radius: 9px; cursor: pointer; color: var(--ink);
+  background: rgba(255, 255, 255, .035); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .07); }
+.kw-diff:hover { background: rgba(255, 255, 255, .07); }
+.kw-diff.is-sel { box-shadow: inset 0 0 0 2px var(--mc), 0 0 16px color-mix(in srgb, var(--mc) 25%, transparent); background: color-mix(in srgb, var(--mc) 10%, transparent); }
+.kw-diff-m { color: rgba(255, 255, 255, .16); } .kw-diff.has .kw-diff-m { color: var(--mc); } .kw-diff-m .kw-ic { width: 24px; height: 24px; }
+.kw-diff b { font: 700 15px/1 var(--head); letter-spacing: .06em; text-transform: uppercase; } .kw-diff small { color: var(--muted); font-size: 12px; }
+.kw-sum-medal { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--mc); animation: pfStar .7s cubic-bezier(.2, 1.6, .4, 1) .25s both; }
+.kw-sum-medal .kw-ic { width: 76px; height: 76px; filter: drop-shadow(0 0 18px color-mix(in srgb, var(--mc) 55%, transparent)); }
+.kw-sum-medal b { font: 700 18px/1 var(--head); letter-spacing: .1em; text-transform: uppercase; }
+.kw-sum-medal em { font-style: normal; padding: 2px 8px; border-radius: 4px; background: var(--mc); color: #141210; font: 700 11px/1.4 var(--head); letter-spacing: .1em; text-transform: uppercase; }
+.kw-pbar .is-star .kw-ic { color: #e8c86a; }
+/* Seltenheit in Karten */
+.r-legendary.kw-tc, .r-legendary.kw-ls, .r-legendary.kw-lo { box-shadow: inset 0 0 0 1px rgba(216, 176, 96, .35), inset 0 -3px 0 var(--rc), 0 0 16px rgba(216, 176, 96, .14); }
+.r-mythic.kw-tc, .r-mythic.kw-ls, .r-mythic.kw-lo, .kw-lvd-lo .r-mythic { animation: pfMyth 2.2s ease-in-out infinite; }
+.kw-tc.r-mythic { background: radial-gradient(circle at 50% 35%, rgba(220, 50, 50, .3), transparent 70%), rgba(30, 8, 10, .55); }
+.kw-tc.r-mythic.is-unknown { background: radial-gradient(circle at 50% 35%, rgba(220, 50, 50, .16), transparent 70%), rgba(20, 8, 10, .4); }
+@keyframes pfMyth { 0%, 100% { box-shadow: inset 0 0 0 1px rgba(255, 70, 70, .35), inset 0 -3px 0 #d23a40, 0 0 10px rgba(220, 50, 50, .2); } 50% { box-shadow: inset 0 0 0 1px rgba(255, 90, 90, .7), inset 0 -3px 0 #ff4a4a, 0 0 26px rgba(230, 50, 50, .5); } }
+.kw-tdet.r-mythic .kw-tdet-art { background: radial-gradient(circle at 50% 62%, rgba(230, 50, 50, .35), transparent 65%), rgba(20, 0, 0, .35); }
+.kw-tdet.r-mythic h3 { color: #ff9a8a; text-shadow: 0 0 18px rgba(255, 60, 60, .45); }
+.kw-tdet.r-legendary h3 { color: #f0d890; }
+/* Keine blaue Browser-Markierung beim schnellen Tippen/Doppelklicken (z. B. auf dem Booster) */
+.kw { -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+.kw input, .kw textarea, .kw-adm input, .kw-adm textarea { -webkit-user-select: text; user-select: text; }
+.kw img, .kw svg { -webkit-user-drag: none; user-drag: none; }
+.kw-bo img, .kw-pack img, .kw-reveal img { pointer-events: none; }
+.kw ::selection { background: transparent; }
+.kw input::selection, .kw textarea::selection { background: rgba(201, 176, 122, .35); }
