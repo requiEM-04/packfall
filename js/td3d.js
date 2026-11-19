@@ -1,7 +1,7 @@
 // Packfall – 3D-Schlachtfeld (Three.js): sauberes Raster-Brett, maschinelle Türme mit 5 sichtbaren Ausbaustufen,
 // Gegner mit rötlicher Kontur, Kern, Effekte. Dazu ein Icon-Renderer für Karten/Menüs.
 import * as THREE from './vendor/three.module.min.js';
-import { COLS, ROWS, T, ENEMIES, THEMES } from './core.js?v=0.9.1-86e62b3e';
+import { COLS, ROWS, T, ENEMIES, THEMES } from './core.js?v=0.9.2-e9185933';
 
 const V3 = THREE.Vector3;
 const C = { steel: '#4d545c', dark: '#2b2f34', iron: '#3a3f45', brass: '#a88f5e', copper: '#9a6a4c', stone: '#5a5650', stoneD: '#3d3b37', black: '#17181b', olive: '#4c5246', rust: '#6e4232', gold: '#c7a456' };
