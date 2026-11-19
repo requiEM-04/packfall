@@ -1,7 +1,7 @@
 // Packfall – Sound & Musik komplett per WebAudio (keine Dateien)
 // Master mit Kompressor, Hall-Send, Effekte mit Bass, Musik mit sauberem Lookahead-Sequencer.
 export function createAudio(getSettings) {
-  let ctx = null, master = null, sfxBus = null, musBus = null, verb = null, verbSend = null, dly = null, dlySend = null;
+  let ctx = null, master = null, sfxBus = null, musBus = null, musMain = null, verb = null, verbSend = null, dly = null, dlySend = null;
   let noiseBuf = null, distCurve = null, gtr = null, lead = null;
   const last = {};
   // Tab im Hintergrund: Browser drosseln Timer → Musik würde stottern. Also pausieren und danach sauber weiter.
@@ -28,9 +28,9 @@ export function createAudio(getSettings) {
       comp.threshold.value = -16; comp.knee.value = 8; comp.ratio.value = 5; comp.attack.value = 0.004; comp.release.value = 0.22;
       master = ctx.createGain(); master.gain.value = 0.9;
       master.connect(comp); comp.connect(ctx.destination);
-      sfxBus = ctx.createGain(); musBus = ctx.createGain();
+      sfxBus = ctx.createGain(); musBus = ctx.createGain(); musMain = ctx.createGain();
       const musHp = ctx.createBiquadFilter(); musHp.type = 'highpass'; musHp.frequency.value = 38; musHp.Q.value = 0.7;
-      sfxBus.connect(master); musBus.connect(musHp); musHp.connect(master);
+      sfxBus.connect(master); musBus.connect(musMain); musMain.connect(musHp); musHp.connect(master);
       // Hall
       verb = ctx.createConvolver(); verb.buffer = impulse(2.4, 2.6);
       verbSend = ctx.createGain(); verbSend.gain.value = 1;
@@ -61,7 +61,7 @@ export function createAudio(getSettings) {
     const sv = vol(s, 'sfxVol', 0.5), mvol = vol(s, 'musicVol', 0.4);
     sfxBus.gain.setTargetAtTime(1.7 * sv * sv, ctx.currentTime, 0.02);
     const mv = 0.75 * mvol * mvol;
-    musBus.gain.setTargetAtTime(mv, ctx.currentTime, 0.05);
+    musMain.gain.setTargetAtTime(mv, ctx.currentTime, 0.05);
     if (typeof pickTrack === 'function' && ctx) pendingTrack = pickTrack(false);
     if (mv > 0) startMusic(); else stopMusic();
   }
@@ -380,10 +380,99 @@ export function createAudio(getSettings) {
     if (!ctx || timer) return;
     rig();
     nextT = ctx.currentTime + 0.1; step = 0;
-    timer = setInterval(schedule, 50);
-    schedule();
+    musBus.gain.cancelScheduledValues(0); musBus.gain.setValueAtTime(1, ctx.currentTime);
+    timer = setInterval(tick, 50);
+    tick();
   }
-  function stopMusic() { clearInterval(timer); timer = null; }
+  function stopMusic() {
+    clearInterval(timer); timer = null;
+    if (cur && ctx) { const t = ctx.currentTime; cur.g.gain.cancelScheduledValues(t); cur.g.gain.setTargetAtTime(0, t, 0.05); try { cur.src.stop(t + 0.4); } catch (e) { /* egal */ } }
+    cur = null; bufMode = false;
+  }
+  function tick() {
+    if (!ctx || ctx.state !== 'running') return;
+    conduct();
+    if (!bufMode) schedule();
+  }
+
+  // ---------------- Vorab berechnete Musik-Schleifen ----------------
+  // Live-Synthese (Gitarren-Verzerrung, Hall, viele Stimmen) kostet Rechenzeit; läuft daneben die 3D-Grafik, hakt es.
+  // Darum wird jedes Stück einmal im Hintergrund berechnet (OfflineAudioContext) und danach nur noch als
+  // fertige Schleife abgespielt. Wechsel passieren genau auf dem nächsten Taktanfang.
+  let rendering = false, cur = null, bufMode = false, renderBusy = false, bufFail = 0;
+  const cache = new Map();
+  function loopFor(ti, md) {
+    const key = ti + ':' + md, c = cache.get(key);
+    if (c) { c.used = performance.now(); return c.L; }
+    if (!renderBusy && bufFail < 3) {
+      renderBusy = true;
+      renderLoop(ti, md).then(L => { cache.set(key, { L, used: performance.now() }); trim(); })
+        .catch(e => { console.warn('Musik-Schleife', e); bufFail++; })
+        .finally(() => { renderBusy = false; });
+    }
+    return null;
+  }
+  function trim() {
+    while (cache.size > 6) {
+      let old = null;
+      for (const [k, v] of cache) if (cur?.L.key !== k && (!old || v.used < old[1].used)) old = [k, v];
+      if (!old) break;
+      cache.delete(old[0]);
+    }
+  }
+  async function renderLoop(ti, md) {
+    const Tr = TRACKS[ti], bars = md === 'boss' ? 8 : 16, s16 = 60 / Tr.bpm / 4, len = bars * 16 * s16, tail = 3, sr = ctx.sampleRate;
+    const off = new OfflineAudioContext(2, Math.ceil(sr * (len + tail)), sr);
+    const saved = { ctx, master, sfxBus, musBus, musMain, verb, verbSend, dly, dlySend, noiseBuf, distCurve, gtr, lead, mode, nextMode, T, tIdx, barsInTrack, pendingTrack, step };
+    rendering = true;
+    try {
+      build(off);
+      master.disconnect(); master.gain.value = 1; master.connect(off.destination);
+      musMain.gain.value = 1; sfxBus.gain.value = 0;
+      tIdx = ti; T = Tr; mode = nextMode = md; pendingTrack = -1;
+      dly.delayTime.setValueAtTime(s16 * 3, 0);
+      let t = 0;
+      for (let st = 0; st < bars * 16; st++) { playStep(st + (md === 'run' ? 64 : 0), t); t += s16; }
+    } finally {
+      ({ ctx, master, sfxBus, musBus, musMain, verb, verbSend, dly, dlySend, noiseBuf, distCurve, gtr, lead, mode, nextMode, T, tIdx, barsInTrack, pendingTrack, step } = saved);
+      rendering = false;
+    }
+    const raw = await off.startRendering();
+    // nahtlos: Nachhall vom Ende an den Anfang der Schleife falten
+    const n = Math.round(len * sr), out = ctx.createBuffer(2, n, sr);
+    for (let ch = 0; ch < 2; ch++) {
+      const a = raw.getChannelData(ch), b = out.getChannelData(ch);
+      b.set(a.subarray(0, n));
+      for (let i = 0, m = Math.min(a.length - n, n); i < m; i++) b[i] += a[n + i];
+    }
+    return { buf: out, len: n / sr, bar: 16 * s16, ti, md, key: ti + ':' + md };
+  }
+  function barAt() {
+    if (cur) { const el = ctx.currentTime - cur.start; return cur.start + Math.ceil((el + 0.15) / cur.L.bar) * cur.L.bar; }
+    return nextT + ((16 - (step % 16)) % 16) * S16();
+  }
+  function conduct() {
+    if (bufFail >= 3) return;
+    const md = nextMode;
+    let ti = pendingTrack >= 0 ? pendingTrack : cur ? cur.L.ti : tIdx;
+    if (cur && pendingTrack < 0 && getSettings().musicTrack === 'mix' && md !== 'boss' && ti === cur.L.ti && ctx.currentTime - cur.since > cur.L.bar * 32) { pendingTrack = pickTrack(true); ti = pendingTrack; }
+    const L = loopFor(ti, md);
+    if (L && !(cur && cur.L.key === L.key)) {
+      const at = barAt();
+      if (at - ctx.currentTime <= 0.45) {
+        const src = ctx.createBufferSource(); src.buffer = L.buf; src.loop = true;
+        const g = ctx.createGain(); g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(1, at + 0.04);
+        src.connect(g); g.connect(musMain); src.start(Math.max(at, ctx.currentTime + 0.01));
+        if (cur) { cur.g.gain.setValueAtTime(1, at); cur.g.gain.linearRampToValueAtTime(0, at + 0.06); try { cur.src.stop(at + 0.12); } catch (e) { /* egal */ } }
+        else { musBus.gain.setValueAtTime(1, at); musBus.gain.linearRampToValueAtTime(0, at + 0.05); }
+        cur = { L, src, g, start: at, since: cur && cur.L.ti === L.ti ? cur.since : at };
+        bufMode = true; tIdx = L.ti; T = TRACKS[L.ti];
+        if (pendingTrack === L.ti) pendingTrack = -1;
+      }
+    } else if (cur && cur.L.key === (L && L.key) && pendingTrack === cur.L.ti) pendingTrack = -1;
+    // Vorausrechnen: Run- und Boss-Schleife des aktuellen Stücks
+    if (cur && !renderBusy) for (const m2 of ['run', 'boss', 'menu']) if (!cache.has(cur.L.ti + ':' + m2)) { loopFor(cur.L.ti, m2); break; }
+  }
   // Weit vorausplanen: Hängt der Hauptthread kurz (Laden, 3D), läuft die Musik trotzdem weiter.
   const AHEAD = 0.6;
   function schedule() {
@@ -399,7 +488,7 @@ export function createAudio(getSettings) {
   function playStep(s, t) {
     rig();
     const s16 = s % 16;
-    if (s16 === 0) {
+    if (s16 === 0 && !rendering) {
       const bar0 = Math.floor(s / 16);
       if (bar0 % 4 === 0) {
         mode = nextMode;
@@ -454,7 +543,7 @@ export function createAudio(getSettings) {
   return {
     unlock() { ensure(); if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {}); },
     apply,
-    setMode(m) { if (m === 'run' && nextMode !== 'run') pendingTrack = pickTrack(true); nextMode = m; },
+    setMode(m) { if (m === 'run' && nextMode !== 'run') pendingTrack = cache.has(tIdx + ':run') && getSettings().musicTrack === 'mix' ? tIdx : pickTrack(true); nextMode = m; },
     get track() { return T.name; },
     skip() { if (ctx) pendingTrack = pickTrack(true); },
     tracks: TRACKS.map(x => x.name),
@@ -466,13 +555,14 @@ export function createAudio(getSettings) {
       try { SFX[name]?.(arg); } catch (e) { /* egal */ }
     },
     stop() { stopMusic(); },
+    get _music() { return { bufMode, cur: cur?.L.key || null, cache: [...cache.keys()], busy: renderBusy, fail: bufFail, track: T.name, state: ctx?.state }; },
     // Hörprobe: rendert die Musik offline (Menü → Run → Boss) und liefert ein WAV als Base64
     async _render(plan = [[1, 'menu', 4], [1, 'run', 12], [2, 'menu', 4], [2, 'run', 12], [3, 'run', 12], [3, 'boss', 4]]) {
-      const saved = { ctx, master, sfxBus, musBus, verb, verbSend, dly, dlySend, noiseBuf, distCurve, gtr, lead, mode, nextMode, T, tIdx, barsInTrack, pendingTrack };
+      const saved = { ctx, master, sfxBus, musBus, musMain, verb, verbSend, dly, dlySend, noiseBuf, distCurve, gtr, lead, mode, nextMode, T, tIdx, barsInTrack, pendingTrack };
       let sec = 3;
       for (const [ti, , bars] of plan) sec += bars * 16 * (60 / TRACKS[ti].bpm / 4);
       build(new OfflineAudioContext(2, Math.ceil(44100 * sec), 44100));
-      musBus.gain.value = 0.6; sfxBus.gain.value = 0;
+      musMain.gain.value = 0.6; sfxBus.gain.value = 0;
       let t = 0.05;
       for (const [ti, md, bars] of plan) {
         tIdx = ti; T = TRACKS[ti]; pendingTrack = -1; nextMode = md; mode = md;
@@ -480,7 +570,7 @@ export function createAudio(getSettings) {
         for (let st = 0; st < bars * 16; st++) { barsInTrack = -1000; playStep(st + (md === 'run' ? 64 : 0), t); t += S16(); }
       }
       const buf = await ctx.startRendering();
-      ({ ctx, master, sfxBus, musBus, verb, verbSend, dly, dlySend, noiseBuf, distCurve, gtr, lead, mode, nextMode, T, tIdx, barsInTrack, pendingTrack } = saved);
+      ({ ctx, master, sfxBus, musBus, musMain, verb, verbSend, dly, dlySend, noiseBuf, distCurve, gtr, lead, mode, nextMode, T, tIdx, barsInTrack, pendingTrack } = saved);
       const L = buf.getChannelData(0), R = buf.getChannelData(1), n = L.length;
       const out = new DataView(new ArrayBuffer(44 + n * 4));
       const w = (o, str) => { for (let i = 0; i < str.length; i++) out.setUint8(o + i, str.charCodeAt(i)); };
