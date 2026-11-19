@@ -1,7 +1,7 @@
 // Packfall – Titel-/Menü-Hintergrund: düstere 3D-Landschaft (Berge, Nebeltal, Wald, See mit Mondspiegelung,
 // der Kern auf seinem Hügel mit Lichtsäule, Maschinen-Türme als Wache, ferne Horde mit Fackeln).
 import * as THREE from './vendor/three.module.min.js';
-import { Kit, halo, envMap, buildTower } from './td3d.js?v=0.9.1-86e62b3e';
+import { Kit, halo, envMap, buildTower } from './td3d.js?v=0.9.2-e9185933';
 
 const V3 = THREE.Vector3;
 function hash(x, y) { let h = Math.imul(x | 0, 374761393) ^ Math.imul(y | 0, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16; return (h >>> 0) / 4294967296; }
