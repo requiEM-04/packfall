@@ -1021,3 +1021,5 @@ button.kw-wb { cursor: pointer; }
 .kw-bo img, .kw-pack img, .kw-reveal img { pointer-events: none; }
 .kw ::selection { background: transparent; }
 .kw input::selection, .kw textarea::selection { background: rgba(201, 176, 122, .35); }
+/* Booster: kein Auswahl-Rahmen um das Pack */
+.kw-bo .kw-pack, .kw-bo .kw-pack:focus, .kw-bo .kw-pack:focus-visible, .kw-bo .kw-pack:active { outline: none !important; border: 0; background: none; box-shadow: none; }
