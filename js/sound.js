@@ -16,7 +16,7 @@ export function createAudio(getSettings) {
     try {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return null;
-      build(new AC({ latencyHint: 'interactive' }));
+      build(new AC({ latencyHint: 'playback' })); // größerer Puffer: kein Knacksen, wenn die 3D-Grafik viel zu tun hat
       apply();
     } catch (e) { ctx = null; }
     return ctx;
@@ -142,7 +142,7 @@ export function createAudio(getSettings) {
     },
     // Seltenheit steigt eine Stufe
     tease: tier => {
-      const t = now(), base = [57, 60, 64, 67][tier] || 57;
+      const t = now(), base = [57, 60, 64, 67, 70][tier] || 57;
       kick(t, 0.5, sfxBus, 0.22, 170, 55);
       [0, 7, 12].forEach((iv, i) => {
         osc('sawtooth', hz(base + 12 + iv), t, 0.42, 0.06, sfxBus, { detune: -8, filter: 3200, send: 0.45 });
@@ -165,13 +165,14 @@ export function createAudio(getSettings) {
     },
     reveal: r => {
       const t = now();
-      const prog = { common: [69, 76], rare: [69, 72, 76, 81], epic: [69, 72, 76, 79, 84], legendary: [62, 66, 69, 74, 78, 81, 86] }[r] || [69, 76];
+      const prog = { common: [69, 76], rare: [69, 72, 76, 81], epic: [69, 72, 76, 79, 84], legendary: [62, 66, 69, 74, 78, 81, 86], mythic: [57, 60, 64, 69, 72, 75, 81, 84, 87] }[r] || [69, 76];
       prog.forEach((m, i) => {
         osc('triangle', hz(m), t + i * 0.07, 0.6, 0.11, sfxBus, { send: 0.5 });
         osc('sine', hz(m + 12), t + i * 0.07, 0.4, 0.04, sfxBus, { send: 0.6 });
       });
-      if (r === 'epic' || r === 'legendary') {
-        const chord = r === 'legendary' ? [50, 57, 62, 66, 69] : [45, 52, 57, 60, 64];
+      if (r === 'epic' || r === 'legendary' || r === 'mythic') {
+        const chord = r === 'mythic' ? [38, 45, 50, 53, 57, 60] : r === 'legendary' ? [50, 57, 62, 66, 69] : [45, 52, 57, 60, 64];
+        if (r === 'mythic') kick(t, 0.9, sfxBus, 0.8, 90, 30);
         chord.forEach(m => { osc('sawtooth', hz(m), t, 2.6, 0.035, sfxBus, { a: 0.05, detune: -7, filter: 1800, send: 0.5 }); osc('sawtooth', hz(m), t, 2.6, 0.03, sfxBus, { a: 0.05, detune: 7, filter: 1800 }); });
       }
     },
@@ -379,12 +380,21 @@ export function createAudio(getSettings) {
     if (!ctx || timer) return;
     rig();
     nextT = ctx.currentTime + 0.1; step = 0;
-    timer = setInterval(schedule, 25);
+    timer = setInterval(schedule, 50);
+    schedule();
   }
   function stopMusic() { clearInterval(timer); timer = null; }
+  // Weit vorausplanen: Hängt der Hauptthread kurz (Laden, 3D), läuft die Musik trotzdem weiter.
+  const AHEAD = 0.6;
   function schedule() {
     if (!ctx || ctx.state !== 'running') return;
-    while (nextT < ctx.currentTime + 0.16) { playStep(step, nextT); nextT += S16(); step++; }
+    const t0 = ctx.currentTime;
+    if (nextT < t0 - 0.02) {
+      // Verpasste Schritte überspringen statt alle auf einmal abzuspielen (das war das Glitchen)
+      const s16 = S16(), miss = Math.ceil((t0 + 0.04 - nextT) / s16);
+      nextT += miss * s16; step += miss;
+    }
+    while (nextT < t0 + AHEAD) { playStep(step, nextT); nextT += S16(); step++; }
   }
   function playStep(s, t) {
     rig();
