@@ -2,8 +2,8 @@
 // Pack fällt rein → Antippen → Aufladen (Strahlen teasen die Seltenheit Stufe für Stufe an)
 // → Riss + Bass-Drop → Turm erscheint groß im Licht. Effekte auf eigenem Canvas (flüssig, eigene Schleife).
 
-const TIER_COL = [[176, 172, 162], [126, 164, 196], [166, 138, 200], [222, 186, 108]]; // gewöhnlich, selten, episch, legendär
-const RANK = { common: 0, rare: 1, epic: 2, legendary: 3 };
+const TIER_COL = [[176, 172, 162], [126, 164, 196], [166, 138, 200], [222, 186, 108], [236, 56, 60]]; // gewöhnlich, selten, episch, legendär, mythisch
+const RANK = { common: 0, rare: 1, epic: 2, legendary: 3, mythic: 4 };
 
 export function createOpening(ov, { skin, sfx, settings, info, onClose, onAgain }) {
   const $ = n => ov.querySelector(`[data-k="${n}"]`);
@@ -82,7 +82,7 @@ export function createOpening(ov, { skin, sfx, settings, info, onClose, onAgain 
     const first = st.fast ? 0.35 : 0.95, gap = st.fast ? 0.28 : 0.72;
     st.steps = [];
     for (let k = 1; k <= st.rank; k++) st.steps.push({ at: first + (k - 1) * gap, tier: k, done: false });
-    st.chargeD = first + Math.max(0, st.rank - 1) * gap + (st.rank ? (st.fast ? 0.25 : 0.55) : (st.fast ? 0 : 0.15)) + (st.rank === 3 && !st.fast ? 0.35 : 0);
+    st.chargeD = first + Math.max(0, st.rank - 1) * gap + (st.rank ? (st.fast ? 0.25 : 0.55) : (st.fast ? 0 : 0.15)) + (st.rank >= 3 && !st.fast ? 0.35 + (st.rank - 3) * 0.4 : 0);
     st.tpower = 0.45; st.spin = 0.5;
     sfx('riser', st.chargeD);
   }
