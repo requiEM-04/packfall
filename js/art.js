@@ -1,5 +1,5 @@
 // Packfall – glatte Vektor-Grafik: Icons, Booster-Packs, Map-Vorschauen (keine Pixel)
-import { COLS, ROWS, buildPath, THEMES } from './core.js?v=0.10.1-1cbc35a3';
+import { COLS, ROWS, THEMES } from './core.js?v=0.11-ca2fa47a';
 
 // ---------- Icons (24×24, Linienstil) ----------
 const S = (d, extra = '') => `<path d="${d}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"${extra}/>`;
@@ -14,6 +14,7 @@ const ICONS = {
   speed: S('M4 7l6 5-6 5V7zM12 7l6 5-6 5V7z'),
   coin: `<circle cx="12" cy="12" r="8.2" fill="#b8954f"/><circle cx="12" cy="12" r="6.2" fill="none" stroke="#e6cf93" stroke-width="1.4"/><path d="M12 8.2v7.6M9.6 10.2h4.8" stroke="#6e5427" stroke-width="1.8" stroke-linecap="round"/>`,
   gem: `<path d="M6.5 4.5h11L21 9.5 12 20 3 9.5z" fill="#6fa3b4"/><path d="M3 9.5h18M9 4.5 7.5 9.5 12 20l4.5-10.5L15 4.5" fill="none" stroke="#c9e6ee" stroke-width="1.1" stroke-linejoin="round"/><path d="M6.5 4.5h11L21 9.5H3z" fill="#a6d0dc" opacity=".55"/>`,
+  licht: `<path d="M12 2.8c3.4 4.6 6.6 7.8 6.6 12a6.6 6.6 0 0 1-13.2 0c0-4.2 3.2-7.4 6.6-12z" fill="#ffd27a"/><path d="M12 6.5c2 3 3.8 5 3.8 8a3.8 3.8 0 0 1-7.6 0c0-3 1.8-5 3.8-8z" fill="#fff6dc"/>`,
   heart: `<path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 7.5 2.4C19.5 15.4 12 20 12 20z" fill="#b5564c"/>`,
   shield: S('M12 3.5l7 2.6v5.4c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6.1z') + S('M9 12l2.2 2.2L15.5 10'),
   tower: S('M7 20h10M8.5 20l1-10h5l1 10M8 10h8V6.5h-1.6V8h-1.6V6.5h-1.6V8h-1.6V6.5H8z') + S('M12 3v1.5'),
@@ -89,34 +90,29 @@ export function mapPreview(L, w = 400, h = 240) {
   const c = document.createElement('canvas');
   const dpr = 2; c.width = w * dpr; c.height = h * dpr;
   const x = c.getContext('2d'); x.scale(dpr, dpr);
-  const cs = Math.min(w / COLS, h / ROWS), ox = (w - cs * COLS) / 2, oy = (h - cs * ROWS) / 2;
-  const TH = THEMES[L.theme] || THEMES.wald, tb = TH.tile, blk = new Map((L.blocks || []).map(b => [b[1] * COLS + b[0], b[2]]));
-  x.fillStyle = TH.bg; x.fillRect(0, 0, w, h);
+  const TH = THEMES[L.theme] || THEMES.gasse;
+  const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, TH.sky[0]); g.addColorStop(1, TH.sky[1]); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  const ox = w * 0.16, oy = h * 0.14, cw = (w * 0.76) / COLS, ch = (h * 0.76) / ROWS;
+  const blk = new Map((L.blocks || []).map(b => [b[1] * COLS + b[0], b[2]]));
   for (let r = 0; r < ROWS; r++) for (let q = 0; q < COLS; q++) {
-    const d = (q + r) % 2 ? 4 : 0, b = blk.get(r * COLS + q);
-    x.fillStyle = b === 'lava' ? '#d8652a' : b === 'pool' ? '#1c3a44' : b ? `rgb(${tb[0] - 14},${tb[1] - 14},${tb[2] - 14})` : `rgb(${tb[0] - 8 + d},${tb[1] - 8 + d},${tb[2] - 8 + d})`;
-    x.fillRect(ox + q * cs + 0.6, oy + r * cs + 0.6, cs - 1.2, cs - 1.2);
-    if (b === 'crystal') { x.fillStyle = TH.glow || '#8fd6e6'; x.beginPath(); x.arc(ox + (q + 0.5) * cs, oy + (r + 0.5) * cs, cs * 0.22, 0, 7); x.fill(); }
-    if (b === 'tree') { x.fillStyle = '#2c4029'; x.beginPath(); x.arc(ox + (q + 0.5) * cs, oy + (r + 0.5) * cs, cs * 0.34, 0, 7); x.fill(); }
-    if (b === 'rock' || b === 'ruin') { x.fillStyle = TH.deco[0]; x.beginPath(); x.arc(ox + (q + 0.5) * cs, oy + (r + 0.5) * cs, cs * 0.3, 0, 7); x.fill(); }
+    x.fillStyle = TH.tile[(r + q) % 2]; x.fillRect(ox + q * cw, oy + r * ch, cw + 0.5, ch + 0.5);
+    const b = blk.get(r * COLS + q), cx = ox + (q + 0.5) * cw, cy = oy + (r + 0.5) * ch;
+    if (b === 'pool') { x.fillStyle = '#10201a'; x.beginPath(); x.ellipse(cx, cy, cw * 0.42, ch * 0.38, 0, 0, 7); x.fill(); }
+    else if (b === 'crystal') { x.fillStyle = '#5a3a8a'; x.beginPath(); x.moveTo(cx, cy - ch * 0.38); x.lineTo(cx + cw * 0.2, cy + ch * 0.3); x.lineTo(cx - cw * 0.2, cy + ch * 0.3); x.fill(); }
+    else if (b) { x.fillStyle = '#6a6862'; x.beginPath(); x.roundRect(cx - cw * 0.24, cy - ch * 0.36, cw * 0.48, ch * 0.66, 4); x.fill(); }
   }
-  x.save(); x.beginPath(); x.rect(ox, oy, cs * COLS, cs * ROWS); x.clip();
-  for (const pts of L.paths) {
-    const P = buildPath(pts).P;
-    for (const [lw, col] of [[cs * 0.98, TH.path[0]], [cs * 0.78, TH.path[2]]]) {
-      x.strokeStyle = col; x.lineWidth = lw; x.lineJoin = 'round'; x.lineCap = 'round';
-      x.beginPath(); P.forEach((p, i) => { const X = ox + p.x * cs, Y = oy + p.z * cs; i ? x.lineTo(X, Y) : x.moveTo(X, Y); }); x.stroke();
-    }
-    const s = P[0];
-    const g = x.createRadialGradient(ox + s.x * cs, oy + s.z * cs, 0, ox + s.x * cs, oy + s.z * cs, cs * 1.4);
-    g.addColorStop(0, 'rgba(200,70,60,.8)'); g.addColorStop(1, 'rgba(200,70,60,0)');
-    x.fillStyle = g; x.fillRect(ox + (s.x - 2) * cs, oy + (s.z - 2) * cs, cs * 4, cs * 4);
-  }
-  x.restore();
-  const core = buildPath(L.paths[0]).P.at(-1);
-  const g = x.createRadialGradient(ox + core.x * cs, oy + core.z * cs, 0, ox + core.x * cs, oy + core.z * cs, cs * 1.6);
-  g.addColorStop(0, 'rgba(170,220,230,.95)'); g.addColorStop(0.35, 'rgba(120,180,200,.5)'); g.addColorStop(1, 'rgba(120,180,200,0)');
-  x.fillStyle = g; x.beginPath(); x.arc(ox + core.x * cs, oy + core.z * cs, cs * 1.6, 0, 7); x.fill();
-  x.fillStyle = '#dff1f5'; x.beginPath(); x.arc(ox + core.x * cs, oy + core.z * cs, cs * 0.28, 0, 7); x.fill();
+  // Dunkelheit je nach Lichtstärke der Map, rechts dunkler
+  const dk = x.createLinearGradient(ox, 0, ox + cw * COLS, 0); const a = 1 - (L.ambient ?? 1);
+  dk.addColorStop(0, `rgba(8,6,20,${a * 0.5})`); dk.addColorStop(1, `rgba(8,6,20,${Math.min(0.85, a * 0.85 + 0.1)})`);
+  x.fillStyle = dk; x.fillRect(ox, oy, cw * COLS, ch * ROWS);
+  x.strokeStyle = 'rgba(0,0,0,.35)'; x.lineWidth = 1;
+  for (let q = 1; q < COLS; q++) { x.beginPath(); x.moveTo(ox + q * cw, oy); x.lineTo(ox + q * cw, oy + ch * ROWS); x.stroke(); }
+  // Schattennebel rechts
+  const fg = x.createLinearGradient(ox + cw * COLS - 10, 0, w, 0); fg.addColorStop(0, 'rgba(60,30,90,0)'); fg.addColorStop(1, 'rgba(60,30,90,.6)'); x.fillStyle = fg; x.fillRect(ox + cw * COLS - 10, 0, w, h);
+  for (let r = 0; r < ROWS; r++) { x.fillStyle = 'rgba(255,90,60,.8)'; x.beginPath(); x.arc(w - 14, oy + (r + 0.5) * ch, 2.2, 0, 7); x.fill(); }
+  // Lichtherz links
+  const hx = ox * 0.5, hy = h / 2, hg = x.createRadialGradient(hx, hy, 0, hx, hy, h * 0.45); hg.addColorStop(0, 'rgba(255,230,170,.75)'); hg.addColorStop(1, 'rgba(255,230,170,0)');
+  x.fillStyle = hg; x.fillRect(0, 0, ox * 1.5, h);
+  x.fillStyle = '#fff3d0'; x.beginPath(); x.moveTo(hx, hy - 22); x.lineTo(hx + 12, hy - 4); x.lineTo(hx, hy + 22); x.lineTo(hx - 12, hy - 4); x.closePath(); x.fill();
   return c.toDataURL('image/png');
 }
