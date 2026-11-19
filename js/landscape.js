@@ -1,7 +1,7 @@
 // Packfall – Titel-/Menü-Hintergrund: düstere 3D-Landschaft (Berge, Nebeltal, Wald, See mit Mondspiegelung,
 // der Kern auf seinem Hügel mit Lichtsäule, Maschinen-Türme als Wache, ferne Horde mit Fackeln).
 import * as THREE from './vendor/three.module.min.js';
-import { Kit, halo, envMap, buildTower } from './td3d.js?v=0.9.2-e9185933';
+import { Kit, halo, envMap } from './td3d.js?v=0.9.4-d1cb9d7c';
 
 const V3 = THREE.Vector3;
 function hash(x, y) { let h = Math.imul(x | 0, 374761393) ^ Math.imul(y | 0, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16; return (h >>> 0) / 4294967296; }
@@ -150,15 +150,7 @@ export function createLandscape(renderer, { quality = () => 'hoch' } = {}) {
   const rings = [];
   for (let i = 0; i < 2; i++) { const kr = new Kit(); kr.tor('glow', 1.8 + i * 0.5, 0.05, '#8fd6e6', [0, 0, 0], [Math.PI / 2, 0, 0], 64); const m = kr.build(false); m.position.y = 3.9; core.add(m); rings.push(m); }
   const cLight = new THREE.PointLight('#7fd0e0', 900, 90, 1.7); cLight.position.y = 5; core.add(cLight);
-  // Maschinen-Türme als Wache
   const guards = [];
-  [['laserlanze', -0.9], ['railgun', 0.25], ['tesla', 1.35], ['haubitze', 2.45], ['repetierer', 3.6], ['raketenwerk', 4.8]].forEach(([id, a], i) => {
-    const t = buildTower(id, 4);
-    const x = K.x + Math.sin(a) * 7.2, z = K.z + Math.cos(a) * 7.2;
-    t.position.set(x, H(x, z), z); t.scale.setScalar(2.4);
-    t.userData.head.rotation.y = a + Math.PI; t.userData.phase = i * 1.3;
-    scene.add(t); guards.push(t);
-  });
   // Laternen am Pfad vom Tal zum Kern
   const lampPos = [];
   for (let i = 0; i < 16; i++) {
